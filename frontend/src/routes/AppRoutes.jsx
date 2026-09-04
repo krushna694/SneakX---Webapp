@@ -7,6 +7,8 @@ import Cart from "../pages/Cart/Cart";
 import Wishlist from "../pages/Wishlist/Wishlist";
 import Login from "../features/authentication/pages/Login";
 import Profile from "../pages/Profile/Profile";
+import Account from "../pages/Profile/Account";
+import Addresses from "../pages/Profile/Addresses";
 
 function AppRoutes() {
     return (
@@ -23,6 +25,8 @@ function AppRoutes() {
             <Route path="/wishlist" element={<Wishlist />} />
             <Route path="/login" element={<Login />} />
             <Route path="/profile" element={<Profile />} />
+            <Route path="/profile/account" element={<Account />} />
+            <Route path="/profile/addresses" element={<Addresses />} />
         </Routes>
     );
 }
