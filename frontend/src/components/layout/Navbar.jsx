@@ -1,6 +1,9 @@
 import { Link } from "react-router-dom";
+import { useCart } from "../../hooks/useCart";
 
 function Navbar() {
+    const { cartCount } = useCart();
+
     return (
         <nav className="navbar navbar-expand-lg bg-dark navbar-dark">
             <div className="container">
@@ -47,7 +50,7 @@ function Navbar() {
 
                         <li className="nav-item">
                             <Link className="nav-link" to="/cart">
-                                Cart
+                                Cart ({cartCount})
                             </Link>
                         </li>
 

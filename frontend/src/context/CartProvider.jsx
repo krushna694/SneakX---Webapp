@@ -1,11 +1,23 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { CartContext } from "./CartContext";
 
 function CartProvider({ children }) {
-    const [cartItems, setCartItems] = useState([]);
+
+    // Load cart from localStorage when application starts
+    const [cartItems, setCartItems] = useState(() => {
+        const savedCart = localStorage.getItem("sneakx_cart");
+
+        return savedCart ? JSON.parse(savedCart) : [];
+    });
+
+    // Save cart whenever cartItems changes
+    useEffect(() => {
+        localStorage.setItem("sneakx_cart", JSON.stringify(cartItems));
+    }, [cartItems]);
 
     const addToCart = (product, quantity = 1, size = null) => {
         setCartItems((currentItems) => {
+
             const existingItem = currentItems.find(
                 (item) =>
                     item.product.id === product.id &&
@@ -48,6 +60,7 @@ function CartProvider({ children }) {
     };
 
     const updateQuantity = (productId, size, quantity) => {
+
         if (quantity < 1) {
             return;
         }
