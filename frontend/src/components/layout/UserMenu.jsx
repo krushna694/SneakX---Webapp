@@ -35,7 +35,13 @@ function UserMenu() {
                 <User size={21} strokeWidth={1.8} />
             </button>
 
-            <ul className="dropdown-menu dropdown-menu-end">
+            <ul
+                className="dropdown-menu dropdown-menu-end"
+                style={{
+                    zIndex: 2000,
+                    minWidth: "220px",
+                }}
+            >
 
                 {/* User Information */}
                 <li>

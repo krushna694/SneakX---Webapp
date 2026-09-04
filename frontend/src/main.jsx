@@ -12,6 +12,7 @@ import AuthProvider from "./features/authentication/context/AuthProvider";
 import CartProvider from "./context/CartProvider";
 import WishlistProvider from "./context/WishlistProvider";
 import AddressProvider from "./features/address/context/AddressProvider";
+import OrderProvider from "./features/order/context/OrderProvider";
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
@@ -20,11 +21,14 @@ createRoot(document.getElementById("root")).render(
         <AddressProvider>
           <CartProvider>
             <WishlistProvider>
-              <App />
+              <OrderProvider>
+                <App />
+              </OrderProvider>
             </WishlistProvider>
           </CartProvider>
         </AddressProvider>
       </AuthProvider>
     </BrowserRouter>
   </StrictMode>
+
 );

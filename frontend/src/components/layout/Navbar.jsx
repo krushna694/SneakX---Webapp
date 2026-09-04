@@ -8,11 +8,25 @@ function Navbar() {
     const { wishlistCount } = useWishlist();
 
     return (
-        <nav className="navbar navbar-expand-lg bg-dark navbar-dark">
-            <div className="container">
-
+        <nav
+            className="navbar navbar-expand-lg bg-dark navbar-dark"
+            style={{
+                position: "relative",
+                zIndex: 1055,
+                overflow: "visible",
+            }}
+        >
+            <div
+                className="container"
+                style={{
+                    overflow: "visible",
+                }}
+            >
                 {/* Brand */}
-                <Link className="navbar-brand fw-bold" to="/">
+                <Link
+                    className="navbar-brand fw-bold"
+                    to="/"
+                >
                     SneakX
                 </Link>
 
@@ -30,38 +44,58 @@ function Navbar() {
                 </button>
 
                 {/* Navigation Links */}
-                <div className="collapse navbar-collapse" id="navbarContent">
-                    <ul className="navbar-nav ms-auto">
-
+                <div
+                    className="collapse navbar-collapse"
+                    id="navbarContent"
+                    style={{
+                        overflow: "visible",
+                    }}
+                >
+                    <ul
+                        className="navbar-nav ms-auto"
+                        style={{
+                            overflow: "visible",
+                        }}
+                    >
                         <li className="nav-item">
-                            <Link className="nav-link" to="/">
+                            <Link
+                                className="nav-link"
+                                to="/"
+                            >
                                 Home
                             </Link>
                         </li>
 
                         <li className="nav-item">
-                            <Link className="nav-link" to="/products">
+                            <Link
+                                className="nav-link"
+                                to="/products"
+                            >
                                 Products
                             </Link>
                         </li>
 
                         <li className="nav-item">
-                            <Link className="nav-link" to="/wishlist">
+                            <Link
+                                className="nav-link"
+                                to="/wishlist"
+                            >
                                 Wishlist ({wishlistCount})
                             </Link>
                         </li>
 
                         <li className="nav-item">
-                            <Link className="nav-link" to="/cart">
+                            <Link
+                                className="nav-link"
+                                to="/cart"
+                            >
                                 Cart ({cartCount})
                             </Link>
                         </li>
 
                         <UserMenu />
-
                     </ul>
                 </div>
-
             </div>
         </nav>
     );

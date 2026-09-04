@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
     MapPin,
@@ -7,12 +8,28 @@ import {
     CreditCard,
     ArrowRight,
 } from "lucide-react";
+
 import { useCart } from "../../hooks/useCart";
 import { useAddress } from "../../features/address/hooks/useAddress";
+import { useOrder } from "../../features/order/hooks/useOrder";
 
 function Checkout() {
-    const { cartItems, cartTotal } = useCart();
-    const { addresses, getDefaultAddress } = useAddress();
+    const navigate = useNavigate();
+
+    const {
+        cartItems,
+        cartTotal,
+        clearCart,
+    } = useCart();
+
+    const {
+        addresses,
+        getDefaultAddress,
+    } = useAddress();
+
+    const {
+        createOrder,
+    } = useOrder();
 
     const defaultAddress = getDefaultAddress();
 
@@ -30,6 +47,29 @@ function Checkout() {
 
     const finalTotal = cartTotal + deliveryCharge;
 
+    const handlePlaceOrder = () => {
+        if (!selectedAddress) {
+            return;
+        }
+
+        const newOrder = createOrder({
+            items: cartItems,
+            address: selectedAddress,
+            paymentMethod,
+            subtotal: cartTotal,
+            shipping: deliveryCharge,
+            total: finalTotal,
+        });
+
+        clearCart();
+
+        navigate("/order-confirmation", {
+            state: {
+                order: newOrder,
+            },
+        });
+    };
+
     if (cartItems.length === 0) {
         return (
             <div className="container py-5">
@@ -37,6 +77,7 @@ function Checkout() {
                     className="text-center py-5"
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.4 }}
                 >
                     <ShoppingBag
                         size={55}
@@ -116,6 +157,7 @@ function Checkout() {
                                 </div>
                             ) : (
                                 <div className="row g-3">
+
                                     {addresses.map((address) => (
                                         <div
                                             className="col-md-6"
@@ -124,9 +166,9 @@ function Checkout() {
                                             <motion.button
                                                 type="button"
                                                 className={`card w-100 text-start h-100 ${selectedAddressId ===
-                                                    address.id
-                                                    ? "border-dark"
-                                                    : "border"
+                                                        address.id
+                                                        ? "border-dark"
+                                                        : "border"
                                                     }`}
                                                 onClick={() =>
                                                     setSelectedAddressId(
@@ -197,8 +239,10 @@ function Checkout() {
                                             </motion.button>
                                         </div>
                                     ))}
+
                                 </div>
                             )}
+
                         </div>
                     </motion.div>
 
@@ -222,6 +266,7 @@ function Checkout() {
                                 </h5>
                             </div>
 
+                            {/* Cash on Delivery */}
                             <div className="form-check border rounded p-3 mb-3">
                                 <input
                                     className="form-check-input"
@@ -247,6 +292,7 @@ function Checkout() {
                                 </label>
                             </div>
 
+                            {/* Online Payment */}
                             <div className="form-check border rounded p-3">
                                 <input
                                     className="form-check-input"
@@ -307,6 +353,7 @@ function Checkout() {
 
                             {/* Products */}
                             <div className="mb-3">
+
                                 {cartItems.map((item) => (
                                     <div
                                         key={`${item.product.id}-${item.size}`}
@@ -336,6 +383,7 @@ function Checkout() {
                                         </span>
                                     </div>
                                 ))}
+
                             </div>
 
                             <hr />
@@ -388,6 +436,7 @@ function Checkout() {
                                 type="button"
                                 className="btn btn-dark w-100 d-flex justify-content-center align-items-center gap-2"
                                 disabled={!selectedAddress}
+                                onClick={handlePlaceOrder}
                                 whileHover={{
                                     scale: selectedAddress
                                         ? 1.02
@@ -413,6 +462,7 @@ function Checkout() {
                     </motion.div>
 
                 </div>
+
             </div>
         </div>
     );

@@ -6,11 +6,17 @@ function AuthProvider({ children }) {
     const [user, setUser] = useState(() => {
         const savedUser = localStorage.getItem("sneakx_user");
 
-        return savedUser ? JSON.parse(savedUser) : null;
+        return savedUser
+            ? JSON.parse(savedUser)
+            : null;
     });
 
     const [isAuthenticated, setIsAuthenticated] = useState(() => {
-        return localStorage.getItem("sneakx_isAuthenticated") === "true";
+        return (
+            localStorage.getItem(
+                "sneakx_isAuthenticated"
+            ) === "true"
+        );
     });
 
     useEffect(() => {
@@ -31,21 +37,50 @@ function AuthProvider({ children }) {
         );
     }, [isAuthenticated]);
 
-    // Temporary frontend login
+    // -----------------------------------------
+    // LOGIN
+    // -----------------------------------------
+
     const login = (email, password) => {
 
         if (!email || !password) {
             return {
                 success: false,
-                message: "Email and password are required."
+                message:
+                    "Email and password are required."
+            };
+        }
+
+        const normalizedEmail =
+            email.trim().toLowerCase();
+
+        const savedUsers =
+            localStorage.getItem("sneakx_users");
+
+        const users = savedUsers
+            ? JSON.parse(savedUsers)
+            : [];
+
+        const existingUser = users.find(
+            (registeredUser) =>
+                registeredUser.email ===
+                normalizedEmail &&
+                registeredUser.password === password
+        );
+
+        if (!existingUser) {
+            return {
+                success: false,
+                message:
+                    "Invalid email or password."
             };
         }
 
         const loggedInUser = {
-            id: 1,
-            name: "SneakX User",
-            email: email,
-            role: "USER"
+            id: existingUser.id,
+            name: existingUser.name,
+            email: existingUser.email,
+            role: existingUser.role
         };
 
         setUser(loggedInUser);
@@ -56,28 +91,144 @@ function AuthProvider({ children }) {
             user: loggedInUser
         };
     };
-    const updateUser = (updatedData) => {
-        setUser((currentUser) => {
-            const updatedUser = {
-                ...currentUser,
-                ...updatedData,
-            };
 
-            return updatedUser;
-        });
+    // -----------------------------------------
+    // REGISTER
+    // -----------------------------------------
+
+    const register = ({
+        name,
+        email,
+        password
+    }) => {
+
+        if (!name || !email || !password) {
+            return {
+                success: false,
+                message:
+                    "All fields are required."
+            };
+        }
+
+        const normalizedEmail =
+            email.trim().toLowerCase();
+
+        const savedUsers =
+            localStorage.getItem("sneakx_users");
+
+        const users = savedUsers
+            ? JSON.parse(savedUsers)
+            : [];
+
+        const existingUser = users.find(
+            (registeredUser) =>
+                registeredUser.email ===
+                normalizedEmail
+        );
+
+        if (existingUser) {
+            return {
+                success: false,
+                message:
+                    "An account with this email already exists."
+            };
+        }
+
+        const newUser = {
+            id: Date.now(),
+            name: name.trim(),
+            email: normalizedEmail,
+            password: password,
+            role: "USER"
+        };
+
+        const updatedUsers = [
+            ...users,
+            newUser
+        ];
+
+        localStorage.setItem(
+            "sneakx_users",
+            JSON.stringify(updatedUsers)
+        );
 
         return {
             success: true,
-            message: "Profile updated successfully.",
+            message:
+                "Registration successful."
         };
     };
 
+    // -----------------------------------------
+    // UPDATE USER
+    // -----------------------------------------
+
+    const updateUser = (updatedData) => {
+
+        if (!user) {
+            return {
+                success: false,
+                message:
+                    "No user is currently logged in."
+            };
+        }
+
+        const updatedUser = {
+            ...user,
+            ...updatedData
+        };
+
+        setUser(updatedUser);
+
+        /*
+         * Also update the registered user's
+         * information inside sneakx_users.
+         */
+        const savedUsers =
+            localStorage.getItem("sneakx_users");
+
+        const users = savedUsers
+            ? JSON.parse(savedUsers)
+            : [];
+
+        const updatedUsers = users.map(
+            (registeredUser) =>
+                registeredUser.id === user.id
+                    ? {
+                        ...registeredUser,
+                        ...updatedData
+                    }
+                    : registeredUser
+        );
+
+        localStorage.setItem(
+            "sneakx_users",
+            JSON.stringify(updatedUsers)
+        );
+
+        return {
+            success: true,
+            message:
+                "Profile updated successfully."
+        };
+    };
+
+    // -----------------------------------------
+    // LOGOUT
+    // -----------------------------------------
+
     const logout = () => {
+
         setUser(null);
         setIsAuthenticated(false);
 
-        localStorage.removeItem("sneakx_user");
-        localStorage.removeItem("sneakx_isAuthenticated");
+        localStorage.removeItem(
+            "sneakx_user"
+        );
+
+        localStorage.removeItem(
+            "sneakx_isAuthenticated"
+        );
     };
 
     return (
@@ -86,6 +237,7 @@ function AuthProvider({ children }) {
                 user,
                 isAuthenticated,
                 login,
+                register,
                 updateUser,
                 logout
             }}
