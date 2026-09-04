@@ -1,8 +1,10 @@
 import { Link } from "react-router-dom";
 import { useCart } from "../../hooks/useCart";
+import { useWishlist } from "../../hooks/useWishlist";
 
 function Navbar() {
     const { cartCount } = useCart();
+    const { wishlistCount } = useWishlist();
 
     return (
         <nav className="navbar navbar-expand-lg bg-dark navbar-dark">
@@ -44,7 +46,7 @@ function Navbar() {
 
                         <li className="nav-item">
                             <Link className="nav-link" to="/wishlist">
-                                Wishlist
+                                Wishlist ({wishlistCount})
                             </Link>
                         </li>
 
