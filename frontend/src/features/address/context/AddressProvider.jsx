@@ -5,9 +5,24 @@ function AddressProvider({ children }) {
     const [addresses, setAddresses] = useState(() => {
         const savedAddresses = localStorage.getItem("sneakx_addresses");
 
-        return savedAddresses
-            ? JSON.parse(savedAddresses)
-            : [];
+        if (!savedAddresses) {
+            return [];
+        }
+
+        const parsedAddresses = JSON.parse(savedAddresses);
+
+        // Support addresses created before isDefault was added.
+        if (
+            parsedAddresses.length > 0 &&
+            !parsedAddresses.some((address) => address.isDefault)
+        ) {
+            return parsedAddresses.map((address, index) => ({
+                ...address,
+                isDefault: index === 0,
+            }));
+        }
+
+        return parsedAddresses;
     });
 
     useEffect(() => {

@@ -9,6 +9,7 @@ import Login from "../features/authentication/pages/Login";
 import Profile from "../pages/Profile/Profile";
 import Account from "../pages/Profile/Account";
 import Addresses from "../pages/Profile/Addresses";
+import Checkout from "../pages/Checkout/Checkout";
 
 function AppRoutes() {
     return (
@@ -27,6 +28,7 @@ function AppRoutes() {
             <Route path="/profile" element={<Profile />} />
             <Route path="/profile/account" element={<Account />} />
             <Route path="/profile/addresses" element={<Addresses />} />
+            <Route path="/checkout" element={<Checkout />} />
         </Routes>
     );
 }
