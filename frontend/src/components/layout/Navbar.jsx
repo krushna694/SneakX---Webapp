@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { useCart } from "../../hooks/useCart";
 import { useWishlist } from "../../hooks/useWishlist";
+import UserMenu from "./UserMenu";
 
 function Navbar() {
     const { cartCount } = useCart();
@@ -56,11 +57,7 @@ function Navbar() {
                             </Link>
                         </li>
 
-                        <li className="nav-item">
-                            <Link className="nav-link" to="/login">
-                                Login
-                            </Link>
-                        </li>
+                        <UserMenu />
 
                     </ul>
                 </div>
