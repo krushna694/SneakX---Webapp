@@ -2,12 +2,20 @@ import { useState } from "react";
 import SizeSelector from "./SizeSelector";
 import QuantitySelector from "./QuantitySelector";
 import { useCart } from "../../hooks/useCart";
+import { useWishlist } from "../../hooks/useWishlist";
 
 function ProductInfo({ product }) {
     const [selectedSize, setSelectedSize] = useState(null);
     const [quantity, setQuantity] = useState(1);
 
     const { addToCart } = useCart();
+    const {
+        addToWishlist,
+        removeFromWishlist,
+        isInWishlist
+    } = useWishlist();
+
+    const inWishlist = isInWishlist(product.id);
 
     const handleAddToCart = () => {
         if (!selectedSize) {
@@ -16,25 +24,27 @@ function ProductInfo({ product }) {
         }
 
         addToCart(product, quantity, selectedSize);
-
         alert("Product added to cart!");
     };
 
+    const handleWishlist = () => {
+        if (inWishlist) {
+            removeFromWishlist(product.id);
+            alert("Removed from wishlist.");
+        } else {
+            addToWishlist(product);
+            alert("Added to wishlist!");
+        }
+    };
+
     return (
-        <div>
-            <p className="text-muted mb-2">
-                {product.category}
-            </p>
+        <div className="product-info">
 
-            <h1 className="fw-bold">
-                {product.name}
-            </h1>
+            <h1>{product.name}</h1>
 
-            <h3 className="fw-bold mt-3">
-                ₹{product.price}
-            </h3>
+            <h3>₹{product.price}</h3>
 
-            <p className="text-muted mt-3">
+            <p>
                 {product.description}
             </p>
 
@@ -48,22 +58,29 @@ function ProductInfo({ product }) {
                 onQuantityChange={setQuantity}
             />
 
-            <div className="d-grid gap-2 mt-4">
+            <div className="mt-3 d-flex gap-2">
+
                 <button
-                    type="button"
-                    className="btn btn-dark btn-lg"
+                    className="btn btn-dark"
                     onClick={handleAddToCart}
                 >
                     Add to Cart
                 </button>
 
                 <button
-                    type="button"
-                    className="btn btn-outline-dark btn-lg"
+                    className={`btn ${inWishlist
+                            ? "btn-danger"
+                            : "btn-outline-danger"
+                        }`}
+                    onClick={handleWishlist}
                 >
-                    Add to Wishlist
+                    {inWishlist
+                        ? "♥ Remove from Wishlist"
+                        : "♡ Add to Wishlist"}
                 </button>
+
             </div>
+
         </div>
     );
 }

@@ -7,12 +7,15 @@ import "./index.css";
 
 import App from "./App.jsx";
 import CartProvider from "./context/CartProvider";
+import WishlistProvider from "./context/WishlistProvider";
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
     <BrowserRouter>
       <CartProvider>
-        <App />
+        <WishlistProvider>
+          <App />
+        </WishlistProvider>
       </CartProvider>
     </BrowserRouter>
   </StrictMode>
