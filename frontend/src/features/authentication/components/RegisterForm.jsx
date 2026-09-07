@@ -1,14 +1,15 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
-    User,
-    Mail,
-    Lock,
+    ArrowRight,
+    Check,
     Eye,
     EyeOff,
+    Lock,
+    Mail,
+    User,
     UserPlus,
-    ArrowRight,
 } from "lucide-react";
 
 import { useAuth } from "../hooks/useAuth";
@@ -24,7 +25,9 @@ function RegisterForm() {
         confirmPassword: "",
     });
 
-    const [showPassword, setShowPassword] = useState(false);
+    const [showPassword, setShowPassword] =
+        useState(false);
+
     const [showConfirmPassword, setShowConfirmPassword] =
         useState(false);
 
@@ -50,7 +53,12 @@ function RegisterForm() {
         const password = formData.password;
         const confirmPassword = formData.confirmPassword;
 
-        if (!name || !email || !password || !confirmPassword) {
+        if (
+            !name ||
+            !email ||
+            !password ||
+            !confirmPassword
+        ) {
             setError("Please fill in all fields.");
             return;
         }
@@ -61,7 +69,9 @@ function RegisterForm() {
         }
 
         if (password.length < 8) {
-            setError("Password must be at least 8 characters.");
+            setError(
+                "Password must be at least 8 characters."
+            );
             return;
         }
 
@@ -91,254 +101,480 @@ function RegisterForm() {
 
     return (
         <motion.div
-            className="container py-5"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4 }}
+            initial={{
+                opacity: 0,
+                y: 20,
+            }}
+            animate={{
+                opacity: 1,
+                y: 0,
+            }}
+            transition={{
+                duration: 0.45,
+                ease: [0.22, 1, 0.36, 1],
+            }}
         >
-            <div className="row justify-content-center">
-                <div className="col-12 col-md-8 col-lg-6 col-xl-5">
+            {/* ERROR MESSAGE */}
+            <AnimatePresence>
+                {error && (
+                    <motion.div
+                        className="d-flex align-items-center gap-2 mb-4"
+                        initial={{
+                            opacity: 0,
+                            y: -10,
+                        }}
+                        animate={{
+                            opacity: 1,
+                            y: 0,
+                        }}
+                        exit={{
+                            opacity: 0,
+                            y: -10,
+                        }}
+                        style={{
+                            padding: "12px 14px",
+                            borderRadius: "10px",
+                            border:
+                                "1px solid #f0cccc",
+                            background:
+                                "#fff6f6",
+                            color: "#b33a3a",
+                            fontSize: "12px",
+                            lineHeight: "1.5",
+                        }}
+                    >
+                        <span
+                            className="d-flex align-items-center justify-content-center fw-bold flex-shrink-0"
+                            style={{
+                                width: "18px",
+                                height: "18px",
+                                borderRadius: "50%",
+                                background:
+                                    "#b33a3a",
+                                color: "#ffffff",
+                                fontSize: "11px",
+                            }}
+                        >
+                            !
+                        </span>
 
-                    <div className="card border-0 shadow-sm">
-                        <div className="card-body p-4 p-md-5">
+                        <span>{error}</span>
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
-                            {/* Header */}
-                            <div className="text-center mb-4">
-                                <div className="mb-3">
-                                    <UserPlus
-                                        size={34}
-                                        strokeWidth={1.8}
-                                    />
-                                </div>
+            <form onSubmit={handleSubmit}>
+                {/* FULL NAME */}
+                <div className="mb-4">
+                    <label
+                        htmlFor="registerName"
+                        className="form-label fw-semibold mb-2"
+                        style={{
+                            fontSize: "11px",
+                            color: "#333333",
+                        }}
+                    >
+                        Full Name
+                    </label>
 
-                                <h2 className="fw-bold mb-2">
-                                    Create Account
-                                </h2>
-
-                                <p className="text-muted mb-0">
-                                    Create your SneakX account
-                                </p>
-                            </div>
-
-                            {/* Error */}
-                            {error && (
-                                <motion.div
-                                    className="alert alert-danger"
-                                    initial={{
-                                        opacity: 0,
-                                        y: -10,
-                                    }}
-                                    animate={{
-                                        opacity: 1,
-                                        y: 0,
-                                    }}
-                                >
-                                    {error}
-                                </motion.div>
-                            )}
-
-                            <form onSubmit={handleSubmit}>
-
-                                {/* Full Name */}
-                                <div className="mb-3">
-                                    <label
-                                        htmlFor="name"
-                                        className="form-label"
-                                    >
-                                        Full Name
-                                    </label>
-
-                                    <div className="input-group">
-                                        <span className="input-group-text">
-                                            <User size={18} />
-                                        </span>
-
-                                        <input
-                                            id="name"
-                                            name="name"
-                                            type="text"
-                                            className="form-control"
-                                            value={formData.name}
-                                            onChange={handleChange}
-                                            placeholder="Enter your full name"
-                                            autoComplete="name"
-                                        />
-                                    </div>
-                                </div>
-
-                                {/* Email */}
-                                <div className="mb-3">
-                                    <label
-                                        htmlFor="email"
-                                        className="form-label"
-                                    >
-                                        Email
-                                    </label>
-
-                                    <div className="input-group">
-                                        <span className="input-group-text">
-                                            <Mail size={18} />
-                                        </span>
-
-                                        <input
-                                            id="email"
-                                            name="email"
-                                            type="email"
-                                            className="form-control"
-                                            value={formData.email}
-                                            onChange={handleChange}
-                                            placeholder="Enter your email"
-                                            autoComplete="email"
-                                        />
-                                    </div>
-                                </div>
-
-                                {/* Password */}
-                                <div className="mb-3">
-                                    <label
-                                        htmlFor="password"
-                                        className="form-label"
-                                    >
-                                        Password
-                                    </label>
-
-                                    <div className="input-group">
-                                        <span className="input-group-text">
-                                            <Lock size={18} />
-                                        </span>
-
-                                        <input
-                                            id="password"
-                                            name="password"
-                                            type={
-                                                showPassword
-                                                    ? "text"
-                                                    : "password"
-                                            }
-                                            className="form-control"
-                                            value={formData.password}
-                                            onChange={handleChange}
-                                            placeholder="Create a password"
-                                            autoComplete="new-password"
-                                        />
-
-                                        <button
-                                            type="button"
-                                            className="btn btn-outline-secondary"
-                                            onClick={() =>
-                                                setShowPassword(
-                                                    (current) =>
-                                                        !current
-                                                )
-                                            }
-                                            aria-label={
-                                                showPassword
-                                                    ? "Hide password"
-                                                    : "Show password"
-                                            }
-                                        >
-                                            {showPassword ? (
-                                                <EyeOff size={18} />
-                                            ) : (
-                                                <Eye size={18} />
-                                            )}
-                                        </button>
-                                    </div>
-
-                                    <div className="form-text">
-                                        Password must contain at least
-                                        8 characters.
-                                    </div>
-                                </div>
-
-                                {/* Confirm Password */}
-                                <div className="mb-4">
-                                    <label
-                                        htmlFor="confirmPassword"
-                                        className="form-label"
-                                    >
-                                        Confirm Password
-                                    </label>
-
-                                    <div className="input-group">
-                                        <span className="input-group-text">
-                                            <Lock size={18} />
-                                        </span>
-
-                                        <input
-                                            id="confirmPassword"
-                                            name="confirmPassword"
-                                            type={
-                                                showConfirmPassword
-                                                    ? "text"
-                                                    : "password"
-                                            }
-                                            className="form-control"
-                                            value={
-                                                formData.confirmPassword
-                                            }
-                                            onChange={handleChange}
-                                            placeholder="Confirm your password"
-                                            autoComplete="new-password"
-                                        />
-
-                                        <button
-                                            type="button"
-                                            className="btn btn-outline-secondary"
-                                            onClick={() =>
-                                                setShowConfirmPassword(
-                                                    (current) =>
-                                                        !current
-                                                )
-                                            }
-                                            aria-label={
-                                                showConfirmPassword
-                                                    ? "Hide password"
-                                                    : "Show password"
-                                            }
-                                        >
-                                            {showConfirmPassword ? (
-                                                <EyeOff size={18} />
-                                            ) : (
-                                                <Eye size={18} />
-                                            )}
-                                        </button>
-                                    </div>
-                                </div>
-
-                                {/* Register Button */}
-                                <motion.button
-                                    type="submit"
-                                    className="btn btn-dark w-100 d-flex align-items-center justify-content-center gap-2"
-                                    whileHover={{ scale: 1.01 }}
-                                    whileTap={{ scale: 0.98 }}
-                                >
-                                    <UserPlus size={18} />
-                                    Create Account
-                                    <ArrowRight size={18} />
-                                </motion.button>
-
-                            </form>
-
-                            {/* Login */}
-                            <div className="text-center mt-4">
-                                <span className="text-muted">
-                                    Already have an account?{" "}
-                                </span>
-
-                                <Link
-                                    to="/login"
-                                    className="fw-semibold text-dark"
-                                >
-                                    Login
-                                </Link>
-                            </div>
-
+                    <div
+                        className="d-flex align-items-center"
+                        style={{
+                            border:
+                                "1px solid #e5e5e5",
+                            borderRadius: "10px",
+                            background:
+                                "#ffffff",
+                            overflow: "hidden",
+                        }}
+                    >
+                        <div
+                            className="d-flex align-items-center justify-content-center flex-shrink-0"
+                            style={{
+                                width: "46px",
+                                color: "#999999",
+                            }}
+                        >
+                            <User size={17} />
                         </div>
+
+                        <input
+                            id="registerName"
+                            name="name"
+                            type="text"
+                            value={formData.name}
+                            onChange={handleChange}
+                            placeholder="Enter your full name"
+                            autoComplete="name"
+                            className="border-0 shadow-none"
+                            style={{
+                                height: "48px",
+                                flex: 1,
+                                minWidth: 0,
+                                padding:
+                                    "0 14px 0 0",
+                                fontSize: "12px",
+                                color: "#222222",
+                                outline: "none",
+                            }}
+                        />
+                    </div>
+                </div>
+
+                {/* EMAIL */}
+                <div className="mb-4">
+                    <label
+                        htmlFor="registerEmail"
+                        className="form-label fw-semibold mb-2"
+                        style={{
+                            fontSize: "11px",
+                            color: "#333333",
+                        }}
+                    >
+                        Email Address
+                    </label>
+
+                    <div
+                        className="d-flex align-items-center"
+                        style={{
+                            border:
+                                "1px solid #e5e5e5",
+                            borderRadius: "10px",
+                            background:
+                                "#ffffff",
+                            overflow: "hidden",
+                        }}
+                    >
+                        <div
+                            className="d-flex align-items-center justify-content-center flex-shrink-0"
+                            style={{
+                                width: "46px",
+                                color: "#999999",
+                            }}
+                        >
+                            <Mail size={17} />
+                        </div>
+
+                        <input
+                            id="registerEmail"
+                            name="email"
+                            type="email"
+                            value={formData.email}
+                            onChange={handleChange}
+                            placeholder="Enter your email"
+                            autoComplete="email"
+                            className="border-0 shadow-none"
+                            style={{
+                                height: "48px",
+                                flex: 1,
+                                minWidth: 0,
+                                padding:
+                                    "0 14px 0 0",
+                                fontSize: "12px",
+                                color: "#222222",
+                                outline: "none",
+                            }}
+                        />
+                    </div>
+                </div>
+
+                {/* PASSWORD */}
+                <div className="mb-4">
+                    <label
+                        htmlFor="registerPassword"
+                        className="form-label fw-semibold mb-2"
+                        style={{
+                            fontSize: "11px",
+                            color: "#333333",
+                        }}
+                    >
+                        Password
+                    </label>
+
+                    <div
+                        className="d-flex align-items-center"
+                        style={{
+                            border:
+                                "1px solid #e5e5e5",
+                            borderRadius: "10px",
+                            background:
+                                "#ffffff",
+                            overflow: "hidden",
+                        }}
+                    >
+                        <div
+                            className="d-flex align-items-center justify-content-center flex-shrink-0"
+                            style={{
+                                width: "46px",
+                                color: "#999999",
+                            }}
+                        >
+                            <Lock size={17} />
+                        </div>
+
+                        <input
+                            id="registerPassword"
+                            name="password"
+                            type={
+                                showPassword
+                                    ? "text"
+                                    : "password"
+                            }
+                            value={formData.password}
+                            onChange={handleChange}
+                            placeholder="Create a password"
+                            autoComplete="new-password"
+                            className="border-0 shadow-none"
+                            style={{
+                                height: "48px",
+                                flex: 1,
+                                minWidth: 0,
+                                padding:
+                                    "0 10px 0 0",
+                                fontSize: "12px",
+                                color: "#222222",
+                                outline: "none",
+                            }}
+                        />
+
+                        <button
+                            type="button"
+                            className="btn border-0 d-flex align-items-center justify-content-center"
+                            onClick={() =>
+                                setShowPassword(
+                                    (current) =>
+                                        !current
+                                )
+                            }
+                            aria-label={
+                                showPassword
+                                    ? "Hide password"
+                                    : "Show password"
+                            }
+                            style={{
+                                width: "46px",
+                                height: "48px",
+                                color: "#888888",
+                                background:
+                                    "transparent",
+                            }}
+                        >
+                            {showPassword ? (
+                                <EyeOff size={17} />
+                            ) : (
+                                <Eye size={17} />
+                            )}
+                        </button>
                     </div>
 
+                    <div
+                        className="d-flex align-items-center gap-1 mt-2"
+                        style={{
+                            fontSize: "10px",
+                            color: "#999999",
+                        }}
+                    >
+                        <Check size={12} />
+                        Minimum 8 characters
+                    </div>
                 </div>
+
+                {/* CONFIRM PASSWORD */}
+                <div className="mb-4">
+                    <label
+                        htmlFor="registerConfirmPassword"
+                        className="form-label fw-semibold mb-2"
+                        style={{
+                            fontSize: "11px",
+                            color: "#333333",
+                        }}
+                    >
+                        Confirm Password
+                    </label>
+
+                    <div
+                        className="d-flex align-items-center"
+                        style={{
+                            border:
+                                "1px solid #e5e5e5",
+                            borderRadius: "10px",
+                            background:
+                                "#ffffff",
+                            overflow: "hidden",
+                        }}
+                    >
+                        <div
+                            className="d-flex align-items-center justify-content-center flex-shrink-0"
+                            style={{
+                                width: "46px",
+                                color: "#999999",
+                            }}
+                        >
+                            <Lock size={17} />
+                        </div>
+
+                        <input
+                            id="registerConfirmPassword"
+                            name="confirmPassword"
+                            type={
+                                showConfirmPassword
+                                    ? "text"
+                                    : "password"
+                            }
+                            value={
+                                formData.confirmPassword
+                            }
+                            onChange={handleChange}
+                            placeholder="Confirm your password"
+                            autoComplete="new-password"
+                            className="border-0 shadow-none"
+                            style={{
+                                height: "48px",
+                                flex: 1,
+                                minWidth: 0,
+                                padding:
+                                    "0 10px 0 0",
+                                fontSize: "12px",
+                                color: "#222222",
+                                outline: "none",
+                            }}
+                        />
+
+                        <button
+                            type="button"
+                            className="btn border-0 d-flex align-items-center justify-content-center"
+                            onClick={() =>
+                                setShowConfirmPassword(
+                                    (current) =>
+                                        !current
+                                )
+                            }
+                            aria-label={
+                                showConfirmPassword
+                                    ? "Hide password"
+                                    : "Show password"
+                            }
+                            style={{
+                                width: "46px",
+                                height: "48px",
+                                color: "#888888",
+                                background:
+                                    "transparent",
+                            }}
+                        >
+                            {showConfirmPassword ? (
+                                <EyeOff size={17} />
+                            ) : (
+                                <Eye size={17} />
+                            )}
+                        </button>
+                    </div>
+                </div>
+
+                {/* REGISTER BUTTON */}
+                <motion.button
+                    type="submit"
+                    className="btn w-100 d-flex align-items-center justify-content-center gap-2"
+                    whileHover={{
+                        y: -1,
+                        boxShadow:
+                            "0 8px 20px rgba(0,0,0,0.14)",
+                    }}
+                    whileTap={{
+                        scale: 0.98,
+                    }}
+                    transition={{
+                        duration: 0.2,
+                    }}
+                    style={{
+                        height: "48px",
+                        borderRadius: "10px",
+                        border: "none",
+                        background: "#111111",
+                        color: "#ffffff",
+                        fontSize: "12px",
+                        fontWeight: "600",
+                    }}
+                >
+                    <UserPlus size={17} />
+
+                    Create Account
+
+                    <ArrowRight size={16} />
+                </motion.button>
+            </form>
+
+            {/* DIVIDER */}
+            <div
+                className="d-flex align-items-center gap-3 my-4"
+            >
+                <div
+                    className="flex-grow-1"
+                    style={{
+                        height: "1px",
+                        background: "#eeeeee",
+                    }}
+                />
+
+                <span
+                    style={{
+                        fontSize: "9px",
+                        color: "#aaaaaa",
+                        textTransform:
+                            "uppercase",
+                        letterSpacing:
+                            "1px",
+                    }}
+                >
+                    Already a member?
+                </span>
+
+                <div
+                    className="flex-grow-1"
+                    style={{
+                        height: "1px",
+                        background: "#eeeeee",
+                    }}
+                />
             </div>
+
+            {/* LOGIN */}
+            <Link
+                to="/login"
+                className="text-decoration-none"
+            >
+                <motion.div
+                    className="d-flex align-items-center justify-content-center gap-2"
+                    whileHover={{
+                        backgroundColor:
+                            "#fff8f4",
+                        borderColor:
+                            "#ffd5c5",
+                    }}
+                    whileTap={{
+                        scale: 0.98,
+                    }}
+                    style={{
+                        height: "46px",
+                        borderRadius: "10px",
+                        border:
+                            "1px solid #e7e7e7",
+                        color: "#333333",
+                        fontSize: "11px",
+                        fontWeight: "600",
+                    }}
+                >
+                    <ArrowRight
+                        size={15}
+                        style={{
+                            transform:
+                                "rotate(180deg)",
+                        }}
+                    />
+
+                    Back to Login
+                </motion.div>
+            </Link>
         </motion.div>
     );
 }
