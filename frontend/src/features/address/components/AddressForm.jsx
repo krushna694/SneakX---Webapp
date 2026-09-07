@@ -31,14 +31,14 @@ function AddressForm({ editingAddress, onCancel, onSuccess }) {
     const [formData, setFormData] = useState(() =>
         editingAddress
             ? {
-                label: editingAddress.label || "",
-                fullName: editingAddress.fullName || "",
-                addressLine: editingAddress.addressLine || "",
-                city: editingAddress.city || "",
-                state: editingAddress.state || "",
-                pincode: editingAddress.pincode || "",
-                phone: editingAddress.phone || "",
-            }
+                  label: editingAddress.label || "",
+                  fullName: editingAddress.fullName || "",
+                  addressLine: editingAddress.addressLine || "",
+                  city: editingAddress.city || "",
+                  state: editingAddress.state || "",
+                  pincode: editingAddress.pincode || "",
+                  phone: editingAddress.phone || "",
+              }
             : initialForm
     );
 
@@ -114,14 +114,10 @@ function AddressForm({ editingAddress, onCancel, onSuccess }) {
         setTimeout(() => {
             if (isEditing) {
                 updateAddress(editingAddress.id, formData);
-                setSuccessMessage(
-                    "Address updated successfully."
-                );
+                setSuccessMessage("Address updated successfully.");
             } else {
                 addAddress(formData);
-                setSuccessMessage(
-                    "Address added successfully."
-                );
+                setSuccessMessage("Address added successfully.");
             }
 
             setIsSaving(false);
@@ -135,7 +131,7 @@ function AddressForm({ editingAddress, onCancel, onSuccess }) {
     const fieldVariants = {
         hidden: {
             opacity: 0,
-            y: 12,
+            y: 10,
         },
         visible: {
             opacity: 1,
@@ -157,29 +153,38 @@ function AddressForm({ editingAddress, onCancel, onSuccess }) {
         >
             <label
                 htmlFor={name}
-                className="form-label fw-semibold mb-2"
+                className="form-label mb-2"
                 style={{
                     fontSize: "11px",
-                    color: "#333333",
+                    color: "#222",
+                    fontWeight: "700",
+                    letterSpacing: "0.1px",
                 }}
             >
                 {label}
             </label>
 
-            <div className="position-relative">
+            <div
+                className="position-relative"
+                style={{
+                    borderRadius: "12px",
+                    transition: "all 0.2s ease",
+                }}
+            >
                 <div
                     className="position-absolute d-flex align-items-center justify-content-center"
                     style={{
-                        left: "13px",
+                        left: "14px",
                         top: "50%",
                         transform: "translateY(-50%)",
                         color: errors[name]
                             ? "#c94b4b"
-                            : "#999999",
+                            : "#999",
                         pointerEvents: "none",
+                        zIndex: 2,
                     }}
                 >
-                    <Icon size={16} />
+                    <Icon size={16} strokeWidth={1.8} />
                 </div>
 
                 <input
@@ -192,15 +197,39 @@ function AddressForm({ editingAddress, onCancel, onSuccess }) {
                     maxLength={maxLength}
                     className="form-control"
                     style={{
-                        minHeight: "46px",
-                        paddingLeft: "40px",
-                        borderRadius: "11px",
+                        minHeight: "48px",
+                        paddingLeft: "42px",
+                        paddingRight: "14px",
+                        borderRadius: "12px",
                         border: errors[name]
                             ? "1px solid #df9b9b"
-                            : "1px solid #e8e8e8",
-                        background: "#fafafa",
+                            : "1px solid #e5e5e5",
+                        background: "#fbfbfb",
                         fontSize: "12px",
+                        color: "#222",
                         boxShadow: "none",
+                        outline: "none",
+                        transition:
+                            "border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease",
+                    }}
+                    onFocus={(e) => {
+                        e.currentTarget.style.background = "#ffffff";
+                        e.currentTarget.style.borderColor =
+                            errors[name]
+                                ? "#df9b9b"
+                                : "#ff5a1f";
+                        e.currentTarget.style.boxShadow =
+                            errors[name]
+                                ? "0 0 0 3px rgba(201,75,75,0.08)"
+                                : "0 0 0 3px rgba(255,90,31,0.08)";
+                    }}
+                    onBlur={(e) => {
+                        e.currentTarget.style.background = "#fbfbfb";
+                        e.currentTarget.style.borderColor =
+                            errors[name]
+                                ? "#df9b9b"
+                                : "#e5e5e5";
+                        e.currentTarget.style.boxShadow = "none";
                     }}
                 />
             </div>
@@ -224,6 +253,7 @@ function AddressForm({ editingAddress, onCancel, onSuccess }) {
                         style={{
                             color: "#c94b4b",
                             fontSize: "10px",
+                            fontWeight: "500",
                         }}
                     >
                         {errors[name]}
@@ -237,33 +267,24 @@ function AddressForm({ editingAddress, onCancel, onSuccess }) {
         <AnimatePresence>
             <motion.div
                 className="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center"
-                initial={{
-                    opacity: 0,
-                }}
-                animate={{
-                    opacity: 1,
-                }}
-                exit={{
-                    opacity: 0,
-                }}
-                transition={{
-                    duration: 0.25,
-                }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.25 }}
                 style={{
                     zIndex: 2500,
-                    background: "rgba(0, 0, 0, 0.68)",
-                    backdropFilter: "blur(9px)",
-                    WebkitBackdropFilter: "blur(9px)",
-                    padding: "30px",
+                    background: "rgba(0,0,0,0.68)",
+                    backdropFilter: "blur(10px)",
+                    WebkitBackdropFilter: "blur(10px)",
+                    padding: "18px",
                 }}
                 onClick={onCancel}
             >
-                {/* Address Form IS the Window */}
                 <motion.div
                     initial={{
                         opacity: 0,
-                        scale: 0.94,
-                        y: 20,
+                        scale: 0.96,
+                        y: 18,
                     }}
                     animate={{
                         opacity: 1,
@@ -272,8 +293,8 @@ function AddressForm({ editingAddress, onCancel, onSuccess }) {
                     }}
                     exit={{
                         opacity: 0,
-                        scale: 0.94,
-                        y: 20,
+                        scale: 0.96,
+                        y: 18,
                     }}
                     transition={{
                         duration: 0.3,
@@ -285,31 +306,41 @@ function AddressForm({ editingAddress, onCancel, onSuccess }) {
                         maxWidth: "1200px",
                         height: "85vh",
                         maxHeight: "900px",
+                        minHeight: "520px",
                         borderRadius: "22px",
                         background: "#ffffff",
                         overflow: "hidden",
                         boxShadow:
-                            "0 30px 100px rgba(0,0,0,0.3)",
+                            "0 30px 100px rgba(0,0,0,0.32)",
                     }}
                     onClick={(e) => e.stopPropagation()}
                 >
-                    {/* Window Header */}
+                    {/* Header */}
                     <div
                         className="d-flex align-items-center justify-content-between px-4 px-md-5"
                         style={{
-                            minHeight: "62px",
+                            minHeight: "64px",
                             flexShrink: 0,
                             background: "#ffffff",
                             borderBottom: "1px solid #eeeeee",
                         }}
                     >
                         <div className="d-flex align-items-center gap-2">
-                            <MapPin
-                                size={17}
+                            <div
+                                className="d-flex align-items-center justify-content-center"
                                 style={{
+                                    width: "30px",
+                                    height: "30px",
+                                    borderRadius: "9px",
+                                    background: "#fff3ed",
                                     color: "#ff5a1f",
                                 }}
-                            />
+                            >
+                                <MapPin
+                                    size={16}
+                                    strokeWidth={2}
+                                />
+                            </div>
 
                             <div>
                                 <p
@@ -318,12 +349,23 @@ function AddressForm({ editingAddress, onCancel, onSuccess }) {
                                         fontSize: "9px",
                                         letterSpacing: "1.5px",
                                         fontWeight: "700",
-                                        color: "#777777",
+                                        color: "#777",
                                     }}
                                 >
                                     {isEditing
                                         ? "Edit Address"
                                         : "Add Address"}
+                                </p>
+
+                                <p
+                                    className="mb-0"
+                                    style={{
+                                        fontSize: "11px",
+                                        color: "#aaa",
+                                        marginTop: "2px",
+                                    }}
+                                >
+                                    Delivery information
                                 </p>
                             </div>
                         </div>
@@ -333,16 +375,17 @@ function AddressForm({ editingAddress, onCancel, onSuccess }) {
                             onClick={onCancel}
                             className="btn d-flex align-items-center justify-content-center"
                             style={{
-                                width: "35px",
-                                height: "35px",
-                                borderRadius: "9px",
-                                border: "1px solid #e5e5e5",
-                                background: "#ffffff",
-                                color: "#555555",
+                                width: "36px",
+                                height: "36px",
+                                padding: 0,
+                                borderRadius: "10px",
+                                border: "1px solid #e6e6e6",
+                                background: "#fff",
+                                color: "#555",
                             }}
                             whileHover={{
-                                background: "#f5f5f5",
-                                scale: 1.03,
+                                background: "#f6f6f6",
+                                scale: 1.04,
                             }}
                             whileTap={{
                                 scale: 0.94,
@@ -352,47 +395,61 @@ function AddressForm({ editingAddress, onCancel, onSuccess }) {
                         </motion.button>
                     </div>
 
-                    {/* Scrollable Form Content */}
+                    {/* Scrollable Content */}
                     <div
                         style={{
                             flex: 1,
                             overflowY: "auto",
-                            background: "#fafafa",
+                            background: "#f7f7f7",
                         }}
                     >
                         <div
                             style={{
                                 maxWidth: "1050px",
                                 margin: "0 auto",
-                                padding: "30px",
+                                padding: "24px",
                             }}
                         >
-                            {/* Form Header */}
-                            <div
-                                className="mb-4 p-4 p-md-5"
+                            {/* Compact Hero */}
+                            <motion.div
+                                initial={{
+                                    opacity: 0,
+                                    y: -8,
+                                }}
+                                animate={{
+                                    opacity: 1,
+                                    y: 0,
+                                }}
+                                transition={{
+                                    duration: 0.3,
+                                }}
+                                className="mb-4"
                                 style={{
-                                    borderRadius: "18px",
+                                    borderRadius: "17px",
+                                    padding: "22px 24px",
                                     background:
                                         "linear-gradient(135deg, #111111 0%, #202020 100%)",
-                                    color: "#ffffff",
+                                    color: "#fff",
+                                    boxShadow:
+                                        "0 8px 24px rgba(0,0,0,0.08)",
                                 }}
                             >
                                 <div className="d-flex align-items-center gap-3">
                                     <div
                                         className="d-flex align-items-center justify-content-center"
                                         style={{
-                                            width: "46px",
-                                            height: "46px",
-                                            borderRadius: "13px",
-                                            background: "#ffffff",
-                                            color: "#111111",
+                                            width: "42px",
+                                            height: "42px",
+                                            borderRadius: "12px",
+                                            background: "#fff",
+                                            color: "#111",
                                             flexShrink: 0,
                                         }}
                                     >
                                         {isEditing ? (
-                                            <MapPin size={21} />
+                                            <MapPin size={20} />
                                         ) : (
-                                            <Home size={21} />
+                                            <Home size={20} />
                                         )}
                                     </div>
 
@@ -401,9 +458,8 @@ function AddressForm({ editingAddress, onCancel, onSuccess }) {
                                             className="text-uppercase mb-1"
                                             style={{
                                                 fontSize: "8px",
-                                                letterSpacing:
-                                                    "1.7px",
-                                                color: "#aaaaaa",
+                                                letterSpacing: "1.7px",
+                                                color: "#aaa",
                                                 fontWeight: "700",
                                             }}
                                         >
@@ -415,12 +471,13 @@ function AddressForm({ editingAddress, onCancel, onSuccess }) {
                                         <h4
                                             className="fw-bold mb-0"
                                             style={{
-                                                fontSize: "20px",
+                                                fontSize: "19px",
+                                                letterSpacing: "-0.2px",
                                             }}
                                         >
                                             {isEditing
-                                                ? "Edit Address"
-                                                : "Add New Address"}
+                                                ? "Update your address"
+                                                : "Add a new address"}
                                         </h4>
                                     </div>
                                 </div>
@@ -430,16 +487,16 @@ function AddressForm({ editingAddress, onCancel, onSuccess }) {
                                     style={{
                                         color: "#bdbdbd",
                                         fontSize: "11px",
-                                        lineHeight: "1.6",
+                                        lineHeight: "1.5",
                                     }}
                                 >
                                     {isEditing
-                                        ? "Update your saved delivery details."
+                                        ? "Keep your saved delivery details accurate."
                                         : "Save your delivery details for a faster checkout experience."}
                                 </p>
-                            </div>
+                            </motion.div>
 
-                            {/* Actual Form */}
+                            {/* Form */}
                             <form onSubmit={handleSubmit}>
                                 <motion.div
                                     initial="hidden"
@@ -448,19 +505,59 @@ function AddressForm({ editingAddress, onCancel, onSuccess }) {
                                         hidden: {},
                                         visible: {
                                             transition: {
-                                                staggerChildren:
-                                                    0.05,
+                                                staggerChildren: 0.045,
                                             },
                                         },
                                     }}
                                     style={{
                                         background: "#ffffff",
-                                        border:
-                                            "1px solid #eeeeee",
+                                        border: "1px solid #ededed",
                                         borderRadius: "18px",
-                                        padding: "30px",
+                                        padding: "26px",
+                                        boxShadow:
+                                            "0 8px 30px rgba(0,0,0,0.035)",
                                     }}
                                 >
+                                    {/* Section Heading */}
+                                    <div className="mb-4">
+                                        <div
+                                            className="d-flex align-items-center gap-2"
+                                            style={{
+                                                color: "#111",
+                                            }}
+                                        >
+                                            <span
+                                                style={{
+                                                    width: "4px",
+                                                    height: "17px",
+                                                    borderRadius: "10px",
+                                                    background: "#ff5a1f",
+                                                }}
+                                            />
+
+                                            <h6
+                                                className="mb-0 fw-bold"
+                                                style={{
+                                                    fontSize: "13px",
+                                                }}
+                                            >
+                                                Address Details
+                                            </h6>
+                                        </div>
+
+                                        <p
+                                            className="mb-0 mt-1"
+                                            style={{
+                                                marginLeft: "12px",
+                                                fontSize: "10px",
+                                                color: "#999",
+                                            }}
+                                        >
+                                            Enter the information used for
+                                            delivery.
+                                        </p>
+                                    </div>
+
                                     <div className="row g-4">
                                         {renderField({
                                             name: "label",
@@ -485,10 +582,11 @@ function AddressForm({ editingAddress, onCancel, onSuccess }) {
                                         >
                                             <label
                                                 htmlFor="addressLine"
-                                                className="form-label fw-semibold mb-2"
+                                                className="form-label mb-2"
                                                 style={{
                                                     fontSize: "11px",
-                                                    color: "#333333",
+                                                    color: "#222",
+                                                    fontWeight: "700",
                                                 }}
                                             >
                                                 Address
@@ -498,17 +596,18 @@ function AddressForm({ editingAddress, onCancel, onSuccess }) {
                                                 <div
                                                     className="position-absolute"
                                                     style={{
-                                                        left: "13px",
-                                                        top: "13px",
+                                                        left: "14px",
+                                                        top: "14px",
                                                         color: errors.addressLine
                                                             ? "#c94b4b"
-                                                            : "#999999",
-                                                        pointerEvents:
-                                                            "none",
+                                                            : "#999",
+                                                        pointerEvents: "none",
+                                                        zIndex: 2,
                                                     }}
                                                 >
                                                     <MapPin
                                                         size={16}
+                                                        strokeWidth={1.8}
                                                     />
                                                 </div>
 
@@ -518,28 +617,48 @@ function AddressForm({ editingAddress, onCancel, onSuccess }) {
                                                     value={
                                                         formData.addressLine
                                                     }
-                                                    onChange={
-                                                        handleChange
-                                                    }
+                                                    onChange={handleChange}
                                                     placeholder="House no., street, area, landmark"
                                                     rows="3"
                                                     className="form-control"
                                                     style={{
-                                                        paddingLeft:
-                                                            "40px",
-                                                        borderRadius:
-                                                            "11px",
+                                                        minHeight: "88px",
+                                                        paddingLeft: "42px",
+                                                        paddingTop: "13px",
+                                                        paddingRight: "14px",
+                                                        borderRadius: "12px",
                                                         border: errors.addressLine
                                                             ? "1px solid #df9b9b"
-                                                            : "1px solid #e8e8e8",
-                                                        background:
-                                                            "#fafafa",
-                                                        fontSize:
-                                                            "12px",
-                                                        resize:
-                                                            "vertical",
-                                                        boxShadow:
-                                                            "none",
+                                                            : "1px solid #e5e5e5",
+                                                        background: "#fbfbfb",
+                                                        fontSize: "12px",
+                                                        color: "#222",
+                                                        resize: "vertical",
+                                                        boxShadow: "none",
+                                                        transition:
+                                                            "border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease",
+                                                    }}
+                                                    onFocus={(e) => {
+                                                        e.currentTarget.style.background =
+                                                            "#fff";
+                                                        e.currentTarget.style.borderColor =
+                                                            errors.addressLine
+                                                                ? "#df9b9b"
+                                                                : "#ff5a1f";
+                                                        e.currentTarget.style.boxShadow =
+                                                            errors.addressLine
+                                                                ? "0 0 0 3px rgba(201,75,75,0.08)"
+                                                                : "0 0 0 3px rgba(255,90,31,0.08)";
+                                                    }}
+                                                    onBlur={(e) => {
+                                                        e.currentTarget.style.background =
+                                                            "#fbfbfb";
+                                                        e.currentTarget.style.borderColor =
+                                                            errors.addressLine
+                                                                ? "#df9b9b"
+                                                                : "#e5e5e5";
+                                                        e.currentTarget.style.boxShadow =
+                                                            "none";
                                                     }}
                                                 />
                                             </div>
@@ -562,8 +681,8 @@ function AddressForm({ editingAddress, onCancel, onSuccess }) {
                                                         className="mt-2"
                                                         style={{
                                                             color: "#c94b4b",
-                                                            fontSize:
-                                                                "10px",
+                                                            fontSize: "10px",
+                                                            fontWeight: "500",
                                                         }}
                                                     >
                                                         {
@@ -577,24 +696,21 @@ function AddressForm({ editingAddress, onCancel, onSuccess }) {
                                         {renderField({
                                             name: "city",
                                             label: "City",
-                                            placeholder:
-                                                "Enter city",
+                                            placeholder: "Enter city",
                                             icon: Building2,
                                         })}
 
                                         {renderField({
                                             name: "state",
                                             label: "State",
-                                            placeholder:
-                                                "Enter state",
+                                            placeholder: "Enter state",
                                             icon: Map,
                                         })}
 
                                         {renderField({
                                             name: "pincode",
                                             label: "PIN Code",
-                                            placeholder:
-                                                "6-digit PIN code",
+                                            placeholder: "6-digit PIN code",
                                             icon: Hash,
                                             maxLength: 6,
                                         })}
@@ -627,20 +743,15 @@ function AddressForm({ editingAddress, onCancel, onSuccess }) {
                                                     y: -8,
                                                 }}
                                                 style={{
-                                                    borderRadius:
-                                                        "11px",
-                                                    background:
-                                                        "#f0faf4",
+                                                    borderRadius: "11px",
+                                                    background: "#f0faf4",
                                                     border: "1px solid #ccebd8",
                                                     color: "#287a4b",
                                                     fontSize: "11px",
-                                                    fontWeight:
-                                                        "600",
+                                                    fontWeight: "600",
                                                 }}
                                             >
-                                                <CheckCircle2
-                                                    size={16}
-                                                />
+                                                <CheckCircle2 size={16} />
                                                 {successMessage}
                                             </motion.div>
                                         )}
@@ -651,8 +762,7 @@ function AddressForm({ editingAddress, onCancel, onSuccess }) {
                                         className="d-flex flex-column flex-sm-row justify-content-end gap-2 mt-5 pt-4"
                                         variants={fieldVariants}
                                         style={{
-                                            borderTop:
-                                                "1px solid #eeeeee",
+                                            borderTop: "1px solid #eeeeee",
                                         }}
                                     >
                                         <motion.button
@@ -660,20 +770,18 @@ function AddressForm({ editingAddress, onCancel, onSuccess }) {
                                             onClick={onCancel}
                                             className="btn d-flex align-items-center justify-content-center gap-2"
                                             style={{
-                                                minHeight: "43px",
-                                                padding: "0 18px",
-                                                borderRadius:
-                                                    "10px",
-                                                border: "1px solid #e5e5e5",
-                                                background:
-                                                    "#ffffff",
-                                                color: "#555555",
+                                                minHeight: "44px",
+                                                padding: "0 19px",
+                                                borderRadius: "11px",
+                                                border: "1px solid #e3e3e3",
+                                                background: "#fff",
+                                                color: "#555",
                                                 fontSize: "11px",
                                                 fontWeight: "600",
                                             }}
                                             whileHover={{
-                                                background:
-                                                    "#f7f7f7",
+                                                background: "#f7f7f7",
+                                                y: -1,
                                             }}
                                             whileTap={{
                                                 scale: 0.97,
@@ -688,44 +796,60 @@ function AddressForm({ editingAddress, onCancel, onSuccess }) {
                                             disabled={isSaving}
                                             className="btn d-flex align-items-center justify-content-center gap-2"
                                             style={{
-                                                minHeight: "43px",
-                                                padding: "0 20px",
-                                                borderRadius:
-                                                    "10px",
+                                                minHeight: "44px",
+                                                padding: "0 21px",
+                                                borderRadius: "11px",
                                                 border: "none",
-                                                background:
-                                                    "#111111",
-                                                color: "#ffffff",
+                                                background: "#111",
+                                                color: "#fff",
                                                 fontSize: "11px",
                                                 fontWeight: "700",
-                                                opacity: isSaving
-                                                    ? 0.75
-                                                    : 1,
+                                                opacity: isSaving ? 0.75 : 1,
                                             }}
                                             whileHover={
                                                 !isSaving
                                                     ? {
-                                                        y: -2,
-                                                        boxShadow:
-                                                            "0 8px 20px rgba(0,0,0,0.15)",
-                                                    }
+                                                          y: -2,
+                                                          boxShadow:
+                                                              "0 9px 22px rgba(0,0,0,0.16)",
+                                                      }
                                                     : {}
                                             }
                                             whileTap={
                                                 !isSaving
                                                     ? {
-                                                        scale: 0.97,
-                                                    }
+                                                          scale: 0.97,
+                                                      }
                                                     : {}
                                             }
                                         >
-                                            <Save size={15} />
-
-                                            {isSaving
-                                                ? "Saving..."
-                                                : isEditing
-                                                    ? "Update Address"
-                                                    : "Save Address"}
+                                            {isSaving ? (
+                                                <>
+                                                    <motion.span
+                                                        animate={{
+                                                            rotate: 360,
+                                                        }}
+                                                        transition={{
+                                                            duration: 0.8,
+                                                            repeat: Infinity,
+                                                            ease: "linear",
+                                                        }}
+                                                        style={{
+                                                            display: "inline-flex",
+                                                        }}
+                                                    >
+                                                        <Save size={15} />
+                                                    </motion.span>
+                                                    Saving...
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <Save size={15} />
+                                                    {isEditing
+                                                        ? "Update Address"
+                                                        : "Save Address"}
+                                                </>
+                                            )}
                                         </motion.button>
                                     </motion.div>
                                 </motion.div>

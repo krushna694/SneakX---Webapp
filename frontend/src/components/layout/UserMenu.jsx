@@ -1,6 +1,5 @@
 import { motion } from "framer-motion";
 import {
-    ChevronDown,
     Heart,
     LogOut,
     MapPin,
@@ -15,15 +14,20 @@ import "./UserMenu.css";
 function UserMenu() {
     const { user, isAuthenticated, logout } = useAuth();
 
+    /*
+     * Not authenticated
+     * Show only the user icon.
+     */
     if (!isAuthenticated) {
         return (
             <li className="sx-user-menu-item">
                 <Link
-                    className="sx-login-button"
+                    className="sx-login-button sx-icon-only-user"
                     to="/login"
+                    aria-label="Login"
+                    title="Login"
                 >
-                    <User size={17} />
-                    <span>Login</span>
+                    <User size={19} strokeWidth={1.8} />
                 </Link>
             </li>
         );
@@ -32,32 +36,35 @@ function UserMenu() {
     return (
         <li className="sx-user-menu-item dropdown">
 
+            {/* =========================
+                ACCOUNT TRIGGER
+            ========================= */}
+
             <button
-                className="sx-account-trigger dropdown-toggle"
+                className="sx-account-trigger sx-account-icon-only dropdown-toggle"
                 type="button"
                 data-bs-toggle="dropdown"
                 aria-expanded="false"
+                aria-label="Account"
                 title="Account"
             >
                 <span className="sx-account-avatar">
-                    <User size={17} />
+                    <User
+                        size={19}
+                        strokeWidth={1.8}
+                    />
                 </span>
-
-                <span className="sx-account-name">
-                    {user?.name?.split(" ")[0] || "Account"}
-                </span>
-
-                <ChevronDown
-                    className="sx-account-chevron"
-                    size={15}
-                />
             </button>
 
-            <ul
-                className="dropdown-menu dropdown-menu-end sx-account-dropdown"
-            >
+
+            {/* =========================
+                ACCOUNT DROPDOWN
+            ========================= */}
+
+            <ul className="dropdown-menu dropdown-menu-end sx-account-dropdown">
 
                 {/* User Header */}
+
                 <li>
                     <div className="sx-account-header">
 
@@ -66,23 +73,28 @@ function UserMenu() {
                         </div>
 
                         <div className="sx-account-user-info">
+
                             <strong>
-                                {user?.name}
+                                {user?.name || "Account"}
                             </strong>
 
                             <span>
-                                {user?.email}
+                                {user?.email || ""}
                             </span>
+
                         </div>
 
                     </div>
                 </li>
 
+
                 <li>
                     <div className="sx-dropdown-divider" />
                 </li>
 
+
                 {/* Profile */}
+
                 <li>
                     <Link
                         className="sx-dropdown-item"
@@ -92,11 +104,15 @@ function UserMenu() {
                             <User size={17} />
                         </span>
 
-                        <span>My Profile</span>
+                        <span>
+                            My Profile
+                        </span>
                     </Link>
                 </li>
 
+
                 {/* Orders */}
+
                 <li>
                     <Link
                         className="sx-dropdown-item"
@@ -106,11 +122,15 @@ function UserMenu() {
                             <Package size={17} />
                         </span>
 
-                        <span>My Orders</span>
+                        <span>
+                            My Orders
+                        </span>
                     </Link>
                 </li>
 
+
                 {/* Wishlist */}
+
                 <li>
                     <Link
                         className="sx-dropdown-item"
@@ -120,11 +140,15 @@ function UserMenu() {
                             <Heart size={17} />
                         </span>
 
-                        <span>Wishlist</span>
+                        <span>
+                            Wishlist
+                        </span>
                     </Link>
                 </li>
 
+
                 {/* Addresses */}
+
                 <li>
                     <Link
                         className="sx-dropdown-item"
@@ -134,11 +158,15 @@ function UserMenu() {
                             <MapPin size={17} />
                         </span>
 
-                        <span>Addresses</span>
+                        <span>
+                            Addresses
+                        </span>
                     </Link>
                 </li>
 
+
                 {/* Account Settings */}
+
                 <li>
                     <Link
                         className="sx-dropdown-item"
@@ -148,15 +176,20 @@ function UserMenu() {
                             <Settings size={17} />
                         </span>
 
-                        <span>Account Settings</span>
+                        <span>
+                            Account Settings
+                        </span>
                     </Link>
                 </li>
+
 
                 <li>
                     <div className="sx-dropdown-divider" />
                 </li>
 
+
                 {/* Logout */}
+
                 <li>
                     <motion.button
                         type="button"
@@ -168,7 +201,9 @@ function UserMenu() {
                             <LogOut size={17} />
                         </span>
 
-                        <span>Logout</span>
+                        <span>
+                            Logout
+                        </span>
                     </motion.button>
                 </li>
 

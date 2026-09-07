@@ -1,183 +1,69 @@
-/* =========================================
-   SneakX Navbar
-========================================= */
+/* =========================================================
+   SNEAKX NAVBAR
+========================================================= */
 
 .sx-navbar {
   position: sticky;
   top: 0;
-  z-index: 1055;
+  z-index: 1050;
 
-  background: rgba(11, 11, 12, 0.97);
+  width: 100%;
 
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+  background: #111111;
+
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.08);
+}
+
+.sx-navbar .container {
+  position: relative;
 }
 
 .sx-navbar-inner {
-  min-height: 78px;
+  min-height: 76px;
 
-  display: flex;
+  display: grid;
+
+  /*
+       Three-column layout:
+
+       LEFT    = Brand
+       CENTER  = Navigation
+       RIGHT   = Actions
+    */
+
+  grid-template-columns: 1fr auto 1fr;
+
   align-items: center;
-  justify-content: space-between;
 
-  gap: 30px;
+  gap: 20px;
 }
 
-/* -----------------------------------------
-   Brand
------------------------------------------ */
+/* =========================================================
+   LEFT — BRAND
+========================================================= */
+
+.sx-navbar-left {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+
+  min-width: 0;
+}
 
 .sx-brand {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
 
-  color: #ffffff !important;
+  gap: 11px;
+
   text-decoration: none;
 
   flex-shrink: 0;
 }
 
-.sx-brand:hover {
-  color: #ffffff;
-}
-
 .sx-brand-mark {
-  width: 38px;
-  height: 38px;
-
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-
-  border-radius: 11px;
-
-  background: var(--sx-accent);
-  color: #ffffff;
-
-  box-shadow: 0 8px 20px rgba(255, 90, 31, 0.25);
-
-  transition:
-    transform var(--sx-transition),
-    box-shadow var(--sx-transition);
-}
-
-.sx-brand:hover .sx-brand-mark {
-  transform: rotate(-6deg) scale(1.06);
-
-  box-shadow: 0 12px 28px rgba(255, 90, 31, 0.35);
-}
-
-.sx-brand-text {
-  font-family: "Space Grotesk", sans-serif;
-  font-size: 1.55rem;
-  font-weight: 700;
-  letter-spacing: -0.05em;
-}
-
-.sx-brand-text span {
-  color: var(--sx-accent);
-}
-
-/* -----------------------------------------
-   Desktop Navigation
------------------------------------------ */
-
-.sx-desktop-navigation {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.sx-navbar-link {
-  position: relative;
-
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-
-  min-height: 42px;
-  padding: 8px 13px;
-
-  color: rgba(255, 255, 255, 0.68) !important;
-  text-decoration: none;
-
-  border-radius: 9px;
-
-  font-size: 0.9rem;
-  font-weight: 500;
-
-  transition:
-    color var(--sx-transition),
-    background-color var(--sx-transition),
-    transform var(--sx-transition);
-}
-
-.sx-navbar-link:hover {
-  color: #ffffff !important;
-  background: rgba(255, 255, 255, 0.07);
-
-  transform: translateY(-1px);
-}
-
-.sx-navbar-link.active {
-  color: #ffffff !important;
-  background: rgba(255, 255, 255, 0.09);
-}
-
-.sx-navbar-link.active::after {
-  content: "";
-
-  position: absolute;
-
-  left: 50%;
-  bottom: 3px;
-
-  width: 5px;
-  height: 5px;
-
-  transform: translateX(-50%);
-
-  border-radius: 50%;
-
-  background: var(--sx-accent);
-}
-
-/* -----------------------------------------
-   Navigation Count
------------------------------------------ */
-
-.sx-nav-count {
-  min-width: 20px;
-  height: 20px;
-
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-
-  padding: 0 5px;
-
-  border-radius: 999px;
-
-  background: var(--sx-accent);
-  color: #ffffff;
-
-  font-size: 0.68rem;
-  font-weight: 700;
-
-  box-shadow: 0 4px 12px rgba(255, 90, 31, 0.25);
-}
-
-/* -----------------------------------------
-   Mobile
------------------------------------------ */
-
-.sx-mobile-actions {
-  display: none;
-  align-items: center;
-  gap: 8px;
-}
-
-.sx-mobile-menu-button {
   width: 42px;
   height: 42px;
 
@@ -185,56 +71,755 @@
   align-items: center;
   justify-content: center;
 
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 10px;
+  border-radius: 12px;
 
-  background: rgba(255, 255, 255, 0.06);
+  background: #ff5a1f;
+
   color: #ffffff;
 
+  font-size: 17px;
+  font-weight: 900;
+
+  box-shadow: 0 7px 22px rgba(255, 90, 31, 0.22);
+
   transition:
-    background-color var(--sx-transition),
-    border-color var(--sx-transition);
+    transform 0.25s ease,
+    box-shadow 0.25s ease;
 }
 
-.sx-mobile-menu-button:hover {
-  background: rgba(255, 255, 255, 0.1);
-  border-color: rgba(255, 255, 255, 0.22);
+.sx-brand:hover .sx-brand-mark {
+  transform: translateY(-2px);
+
+  box-shadow: 0 10px 28px rgba(255, 90, 31, 0.3);
 }
 
-/* -----------------------------------------
-   Mobile Navigation
------------------------------------------ */
+.sx-brand-text {
+  color: #ffffff;
 
-.sx-mobile-navigation {
-  display: none;
+  font-size: 25px;
+  font-weight: 800;
 
-  overflow: hidden;
+  letter-spacing: -1px;
+
+  line-height: 1;
 }
 
-.sx-mobile-navigation-inner {
-  padding: 10px 0 20px;
+.sx-brand-text span {
+  color: #ff5a1f;
+}
+
+/* =========================================================
+   CENTER — DESKTOP NAVIGATION
+========================================================= */
+
+.sx-desktop-navigation {
+  display: flex;
+
+  align-items: center;
+  justify-content: center;
+
+  gap: 4px;
+
+  justify-self: center;
+}
+
+.sx-navbar-link {
+  position: relative;
+
+  min-height: 44px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  gap: 8px;
+
+  padding: 0 14px;
+
+  border: 0;
+  border-radius: 11px;
+
+  background: transparent;
+
+  color: #9b9b9b;
+
+  text-decoration: none;
+
+  font-family: inherit;
+
+  font-size: 13px;
+  font-weight: 600;
+
+  white-space: nowrap;
+
+  cursor: pointer;
+
+  transition:
+    color 0.2s ease,
+    background 0.2s ease,
+    transform 0.2s ease;
+}
+
+.sx-navbar-link:hover {
+  color: #ffffff;
+
+  background: rgba(255, 255, 255, 0.055);
+}
+
+.sx-navbar-link.active {
+  color: #ffffff;
+
+  background: rgba(255, 255, 255, 0.075);
+}
+
+.sx-navbar-link.active::after {
+  content: "";
+
+  position: absolute;
+
+  bottom: 5px;
+  left: 50%;
+
+  width: 4px;
+  height: 4px;
+
+  border-radius: 50%;
+
+  background: #ff5a1f;
+
+  transform: translateX(-50%);
+
+  box-shadow: 0 0 8px rgba(255, 90, 31, 0.5);
+}
+
+/* =========================================================
+   SHOP
+========================================================= */
+
+.sx-shop-wrapper {
+  position: relative;
+}
+
+.sx-shop-button {
+  gap: 6px;
+}
+
+.sx-shop-arrow {
+  display: inline-flex;
+
+  align-items: center;
+  justify-content: center;
+}
+
+/* =========================================================
+   RIGHT — ACTIONS
+========================================================= */
+
+.sx-navbar-right {
+  display: flex;
+
+  align-items: center;
+  justify-content: flex-end;
+
+  gap: 3px;
+
+  justify-self: end;
+}
+
+/* =========================================================
+   WISHLIST + CART
+========================================================= */
+
+.sx-icon-nav-link {
+  width: 46px;
+  min-width: 46px;
+  height: 44px;
+
+  padding: 0 !important;
+
+  display: inline-flex !important;
+
+  align-items: center;
+  justify-content: center;
+
+  color: #ffffff !important;
+}
+
+.sx-icon-nav-link:hover {
+  color: #ffffff !important;
+}
+
+.sx-icon-nav-link.active {
+  color: #ffffff !important;
+}
+
+.sx-icon-nav-link.active::after {
+  bottom: 3px;
+}
+
+/* =========================================================
+   ICON WRAPPER
+========================================================= */
+
+.sx-icon-wrapper {
+  position: relative;
+
+  width: 30px;
+  height: 30px;
+
+  display: flex !important;
+
+  align-items: center;
+  justify-content: center;
+
+  flex-shrink: 0;
+
+  color: #ffffff !important;
+}
+
+/* =========================================================
+   LUCIDE ICON
+========================================================= */
+
+.sx-navbar-action-icon {
+  display: block !important;
+
+  width: 21px !important;
+  height: 21px !important;
+
+  min-width: 21px;
+  min-height: 21px;
+
+  flex-shrink: 0;
+
+  color: #ffffff !important;
+
+  stroke: #ffffff !important;
+
+  fill: none !important;
+
+  opacity: 1 !important;
+
+  visibility: visible !important;
+
+  overflow: visible !important;
+
+  pointer-events: none;
+
+  transition:
+    transform 0.2s ease,
+    stroke 0.2s ease;
+}
+
+.sx-icon-nav-link:hover .sx-navbar-action-icon {
+  stroke: #ff5a1f !important;
+
+  transform: translateY(-1px);
+}
+
+/* =========================================================
+   COUNT BADGE
+========================================================= */
+
+.sx-icon-count {
+  position: absolute;
+
+  top: -5px;
+  right: -7px;
+
+  min-width: 17px;
+  height: 17px;
+
+  padding: 0 4px;
+
+  display: flex !important;
+
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 50px;
+
+  background: #ff5a1f;
+
+  color: #ffffff !important;
+
+  font-size: 8px;
+  font-weight: 800;
+
+  line-height: 1;
+
+  border: 2px solid #111111;
+
+  box-shadow: 0 3px 9px rgba(255, 90, 31, 0.32);
+
+  z-index: 20;
+
+  pointer-events: none;
+}
+
+/* =========================================================
+   MEGA MENU
+========================================================= */
+
+.sx-mega-menu {
+  position: absolute;
+
+  top: calc(100% + 12px);
+  left: 50%;
+
+  width: 560px;
+
+  /*
+       Keep the menu centered under Shop
+       without using transform, because
+       Framer Motion controls transform.
+    */
+  margin-left: -280px;
+
+  padding: 22px;
+
+  border: 1px solid #2d2d2d;
+
+  border-radius: 18px;
+
+  background: #171717;
+
+  box-shadow:
+    0 24px 60px rgba(0, 0, 0, 0.38),
+    0 6px 20px rgba(0, 0, 0, 0.2);
+}
+
+.sx-mega-menu::before {
+  content: "";
+
+  position: absolute;
+
+  top: -7px;
+  left: 50%;
+
+  width: 14px;
+  height: 14px;
+
+  background: #171717;
+
+  border-left: 1px solid #2d2d2d;
+  border-top: 1px solid #2d2d2d;
+
+  transform: translateX(-50%) rotate(45deg);
+}
+
+/* =========================================================
+   MEGA HEADER
+========================================================= */
+
+.sx-mega-header {
+  display: flex;
+
+  align-items: flex-end;
+  justify-content: space-between;
+
+  gap: 20px;
+
+  padding-bottom: 18px;
+
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.sx-mega-eyebrow {
+  display: block;
+
+  margin-bottom: 5px;
+
+  color: #ff5a1f;
+
+  font-size: 9px;
+  font-weight: 800;
+
+  letter-spacing: 1.5px;
+}
+
+.sx-mega-header h5 {
+  margin: 0;
+
+  color: #ffffff;
+
+  font-size: 17px;
+  font-weight: 700;
+
+  letter-spacing: -0.3px;
+}
+
+.sx-mega-view-all {
+  color: #ff5a1f;
+
+  font-size: 11px;
+  font-weight: 700;
+
+  text-decoration: none;
+
+  white-space: nowrap;
+
+  transition: color 0.2s ease;
+}
+
+.sx-mega-view-all:hover {
+  color: #ff7b4b;
+}
+
+/* =========================================================
+   MEGA GRID
+========================================================= */
+
+.sx-mega-grid {
+  display: grid;
+
+  grid-template-columns: repeat(2, 1fr);
+
+  gap: 8px;
+
+  padding: 18px 0;
+}
+
+.sx-mega-item {
+  display: flex;
+
+  align-items: center;
+
+  gap: 12px;
+
+  min-height: 68px;
+
+  padding: 10px;
+
+  border: 1px solid transparent;
+
+  border-radius: 13px;
+
+  color: #ffffff;
+
+  text-decoration: none;
+
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.sx-mega-item:hover {
+  background: rgba(255, 255, 255, 0.045);
+
+  border-color: rgba(255, 255, 255, 0.07);
+
+  transform: translateY(-1px);
+}
+
+.sx-mega-icon {
+  width: 40px;
+  height: 40px;
+
+  flex-shrink: 0;
+
+  display: inline-flex;
+
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 11px;
+
+  background: rgba(255, 90, 31, 0.1);
+
+  color: #ff5a1f;
+}
+
+.sx-mega-content {
+  min-width: 0;
 
   display: flex;
   flex-direction: column;
-  gap: 4px;
+
+  gap: 3px;
+}
+
+.sx-mega-content strong {
+  color: #ffffff;
+
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.sx-mega-content small {
+  color: #777777;
+
+  font-size: 10px;
+
+  line-height: 1.4;
+}
+
+/* =========================================================
+   MEGA FOOTER
+========================================================= */
+
+.sx-mega-footer {
+  display: flex;
+
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 15px;
+
+  padding-top: 15px;
+
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.sx-mega-footer span {
+  color: #686868;
+
+  font-size: 10px;
+}
+
+.sx-mega-footer a {
+  color: #ffffff;
+
+  font-size: 10px;
+  font-weight: 700;
+
+  text-decoration: none;
+
+  transition: color 0.2s ease;
+}
+
+.sx-mega-footer a:hover {
+  color: #ff5a1f;
+}
+
+/* =========================================================
+   DESKTOP USER
+========================================================= */
+
+.sx-desktop-user {
+  margin-left: 7px;
+
+  display: flex;
+
+  align-items: center;
+}
+
+/* =========================================================
+   MOBILE ACTIONS
+========================================================= */
+
+.sx-mobile-actions {
+  display: none;
+
+  align-items: center;
+
+  gap: 8px;
+}
+
+.sx-mobile-user {
+  display: flex;
+
+  align-items: center;
+}
+
+/* =========================================================
+   MOBILE MENU BUTTON
+========================================================= */
+
+.sx-mobile-menu-button {
+  width: 42px;
+  height: 42px;
+
+  display: inline-flex;
+
+  align-items: center;
+  justify-content: center;
+
+  border: 1px solid #303030;
+
+  border-radius: 11px;
+
+  background: #191919;
+
+  color: #ffffff;
+
+  cursor: pointer;
+
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease;
+}
+
+.sx-mobile-menu-button:hover,
+.sx-mobile-menu-button.open {
+  background: #242424;
+
+  border-color: #3b3b3b;
+
+  color: #ff5a1f;
+}
+
+/* =========================================================
+   MOBILE NAVIGATION
+========================================================= */
+
+.sx-mobile-navigation {
+  display: none;
+}
+
+.sx-mobile-menu {
+  display: flex;
+
+  flex-direction: column;
+
+  gap: 5px;
+
+  padding: 10px;
 }
 
 .sx-mobile-navigation .sx-navbar-link {
   width: 100%;
-  min-height: 48px;
-  padding: 11px 14px;
+
+  min-height: 52px;
+
+  justify-content: flex-start;
+
+  padding: 0 14px;
+
+  border-radius: 12px;
+
+  font-size: 13px;
+
+  gap: 12px;
 }
 
-/* -----------------------------------------
-   Responsive
------------------------------------------ */
+.sx-mobile-navigation .sx-navbar-link svg {
+  flex-shrink: 0;
 
-@media (max-width: 991px) {
+  color: currentColor;
+
+  stroke: currentColor;
+}
+
+.sx-mobile-navigation .sx-navbar-link.active {
+  background: #242424;
+
+  color: #ffffff;
+}
+
+.sx-mobile-navigation .sx-navbar-link.active::after {
+  display: none;
+}
+
+/* =========================================================
+   MOBILE COUNT
+========================================================= */
+
+.sx-mobile-count {
+  min-width: 20px;
+  height: 20px;
+
+  margin-left: auto;
+
+  padding: 0 5px;
+
+  display: inline-flex;
+
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 50px;
+
+  background: #ff5a1f;
+
+  color: #ffffff;
+
+  font-size: 9px;
+  font-weight: 800;
+
+  line-height: 1;
+}
+
+/* =========================================================
+   TABLET
+========================================================= */
+
+@media (max-width: 1100px) {
   .sx-navbar-inner {
-    min-height: 70px;
+    gap: 12px;
   }
 
   .sx-desktop-navigation {
+    gap: 1px;
+  }
+
+  .sx-navbar-link {
+    padding: 0 9px;
+
+    font-size: 12px;
+  }
+
+  .sx-icon-nav-link {
+    width: 42px;
+
+    min-width: 42px;
+  }
+
+  .sx-brand-text {
+    font-size: 23px;
+  }
+
+  .sx-brand-mark {
+    width: 40px;
+    height: 40px;
+  }
+
+  .sx-mega-menu {
+    width: 520px;
+  }
+}
+
+/* =========================================================
+   MOBILE
+========================================================= */
+
+@media (max-width: 767.98px) {
+  .sx-navbar-inner {
+    min-height: 68px;
+
+    display: flex;
+
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 12px;
+  }
+
+  .sx-navbar-left {
+    flex: 1;
+
+    min-width: 0;
+  }
+
+  .sx-brand {
+    gap: 9px;
+  }
+
+  .sx-brand-mark {
+    width: 39px;
+    height: 39px;
+
+    border-radius: 11px;
+  }
+
+  .sx-brand-text {
+    font-size: 22px;
+  }
+
+  .sx-desktop-navigation,
+  .sx-navbar-right {
     display: none;
   }
 
@@ -242,18 +827,64 @@
     display: flex;
   }
 
+  /* Floating mobile menu */
+
   .sx-mobile-navigation {
+    position: absolute;
+
+    top: calc(100% + 8px);
+
+    left: 12px;
+    right: 12px;
+
     display: block;
+
+    overflow: hidden;
+
+    border: 1px solid #2b2b2b;
+
+    border-radius: 15px;
+
+    background: rgba(17, 17, 17, 0.98);
+
+    box-shadow:
+      0 18px 45px rgba(0, 0, 0, 0.28),
+      0 4px 14px rgba(0, 0, 0, 0.16);
+
+    backdrop-filter: blur(14px);
   }
 }
 
-@media (max-width: 480px) {
-  .sx-brand-text {
-    font-size: 1.35rem;
+/* =========================================================
+   SMALL MOBILE
+========================================================= */
+
+@media (max-width: 420px) {
+  .sx-navbar .container {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  .sx-navbar-inner {
+    min-height: 64px;
   }
 
   .sx-brand-mark {
-    width: 35px;
-    height: 35px;
+    width: 37px;
+    height: 37px;
+  }
+
+  .sx-brand-text {
+    font-size: 21px;
+  }
+
+  .sx-mobile-menu-button {
+    width: 40px;
+    height: 40px;
+  }
+
+  .sx-mobile-navigation {
+    left: 10px;
+    right: 10px;
   }
 }

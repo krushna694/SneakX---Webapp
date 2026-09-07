@@ -1,173 +1,213 @@
-/* =========================================
-   SneakX User Menu
-========================================= */
+/* =========================================================
+   SNEAKX USER MENU
+   Premium Dark Account Dropdown
+========================================================= */
 
 .sx-user-menu-item {
   position: relative;
   list-style: none;
 }
 
-/* -----------------------------------------
-   Login
------------------------------------------ */
+/* =========================================================
+   LOGIN / USER BUTTON
+========================================================= */
 
-.sx-login-button {
-  min-height: 42px;
+.sx-login-button,
+.sx-account-trigger {
+  width: 44px;
+  height: 44px;
 
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
 
-  padding: 8px 16px;
+  padding: 0;
 
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  border-radius: 9px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 11px;
 
   color: #ffffff !important;
-  background: rgba(255, 255, 255, 0.05);
+  background: #181818;
 
   text-decoration: none;
 
-  font-size: 0.9rem;
-  font-weight: 600;
+  cursor: pointer;
 
   transition:
-    background-color var(--sx-transition),
-    border-color var(--sx-transition),
-    transform var(--sx-transition);
+    background 0.2s ease,
+    border-color 0.2s ease,
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
-.sx-login-button:hover {
-  color: #ffffff !important;
-
-  background: var(--sx-accent);
-  border-color: var(--sx-accent);
-
-  transform: translateY(-1px);
-
-  box-shadow: 0 8px 22px rgba(255, 90, 31, 0.2);
-}
-
-/* -----------------------------------------
-   Account Trigger
------------------------------------------ */
-
-.sx-account-trigger {
-  min-height: 42px;
-
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-
-  padding: 5px 10px 5px 6px;
-
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 10px;
-
-  color: #ffffff !important;
-  background: rgba(255, 255, 255, 0.05);
-
-  font-size: 0.88rem;
-  font-weight: 600;
-
-  transition:
-    background-color var(--sx-transition),
-    border-color var(--sx-transition),
-    transform var(--sx-transition);
-}
-
+.sx-login-button:hover,
 .sx-account-trigger:hover,
 .sx-account-trigger.show {
   color: #ffffff !important;
-  background: rgba(255, 255, 255, 0.1);
-  border-color: rgba(255, 255, 255, 0.22);
+
+  background: #222222;
+
+  border-color: rgba(255, 90, 31, 0.45);
+
+  transform: translateY(-1px);
+
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.25);
 }
+
+/* Remove Bootstrap dropdown arrow */
 
 .sx-account-trigger::after {
   display: none;
 }
 
+/* =========================================================
+   USER AVATAR
+========================================================= */
+
 .sx-account-avatar {
-  width: 32px;
-  height: 32px;
+  width: 34px;
+  height: 34px;
 
   display: inline-flex;
   align-items: center;
   justify-content: center;
 
-  border-radius: 8px;
+  border-radius: 9px;
 
-  background: var(--sx-accent);
+  background: #ff5a1f;
+
   color: #ffffff;
+
+  box-shadow: 0 5px 16px rgba(255, 90, 31, 0.22);
+
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
-.sx-account-name {
-  max-width: 100px;
+.sx-account-trigger:hover .sx-account-avatar,
+.sx-account-trigger.show .sx-account-avatar {
+  transform: scale(1.05);
 
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  box-shadow: 0 7px 20px rgba(255, 90, 31, 0.3);
 }
 
+/* Navbar is icon-only */
+
+.sx-account-name,
 .sx-account-chevron {
-  opacity: 0.65;
-
-  transition: transform var(--sx-transition);
+  display: none;
 }
 
-.sx-account-trigger.show .sx-account-chevron {
-  transform: rotate(180deg);
-}
-
-/* -----------------------------------------
-   Dropdown
------------------------------------------ */
+/* =========================================================
+   DROPDOWN
+========================================================= */
 
 .sx-account-dropdown {
-  width: 285px;
-  min-width: 285px;
+  width: 310px;
+  min-width: 310px;
 
   margin-top: 12px !important;
-  padding: 8px;
 
-  border: 1px solid var(--sx-border);
-  border-radius: 16px;
+  padding: 10px;
 
-  background: rgba(255, 255, 255, 0.98);
+  overflow: hidden;
 
-  box-shadow: 0 22px 55px rgba(0, 0, 0, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+
+  border-radius: 18px;
+
+  background: #161616;
+
+  box-shadow:
+    0 28px 70px rgba(0, 0, 0, 0.5),
+    0 8px 25px rgba(0, 0, 0, 0.3);
 
   animation: sxDropdownIn 180ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
+/* =========================================================
+   DROPDOWN POINTER
+========================================================= */
+
+.sx-account-dropdown::before {
+  content: "";
+
+  position: absolute;
+
+  top: -6px;
+  right: 16px;
+
+  width: 11px;
+  height: 11px;
+
+  background: #161616;
+
+  border-left: 1px solid rgba(255, 255, 255, 0.09);
+
+  border-top: 1px solid rgba(255, 255, 255, 0.09);
+
+  transform: rotate(45deg);
+}
+
+/* =========================================================
+   ANIMATION
+========================================================= */
+
 @keyframes sxDropdownIn {
   from {
     opacity: 0;
-    transform: translateY(-6px) scale(0.98);
+
+    transform: translateY(-8px) scale(0.97);
   }
 
   to {
     opacity: 1;
+
     transform: translateY(0) scale(1);
   }
 }
 
-/* -----------------------------------------
-   Header
------------------------------------------ */
+/* =========================================================
+   ACCOUNT HEADER
+========================================================= */
 
 .sx-account-header {
+  position: relative;
+
   display: flex;
   align-items: center;
-  gap: 12px;
 
-  padding: 12px;
+  gap: 13px;
+
+  padding: 13px 11px 15px;
 }
 
+/* ACCOUNT LABEL */
+
+.sx-account-header::before {
+  content: "ACCOUNT";
+
+  position: absolute;
+
+  top: 5px;
+  right: 10px;
+
+  color: #ff5a1f;
+
+  font-size: 7px;
+  font-weight: 800;
+
+  letter-spacing: 1.5px;
+}
+
+/* =========================================================
+   LARGE AVATAR
+========================================================= */
+
 .sx-account-large-avatar {
-  width: 45px;
-  height: 45px;
+  width: 50px;
+  height: 50px;
 
   flex-shrink: 0;
 
@@ -175,27 +215,37 @@
   align-items: center;
   justify-content: center;
 
-  border-radius: 12px;
+  border-radius: 14px;
 
-  background: linear-gradient(135deg, var(--sx-accent), #ff814f);
+  background: linear-gradient(135deg, #ff5a1f, #ff7b4a);
 
   color: #ffffff;
 
-  box-shadow: 0 8px 20px rgba(255, 90, 31, 0.2);
+  box-shadow: 0 10px 25px rgba(255, 90, 31, 0.22);
 }
+
+/* =========================================================
+   USER INFORMATION
+========================================================= */
 
 .sx-account-user-info {
   min-width: 0;
 
   display: flex;
   flex-direction: column;
-  gap: 2px;
+
+  gap: 4px;
+
+  padding-right: 45px;
 }
 
 .sx-account-user-info strong {
-  color: var(--sx-text);
+  color: #ffffff;
 
-  font-size: 0.92rem;
+  font-size: 0.91rem;
+  font-weight: 700;
+
+  line-height: 1.2;
 
   overflow: hidden;
   text-overflow: ellipsis;
@@ -203,67 +253,83 @@
 }
 
 .sx-account-user-info span {
-  color: var(--sx-text-secondary);
+  color: #777777;
 
-  font-size: 0.74rem;
+  font-size: 0.72rem;
+
+  line-height: 1.3;
 
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-/* -----------------------------------------
-   Divider
------------------------------------------ */
+/* =========================================================
+   DIVIDER
+========================================================= */
 
 .sx-dropdown-divider {
   height: 1px;
-  margin: 7px 5px;
 
-  background: var(--sx-border);
+  margin: 5px 5px;
+
+  background: rgba(255, 255, 255, 0.08);
 }
 
-/* -----------------------------------------
-   Dropdown Item
------------------------------------------ */
+/* =========================================================
+   DROPDOWN ITEMS
+========================================================= */
 
 .sx-dropdown-item {
+  position: relative;
+
   width: 100%;
-  min-height: 43px;
+  min-height: 46px;
 
   display: flex;
   align-items: center;
-  gap: 11px;
 
-  padding: 8px 10px;
+  gap: 12px;
+
+  padding: 6px 9px;
 
   border: 0;
-  border-radius: 9px;
+  border-radius: 11px;
 
-  color: var(--sx-text) !important;
+  color: #d7d7d7 !important;
+
   background: transparent;
 
   text-decoration: none;
 
-  font-size: 0.88rem;
-  font-weight: 500;
+  font-family: inherit;
+
+  font-size: 0.85rem;
+  font-weight: 600;
+
+  cursor: pointer;
 
   transition:
-    color var(--sx-transition),
-    background-color var(--sx-transition),
-    transform var(--sx-transition);
+    color 0.2s ease,
+    background 0.2s ease,
+    transform 0.2s ease;
 }
 
 .sx-dropdown-item:hover {
-  color: var(--sx-text) !important;
-  background: var(--sx-background);
+  color: #ffffff !important;
+
+  background: rgba(255, 255, 255, 0.055);
 
   transform: translateX(3px);
 }
 
+/* =========================================================
+   DROPDOWN ICON
+========================================================= */
+
 .sx-dropdown-icon {
-  width: 32px;
-  height: 32px;
+  width: 34px;
+  height: 34px;
 
   display: inline-flex;
   align-items: center;
@@ -271,74 +337,165 @@
 
   flex-shrink: 0;
 
-  border-radius: 8px;
+  border-radius: 9px;
 
-  background: #f1f1f2;
-  color: #55555a;
+  background: #222222;
+
+  color: #8c8c8c;
 
   transition:
-    background-color var(--sx-transition),
-    color var(--sx-transition);
+    background 0.2s ease,
+    color 0.2s ease,
+    transform 0.2s ease;
 }
 
 .sx-dropdown-item:hover .sx-dropdown-icon {
-  background: var(--sx-accent-soft);
-  color: var(--sx-accent);
+  background: rgba(255, 90, 31, 0.13);
+
+  color: #ff5a1f;
+
+  transform: scale(1.04);
 }
 
-/* -----------------------------------------
-   Logout
------------------------------------------ */
+/* =========================================================
+   RIGHT ACCENT DOT
+========================================================= */
+
+.sx-dropdown-item::after {
+  content: "";
+
+  position: absolute;
+
+  right: 11px;
+
+  width: 4px;
+  height: 4px;
+
+  border-radius: 50%;
+
+  background: #ff5a1f;
+
+  opacity: 0;
+
+  transform: scale(0.5);
+
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease;
+}
+
+.sx-dropdown-item:hover::after {
+  opacity: 1;
+
+  transform: scale(1);
+}
+
+/* =========================================================
+   LOGOUT
+========================================================= */
 
 .sx-logout-item {
-  color: var(--sx-danger) !important;
+  color: #ff6b70 !important;
 }
 
 .sx-logout-item .sx-dropdown-icon {
-  color: var(--sx-danger);
-  background: #fff0f1;
+  color: #ff6b70;
+
+  background: rgba(255, 80, 85, 0.09);
 }
 
 .sx-logout-item:hover {
-  color: #b02a37 !important;
-  background: #fff5f5;
+  color: #ff8589 !important;
+
+  background: rgba(255, 80, 85, 0.07);
 }
 
 .sx-logout-item:hover .sx-dropdown-icon {
-  color: #b02a37;
-  background: #ffe1e4;
+  color: #ff8589;
+
+  background: rgba(255, 80, 85, 0.13);
 }
 
-/* -----------------------------------------
-   Mobile
------------------------------------------ */
+.sx-logout-item::after {
+  display: none;
+}
 
-@media (max-width: 991px) {
-  .sx-user-menu-item {
-    display: flex;
+/* =========================================================
+   DESKTOP
+========================================================= */
+
+.sx-desktop-user {
+  display: flex;
+
+  align-items: center;
+
+  margin-left: 7px;
+}
+
+.sx-desktop-user .sx-user-menu-item {
+  display: flex;
+
+  align-items: center;
+}
+
+/* =========================================================
+   MOBILE
+========================================================= */
+
+@media (max-width: 767.98px) {
+  .sx-account-trigger,
+  .sx-login-button {
+    width: 40px;
+    height: 40px;
+
+    border-radius: 10px;
   }
 
-  .sx-account-name {
-    display: none;
-  }
+  .sx-account-avatar {
+    width: 31px;
+    height: 31px;
 
-  .sx-account-trigger {
-    padding: 4px;
-    border: 0;
-    background: transparent;
-  }
-
-  .sx-account-trigger:hover,
-  .sx-account-trigger.show {
-    background: rgba(255, 255, 255, 0.08);
-  }
-
-  .sx-account-chevron {
-    display: none;
+    border-radius: 8px;
   }
 
   .sx-account-dropdown {
     position: absolute;
+
     right: 0;
+
+    width: 290px;
+    min-width: 290px;
+
+    margin-top: 10px !important;
+  }
+}
+
+/* =========================================================
+   SMALL MOBILE
+========================================================= */
+
+@media (max-width: 420px) {
+  .sx-account-trigger,
+  .sx-login-button {
+    width: 38px;
+    height: 38px;
+  }
+
+  .sx-account-avatar {
+    width: 30px;
+    height: 30px;
+  }
+
+  .sx-account-dropdown {
+    width: 275px;
+    min-width: 275px;
+  }
+
+  .sx-account-header::before {
+    display: none;
+  }
+
+  .sx-account-user-info {
+    padding-right: 0;
   }
 }
