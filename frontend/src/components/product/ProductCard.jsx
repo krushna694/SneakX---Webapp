@@ -1,12 +1,39 @@
-import { motion } from "framer-motion";
+import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import {
     ArrowUpRight,
+    Check,
     Heart,
     ShoppingBag,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 
+import { useWishlist } from "../../hooks/useWishlist";
+
 function ProductCard({ product }) {
+    const { wishlistItems, addToWishlist, removeFromWishlist } =
+        useWishlist();
+
+    const [wishlistMessage, setWishlistMessage] = useState("");
+
+    const isWishlisted = wishlistItems.some(
+        (item) => item.id === product.id
+    );
+
+    const handleWishlist = () => {
+        if (isWishlisted) {
+            removeFromWishlist(product.id);
+            setWishlistMessage("Removed from wishlist");
+        } else {
+            addToWishlist(product);
+            setWishlistMessage("Added to wishlist");
+        }
+
+        setTimeout(() => {
+            setWishlistMessage("");
+        }, 1600);
+    };
+
     return (
         <motion.article
             className="h-100 position-relative overflow-hidden"
@@ -217,7 +244,7 @@ function ProductCard({ product }) {
                     />
                 </motion.div>
 
-                {/* Floating action */}
+                {/* Product Details Button */}
                 <motion.div
                     className="position-absolute bottom-0 end-0 m-3"
                     initial={{
@@ -273,26 +300,29 @@ function ProductCard({ product }) {
                     }}
                 >
                     <ShoppingBag size={13} />
-
                     Sneaker
                 </div>
 
                 {/* Product name */}
-                <h3
-                    className="mb-2"
-                    style={{
-                        color: "#111113",
-                        fontSize: "1.15rem",
-                        fontWeight: 750,
-                        letterSpacing: "-0.025em",
-                    }}
+                <Link
+                    to={`/products/${product.id}`}
+                    className="text-decoration-none"
                 >
-                    {product.name}
-                </h3>
+                    <h3
+                        className="mb-2"
+                        style={{
+                            color: "#111113",
+                            fontSize: "1.15rem",
+                            fontWeight: 750,
+                            letterSpacing: "-0.025em",
+                        }}
+                    >
+                        {product.name}
+                    </h3>
+                </Link>
 
                 {/* Price + action */}
                 <div className="d-flex align-items-center justify-content-between gap-3">
-
                     <div>
                         <span
                             style={{
@@ -343,7 +373,6 @@ function ProductCard({ product }) {
                             <ArrowUpRight size={19} />
                         </Link>
                     </motion.div>
-
                 </div>
 
                 {/* Bottom navigation */}
@@ -354,7 +383,6 @@ function ProductCard({ product }) {
                             "1px solid #eeeeec",
                     }}
                 >
-
                     <Link
                         to={`/products/${product.id}`}
                         className="d-inline-flex align-items-center gap-2 text-decoration-none"
@@ -375,34 +403,97 @@ function ProductCard({ product }) {
                         </motion.span>
                     </Link>
 
-                    {/* Wishlist visual indicator */}
-                    <motion.div
+                    {/* Wishlist Button */}
+                    <motion.button
+                        type="button"
+                        onClick={handleWishlist}
+                        className="border-0 d-flex align-items-center justify-content-center"
+                        style={{
+                            width: "34px",
+                            height: "34px",
+                            borderRadius: "50%",
+                            background: isWishlisted
+                                ? "#fff1eb"
+                                : "#f7f7f7",
+                            color: isWishlisted
+                                ? "#ff5a1f"
+                                : "#77777b",
+                            cursor: "pointer",
+                        }}
                         whileHover={{
                             scale: 1.12,
                         }}
                         whileTap={{
-                            scale: 0.9,
+                            scale: 0.88,
                         }}
-                        style={{
-                            width: "32px",
-                            height: "32px",
-                            borderRadius: "50%",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            color: "#77777b",
-                            cursor: "pointer",
-                        }}
-                        title="Wishlist"
+                        aria-label={
+                            isWishlisted
+                                ? `Remove ${product.name} from wishlist`
+                                : `Add ${product.name} to wishlist`
+                        }
+                        title={
+                            isWishlisted
+                                ? "Remove from wishlist"
+                                : "Add to wishlist"
+                        }
                     >
-                        <Heart
-                            size={17}
-                            strokeWidth={1.8}
-                        />
-                    </motion.div>
-
+                        <motion.div
+                            animate={{
+                                scale: isWishlisted
+                                    ? [1, 1.25, 1]
+                                    : 1,
+                            }}
+                            transition={{
+                                duration: 0.3,
+                            }}
+                        >
+                            <Heart
+                                size={17}
+                                strokeWidth={1.8}
+                                fill={
+                                    isWishlisted
+                                        ? "currentColor"
+                                        : "none"
+                                }
+                            />
+                        </motion.div>
+                    </motion.button>
                 </div>
 
+                {/* Wishlist Feedback */}
+                <AnimatePresence>
+                    {wishlistMessage && (
+                        <motion.div
+                            className="d-flex align-items-center justify-content-center gap-2 mt-3"
+                            initial={{
+                                opacity: 0,
+                                y: -5,
+                                height: 0,
+                            }}
+                            animate={{
+                                opacity: 1,
+                                y: 0,
+                                height: "auto",
+                            }}
+                            exit={{
+                                opacity: 0,
+                                y: -5,
+                                height: 0,
+                            }}
+                            style={{
+                                overflow: "hidden",
+                                color: isWishlisted
+                                    ? "#198754"
+                                    : "#777777",
+                                fontSize: "11px",
+                                fontWeight: 600,
+                            }}
+                        >
+                            <Check size={14} />
+                            {wishlistMessage}
+                        </motion.div>
+                    )}
+                </AnimatePresence>
             </div>
         </motion.article>
     );

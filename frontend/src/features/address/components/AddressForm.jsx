@@ -1,6 +1,18 @@
 import { useState } from "react";
-import { motion } from "framer-motion";
-import { Save, X } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
+import {
+    Building2,
+    CheckCircle2,
+    Hash,
+    Home,
+    Map,
+    MapPin,
+    Phone,
+    Save,
+    User,
+    X,
+} from "lucide-react";
+
 import { useAddress } from "../hooks/useAddress";
 
 const initialForm = {
@@ -16,9 +28,9 @@ const initialForm = {
 function AddressForm({ editingAddress, onCancel, onSuccess }) {
     const { addAddress, updateAddress } = useAddress();
 
-    const [formData, setFormData] = useState(() => {
-        if (editingAddress) {
-            return {
+    const [formData, setFormData] = useState(() =>
+        editingAddress
+            ? {
                 label: editingAddress.label || "",
                 fullName: editingAddress.fullName || "",
                 addressLine: editingAddress.addressLine || "",
@@ -26,35 +38,37 @@ function AddressForm({ editingAddress, onCancel, onSuccess }) {
                 state: editingAddress.state || "",
                 pincode: editingAddress.pincode || "",
                 phone: editingAddress.phone || "",
-            };
-        }
-
-        return initialForm;
-    });
+            }
+            : initialForm
+    );
 
     const [errors, setErrors] = useState({});
+    const [isSaving, setIsSaving] = useState(false);
+    const [successMessage, setSuccessMessage] = useState("");
 
     const isEditing = Boolean(editingAddress);
 
-    const handleChange = (event) => {
-        const { name, value } = event.target;
+    const handleChange = (e) => {
+        const { name, value } = e.target;
 
-        setFormData((currentData) => ({
-            ...currentData,
+        setFormData((prev) => ({
+            ...prev,
             [name]: value,
         }));
 
-        setErrors((currentErrors) => ({
-            ...currentErrors,
-            [name]: "",
-        }));
+        if (errors[name]) {
+            setErrors((prev) => ({
+                ...prev,
+                [name]: "",
+            }));
+        }
     };
 
     const validate = () => {
         const newErrors = {};
 
         if (!formData.label.trim()) {
-            newErrors.label = "Address label is required.";
+            newErrors.label = "Please enter an address label.";
         }
 
         if (!formData.fullName.trim()) {
@@ -74,11 +88,13 @@ function AddressForm({ editingAddress, onCancel, onSuccess }) {
         }
 
         if (!/^\d{6}$/.test(formData.pincode)) {
-            newErrors.pincode = "Enter a valid 6-digit PIN code.";
+            newErrors.pincode =
+                "PIN code must contain exactly 6 digits.";
         }
 
         if (!/^\d{10}$/.test(formData.phone)) {
-            newErrors.phone = "Enter a valid 10-digit phone number.";
+            newErrors.phone =
+                "Phone number must contain exactly 10 digits.";
         }
 
         setErrors(newErrors);
@@ -86,347 +102,639 @@ function AddressForm({ editingAddress, onCancel, onSuccess }) {
         return Object.keys(newErrors).length === 0;
     };
 
-    const handleSubmit = (event) => {
-        event.preventDefault();
+    const handleSubmit = (e) => {
+        e.preventDefault();
 
         if (!validate()) {
             return;
         }
 
-        if (isEditing) {
-            updateAddress(editingAddress.id, formData);
-        } else {
-            addAddress(formData);
-        }
+        setIsSaving(true);
 
-        setFormData(initialForm);
-        setErrors({});
+        setTimeout(() => {
+            if (isEditing) {
+                updateAddress(editingAddress.id, formData);
+                setSuccessMessage(
+                    "Address updated successfully."
+                );
+            } else {
+                addAddress(formData);
+                setSuccessMessage(
+                    "Address added successfully."
+                );
+            }
 
-        if (onSuccess) {
-            onSuccess();
-        }
+            setIsSaving(false);
+
+            setTimeout(() => {
+                onSuccess();
+            }, 700);
+        }, 350);
     };
 
-    return (
+    const fieldVariants = {
+        hidden: {
+            opacity: 0,
+            y: 12,
+        },
+        visible: {
+            opacity: 1,
+            y: 0,
+        },
+    };
+
+    const renderField = ({
+        name,
+        label,
+        placeholder,
+        icon: Icon,
+        type = "text",
+        maxLength,
+    }) => (
         <motion.div
-            className="card border-0 shadow-sm mb-4"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.35, ease: "easeOut" }}
+            className="col-md-6"
+            variants={fieldVariants}
         >
-            <div className="card-body p-4">
+            <label
+                htmlFor={name}
+                className="form-label fw-semibold mb-2"
+                style={{
+                    fontSize: "11px",
+                    color: "#333333",
+                }}
+            >
+                {label}
+            </label>
 
-                {/* Header */}
-                <motion.div
-                    className="d-flex justify-content-between align-items-center mb-4"
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.1, duration: 0.3 }}
+            <div className="position-relative">
+                <div
+                    className="position-absolute d-flex align-items-center justify-content-center"
+                    style={{
+                        left: "13px",
+                        top: "50%",
+                        transform: "translateY(-50%)",
+                        color: errors[name]
+                            ? "#c94b4b"
+                            : "#999999",
+                        pointerEvents: "none",
+                    }}
                 >
-                    <div>
-                        <h5 className="mb-1 fw-semibold">
-                            {isEditing
-                                ? "Edit Address"
-                                : "Add New Address"}
-                        </h5>
+                    <Icon size={16} />
+                </div>
 
-                        <p className="text-muted small mb-0">
-                            {isEditing
-                                ? "Update your saved address details."
-                                : "Add a delivery address to your account."}
-                        </p>
-                    </div>
+                <input
+                    id={name}
+                    name={name}
+                    type={type}
+                    value={formData[name]}
+                    onChange={handleChange}
+                    placeholder={placeholder}
+                    maxLength={maxLength}
+                    className="form-control"
+                    style={{
+                        minHeight: "46px",
+                        paddingLeft: "40px",
+                        borderRadius: "11px",
+                        border: errors[name]
+                            ? "1px solid #df9b9b"
+                            : "1px solid #e8e8e8",
+                        background: "#fafafa",
+                        fontSize: "12px",
+                        boxShadow: "none",
+                    }}
+                />
+            </div>
 
-                    {onCancel && (
+            <AnimatePresence>
+                {errors[name] && (
+                    <motion.div
+                        initial={{
+                            opacity: 0,
+                            y: -4,
+                        }}
+                        animate={{
+                            opacity: 1,
+                            y: 0,
+                        }}
+                        exit={{
+                            opacity: 0,
+                            y: -4,
+                        }}
+                        className="mt-2"
+                        style={{
+                            color: "#c94b4b",
+                            fontSize: "10px",
+                        }}
+                    >
+                        {errors[name]}
+                    </motion.div>
+                )}
+            </AnimatePresence>
+        </motion.div>
+    );
+
+    return (
+        <AnimatePresence>
+            <motion.div
+                className="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center"
+                initial={{
+                    opacity: 0,
+                }}
+                animate={{
+                    opacity: 1,
+                }}
+                exit={{
+                    opacity: 0,
+                }}
+                transition={{
+                    duration: 0.25,
+                }}
+                style={{
+                    zIndex: 2500,
+                    background: "rgba(0, 0, 0, 0.68)",
+                    backdropFilter: "blur(9px)",
+                    WebkitBackdropFilter: "blur(9px)",
+                    padding: "30px",
+                }}
+                onClick={onCancel}
+            >
+                {/* Address Form IS the Window */}
+                <motion.div
+                    initial={{
+                        opacity: 0,
+                        scale: 0.94,
+                        y: 20,
+                    }}
+                    animate={{
+                        opacity: 1,
+                        scale: 1,
+                        y: 0,
+                    }}
+                    exit={{
+                        opacity: 0,
+                        scale: 0.94,
+                        y: 20,
+                    }}
+                    transition={{
+                        duration: 0.3,
+                        ease: [0.22, 1, 0.36, 1],
+                    }}
+                    className="position-relative d-flex flex-column"
+                    style={{
+                        width: "75vw",
+                        maxWidth: "1200px",
+                        height: "85vh",
+                        maxHeight: "900px",
+                        borderRadius: "22px",
+                        background: "#ffffff",
+                        overflow: "hidden",
+                        boxShadow:
+                            "0 30px 100px rgba(0,0,0,0.3)",
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                >
+                    {/* Window Header */}
+                    <div
+                        className="d-flex align-items-center justify-content-between px-4 px-md-5"
+                        style={{
+                            minHeight: "62px",
+                            flexShrink: 0,
+                            background: "#ffffff",
+                            borderBottom: "1px solid #eeeeee",
+                        }}
+                    >
+                        <div className="d-flex align-items-center gap-2">
+                            <MapPin
+                                size={17}
+                                style={{
+                                    color: "#ff5a1f",
+                                }}
+                            />
+
+                            <div>
+                                <p
+                                    className="text-uppercase mb-0"
+                                    style={{
+                                        fontSize: "9px",
+                                        letterSpacing: "1.5px",
+                                        fontWeight: "700",
+                                        color: "#777777",
+                                    }}
+                                >
+                                    {isEditing
+                                        ? "Edit Address"
+                                        : "Add Address"}
+                                </p>
+                            </div>
+                        </div>
+
                         <motion.button
                             type="button"
-                            className="btn btn-sm btn-outline-secondary d-flex align-items-center gap-2"
                             onClick={onCancel}
-                            whileHover={{ scale: 1.03 }}
-                            whileTap={{ scale: 0.97 }}
+                            className="btn d-flex align-items-center justify-content-center"
+                            style={{
+                                width: "35px",
+                                height: "35px",
+                                borderRadius: "9px",
+                                border: "1px solid #e5e5e5",
+                                background: "#ffffff",
+                                color: "#555555",
+                            }}
+                            whileHover={{
+                                background: "#f5f5f5",
+                                scale: 1.03,
+                            }}
+                            whileTap={{
+                                scale: 0.94,
+                            }}
                         >
                             <X size={16} />
-                            Cancel
                         </motion.button>
-                    )}
+                    </div>
+
+                    {/* Scrollable Form Content */}
+                    <div
+                        style={{
+                            flex: 1,
+                            overflowY: "auto",
+                            background: "#fafafa",
+                        }}
+                    >
+                        <div
+                            style={{
+                                maxWidth: "1050px",
+                                margin: "0 auto",
+                                padding: "30px",
+                            }}
+                        >
+                            {/* Form Header */}
+                            <div
+                                className="mb-4 p-4 p-md-5"
+                                style={{
+                                    borderRadius: "18px",
+                                    background:
+                                        "linear-gradient(135deg, #111111 0%, #202020 100%)",
+                                    color: "#ffffff",
+                                }}
+                            >
+                                <div className="d-flex align-items-center gap-3">
+                                    <div
+                                        className="d-flex align-items-center justify-content-center"
+                                        style={{
+                                            width: "46px",
+                                            height: "46px",
+                                            borderRadius: "13px",
+                                            background: "#ffffff",
+                                            color: "#111111",
+                                            flexShrink: 0,
+                                        }}
+                                    >
+                                        {isEditing ? (
+                                            <MapPin size={21} />
+                                        ) : (
+                                            <Home size={21} />
+                                        )}
+                                    </div>
+
+                                    <div>
+                                        <p
+                                            className="text-uppercase mb-1"
+                                            style={{
+                                                fontSize: "8px",
+                                                letterSpacing:
+                                                    "1.7px",
+                                                color: "#aaaaaa",
+                                                fontWeight: "700",
+                                            }}
+                                        >
+                                            {isEditing
+                                                ? "Manage Address"
+                                                : "New Delivery Address"}
+                                        </p>
+
+                                        <h4
+                                            className="fw-bold mb-0"
+                                            style={{
+                                                fontSize: "20px",
+                                            }}
+                                        >
+                                            {isEditing
+                                                ? "Edit Address"
+                                                : "Add New Address"}
+                                        </h4>
+                                    </div>
+                                </div>
+
+                                <p
+                                    className="mb-0 mt-3"
+                                    style={{
+                                        color: "#bdbdbd",
+                                        fontSize: "11px",
+                                        lineHeight: "1.6",
+                                    }}
+                                >
+                                    {isEditing
+                                        ? "Update your saved delivery details."
+                                        : "Save your delivery details for a faster checkout experience."}
+                                </p>
+                            </div>
+
+                            {/* Actual Form */}
+                            <form onSubmit={handleSubmit}>
+                                <motion.div
+                                    initial="hidden"
+                                    animate="visible"
+                                    variants={{
+                                        hidden: {},
+                                        visible: {
+                                            transition: {
+                                                staggerChildren:
+                                                    0.05,
+                                            },
+                                        },
+                                    }}
+                                    style={{
+                                        background: "#ffffff",
+                                        border:
+                                            "1px solid #eeeeee",
+                                        borderRadius: "18px",
+                                        padding: "30px",
+                                    }}
+                                >
+                                    <div className="row g-4">
+                                        {renderField({
+                                            name: "label",
+                                            label: "Address Label",
+                                            placeholder:
+                                                "Home, Office, etc.",
+                                            icon: Home,
+                                        })}
+
+                                        {renderField({
+                                            name: "fullName",
+                                            label: "Full Name",
+                                            placeholder:
+                                                "Enter recipient name",
+                                            icon: User,
+                                        })}
+
+                                        {/* Address */}
+                                        <motion.div
+                                            className="col-12"
+                                            variants={fieldVariants}
+                                        >
+                                            <label
+                                                htmlFor="addressLine"
+                                                className="form-label fw-semibold mb-2"
+                                                style={{
+                                                    fontSize: "11px",
+                                                    color: "#333333",
+                                                }}
+                                            >
+                                                Address
+                                            </label>
+
+                                            <div className="position-relative">
+                                                <div
+                                                    className="position-absolute"
+                                                    style={{
+                                                        left: "13px",
+                                                        top: "13px",
+                                                        color: errors.addressLine
+                                                            ? "#c94b4b"
+                                                            : "#999999",
+                                                        pointerEvents:
+                                                            "none",
+                                                    }}
+                                                >
+                                                    <MapPin
+                                                        size={16}
+                                                    />
+                                                </div>
+
+                                                <textarea
+                                                    id="addressLine"
+                                                    name="addressLine"
+                                                    value={
+                                                        formData.addressLine
+                                                    }
+                                                    onChange={
+                                                        handleChange
+                                                    }
+                                                    placeholder="House no., street, area, landmark"
+                                                    rows="3"
+                                                    className="form-control"
+                                                    style={{
+                                                        paddingLeft:
+                                                            "40px",
+                                                        borderRadius:
+                                                            "11px",
+                                                        border: errors.addressLine
+                                                            ? "1px solid #df9b9b"
+                                                            : "1px solid #e8e8e8",
+                                                        background:
+                                                            "#fafafa",
+                                                        fontSize:
+                                                            "12px",
+                                                        resize:
+                                                            "vertical",
+                                                        boxShadow:
+                                                            "none",
+                                                    }}
+                                                />
+                                            </div>
+
+                                            <AnimatePresence>
+                                                {errors.addressLine && (
+                                                    <motion.div
+                                                        initial={{
+                                                            opacity: 0,
+                                                            y: -4,
+                                                        }}
+                                                        animate={{
+                                                            opacity: 1,
+                                                            y: 0,
+                                                        }}
+                                                        exit={{
+                                                            opacity: 0,
+                                                            y: -4,
+                                                        }}
+                                                        className="mt-2"
+                                                        style={{
+                                                            color: "#c94b4b",
+                                                            fontSize:
+                                                                "10px",
+                                                        }}
+                                                    >
+                                                        {
+                                                            errors.addressLine
+                                                        }
+                                                    </motion.div>
+                                                )}
+                                            </AnimatePresence>
+                                        </motion.div>
+
+                                        {renderField({
+                                            name: "city",
+                                            label: "City",
+                                            placeholder:
+                                                "Enter city",
+                                            icon: Building2,
+                                        })}
+
+                                        {renderField({
+                                            name: "state",
+                                            label: "State",
+                                            placeholder:
+                                                "Enter state",
+                                            icon: Map,
+                                        })}
+
+                                        {renderField({
+                                            name: "pincode",
+                                            label: "PIN Code",
+                                            placeholder:
+                                                "6-digit PIN code",
+                                            icon: Hash,
+                                            maxLength: 6,
+                                        })}
+
+                                        {renderField({
+                                            name: "phone",
+                                            label: "Phone Number",
+                                            placeholder:
+                                                "10-digit mobile number",
+                                            icon: Phone,
+                                            maxLength: 10,
+                                        })}
+                                    </div>
+
+                                    {/* Success */}
+                                    <AnimatePresence>
+                                        {successMessage && (
+                                            <motion.div
+                                                className="d-flex align-items-center gap-2 mt-4 p-3"
+                                                initial={{
+                                                    opacity: 0,
+                                                    y: 8,
+                                                }}
+                                                animate={{
+                                                    opacity: 1,
+                                                    y: 0,
+                                                }}
+                                                exit={{
+                                                    opacity: 0,
+                                                    y: -8,
+                                                }}
+                                                style={{
+                                                    borderRadius:
+                                                        "11px",
+                                                    background:
+                                                        "#f0faf4",
+                                                    border: "1px solid #ccebd8",
+                                                    color: "#287a4b",
+                                                    fontSize: "11px",
+                                                    fontWeight:
+                                                        "600",
+                                                }}
+                                            >
+                                                <CheckCircle2
+                                                    size={16}
+                                                />
+                                                {successMessage}
+                                            </motion.div>
+                                        )}
+                                    </AnimatePresence>
+
+                                    {/* Actions */}
+                                    <motion.div
+                                        className="d-flex flex-column flex-sm-row justify-content-end gap-2 mt-5 pt-4"
+                                        variants={fieldVariants}
+                                        style={{
+                                            borderTop:
+                                                "1px solid #eeeeee",
+                                        }}
+                                    >
+                                        <motion.button
+                                            type="button"
+                                            onClick={onCancel}
+                                            className="btn d-flex align-items-center justify-content-center gap-2"
+                                            style={{
+                                                minHeight: "43px",
+                                                padding: "0 18px",
+                                                borderRadius:
+                                                    "10px",
+                                                border: "1px solid #e5e5e5",
+                                                background:
+                                                    "#ffffff",
+                                                color: "#555555",
+                                                fontSize: "11px",
+                                                fontWeight: "600",
+                                            }}
+                                            whileHover={{
+                                                background:
+                                                    "#f7f7f7",
+                                            }}
+                                            whileTap={{
+                                                scale: 0.97,
+                                            }}
+                                        >
+                                            <X size={15} />
+                                            Cancel
+                                        </motion.button>
+
+                                        <motion.button
+                                            type="submit"
+                                            disabled={isSaving}
+                                            className="btn d-flex align-items-center justify-content-center gap-2"
+                                            style={{
+                                                minHeight: "43px",
+                                                padding: "0 20px",
+                                                borderRadius:
+                                                    "10px",
+                                                border: "none",
+                                                background:
+                                                    "#111111",
+                                                color: "#ffffff",
+                                                fontSize: "11px",
+                                                fontWeight: "700",
+                                                opacity: isSaving
+                                                    ? 0.75
+                                                    : 1,
+                                            }}
+                                            whileHover={
+                                                !isSaving
+                                                    ? {
+                                                        y: -2,
+                                                        boxShadow:
+                                                            "0 8px 20px rgba(0,0,0,0.15)",
+                                                    }
+                                                    : {}
+                                            }
+                                            whileTap={
+                                                !isSaving
+                                                    ? {
+                                                        scale: 0.97,
+                                                    }
+                                                    : {}
+                                            }
+                                        >
+                                            <Save size={15} />
+
+                                            {isSaving
+                                                ? "Saving..."
+                                                : isEditing
+                                                    ? "Update Address"
+                                                    : "Save Address"}
+                                        </motion.button>
+                                    </motion.div>
+                                </motion.div>
+                            </form>
+                        </div>
+                    </div>
                 </motion.div>
-
-                <form onSubmit={handleSubmit}>
-
-                    {/* Address Label */}
-                    <motion.div
-                        className="mb-3"
-                        initial={{ opacity: 0, x: -10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: 0.12, duration: 0.3 }}
-                    >
-                        <label
-                            htmlFor="address-label"
-                            className="form-label fw-medium"
-                        >
-                            Address Label
-                        </label>
-
-                        <input
-                            id="address-label"
-                            type="text"
-                            name="label"
-                            className={`form-control ${errors.label ? "is-invalid" : ""
-                                }`}
-                            placeholder="Home / Office"
-                            value={formData.label}
-                            onChange={handleChange}
-                        />
-
-                        {errors.label && (
-                            <div className="invalid-feedback">
-                                {errors.label}
-                            </div>
-                        )}
-                    </motion.div>
-
-                    {/* Full Name */}
-                    <motion.div
-                        className="mb-3"
-                        initial={{ opacity: 0, x: -10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: 0.16, duration: 0.3 }}
-                    >
-                        <label
-                            htmlFor="full-name"
-                            className="form-label fw-medium"
-                        >
-                            Full Name
-                        </label>
-
-                        <input
-                            id="full-name"
-                            type="text"
-                            name="fullName"
-                            className={`form-control ${errors.fullName ? "is-invalid" : ""
-                                }`}
-                            placeholder="Enter full name"
-                            value={formData.fullName}
-                            onChange={handleChange}
-                        />
-
-                        {errors.fullName && (
-                            <div className="invalid-feedback">
-                                {errors.fullName}
-                            </div>
-                        )}
-                    </motion.div>
-
-                    {/* Address */}
-                    <motion.div
-                        className="mb-3"
-                        initial={{ opacity: 0, x: -10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: 0.2, duration: 0.3 }}
-                    >
-                        <label
-                            htmlFor="address-line"
-                            className="form-label fw-medium"
-                        >
-                            Address
-                        </label>
-
-                        <textarea
-                            id="address-line"
-                            name="addressLine"
-                            rows="3"
-                            className={`form-control ${errors.addressLine ? "is-invalid" : ""
-                                }`}
-                            placeholder="House/Flat No., Street, Area"
-                            value={formData.addressLine}
-                            onChange={handleChange}
-                        />
-
-                        {errors.addressLine && (
-                            <div className="invalid-feedback">
-                                {errors.addressLine}
-                            </div>
-                        )}
-                    </motion.div>
-
-                    {/* City + State */}
-                    <div className="row">
-
-                        {/* City */}
-                        <motion.div
-                            className="col-md-6 mb-3"
-                            initial={{ opacity: 0, x: -10 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{
-                                delay: 0.24,
-                                duration: 0.3,
-                            }}
-                        >
-                            <label
-                                htmlFor="city"
-                                className="form-label fw-medium"
-                            >
-                                City
-                            </label>
-
-                            <input
-                                id="city"
-                                type="text"
-                                name="city"
-                                className={`form-control ${errors.city ? "is-invalid" : ""
-                                    }`}
-                                placeholder="Enter city"
-                                value={formData.city}
-                                onChange={handleChange}
-                            />
-
-                            {errors.city && (
-                                <div className="invalid-feedback">
-                                    {errors.city}
-                                </div>
-                            )}
-                        </motion.div>
-
-                        {/* State */}
-                        <motion.div
-                            className="col-md-6 mb-3"
-                            initial={{ opacity: 0, x: 10 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{
-                                delay: 0.24,
-                                duration: 0.3,
-                            }}
-                        >
-                            <label
-                                htmlFor="state"
-                                className="form-label fw-medium"
-                            >
-                                State
-                            </label>
-
-                            <input
-                                id="state"
-                                type="text"
-                                name="state"
-                                className={`form-control ${errors.state ? "is-invalid" : ""
-                                    }`}
-                                placeholder="Enter state"
-                                value={formData.state}
-                                onChange={handleChange}
-                            />
-
-                            {errors.state && (
-                                <div className="invalid-feedback">
-                                    {errors.state}
-                                </div>
-                            )}
-                        </motion.div>
-
-                    </div>
-
-                    {/* PIN + Phone */}
-                    <div className="row">
-
-                        {/* PIN Code */}
-                        <motion.div
-                            className="col-md-6 mb-3"
-                            initial={{ opacity: 0, x: -10 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{
-                                delay: 0.28,
-                                duration: 0.3,
-                            }}
-                        >
-                            <label
-                                htmlFor="pincode"
-                                className="form-label fw-medium"
-                            >
-                                PIN Code
-                            </label>
-
-                            <input
-                                id="pincode"
-                                type="text"
-                                name="pincode"
-                                maxLength="6"
-                                inputMode="numeric"
-                                className={`form-control ${errors.pincode ? "is-invalid" : ""
-                                    }`}
-                                placeholder="6-digit PIN code"
-                                value={formData.pincode}
-                                onChange={handleChange}
-                            />
-
-                            {errors.pincode && (
-                                <div className="invalid-feedback">
-                                    {errors.pincode}
-                                </div>
-                            )}
-                        </motion.div>
-
-                        {/* Phone */}
-                        <motion.div
-                            className="col-md-6 mb-3"
-                            initial={{ opacity: 0, x: 10 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{
-                                delay: 0.28,
-                                duration: 0.3,
-                            }}
-                        >
-                            <label
-                                htmlFor="phone"
-                                className="form-label fw-medium"
-                            >
-                                Phone
-                            </label>
-
-                            <input
-                                id="phone"
-                                type="text"
-                                name="phone"
-                                maxLength="10"
-                                inputMode="numeric"
-                                className={`form-control ${errors.phone ? "is-invalid" : ""
-                                    }`}
-                                placeholder="10-digit phone number"
-                                value={formData.phone}
-                                onChange={handleChange}
-                            />
-
-                            {errors.phone && (
-                                <div className="invalid-feedback">
-                                    {errors.phone}
-                                </div>
-                            )}
-                        </motion.div>
-
-                    </div>
-
-                    {/* Submit */}
-                    <motion.button
-                        type="submit"
-                        className="btn btn-dark d-flex align-items-center gap-2"
-                        whileHover={{
-                            scale: 1.02,
-                        }}
-                        whileTap={{
-                            scale: 0.97,
-                        }}
-                        transition={{
-                            duration: 0.15,
-                        }}
-                    >
-                        <Save size={17} />
-
-                        {isEditing
-                            ? "Update Address"
-                            : "Save Address"}
-                    </motion.button>
-
-                </form>
-            </div>
-        </motion.div>
+            </motion.div>
+        </AnimatePresence>
     );
 }
 
