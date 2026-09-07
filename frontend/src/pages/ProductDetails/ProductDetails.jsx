@@ -1,4 +1,12 @@
-import { useParams } from "react-router-dom";
+import { motion } from "framer-motion";
+import {
+    ArrowLeft,
+    ChevronRight,
+} from "lucide-react";
+import {
+    Link,
+    useParams,
+} from "react-router-dom";
 
 import ProductGallery from "../../components/product/ProductGallery";
 import ProductInfo from "../../components/product/ProductInfo";
@@ -77,32 +85,338 @@ function ProductDetails() {
         (item) => item.id === Number(id)
     );
 
+    /*
+     * =========================================
+     * PRODUCT NOT FOUND
+     * =========================================
+     */
+
     if (!product) {
         return (
-            <div className="container py-5 text-center">
-                <h2>Product Not Found</h2>
+            <main
+                className="min-vh-100 d-flex align-items-center justify-content-center"
+                style={{
+                    background: "#f7f7f5",
+                }}
+            >
+                <motion.div
+                    className="text-center px-4"
+                    initial={{
+                        opacity: 0,
+                        y: 20,
+                    }}
+                    animate={{
+                        opacity: 1,
+                        y: 0,
+                    }}
+                >
+                    <div
+                        className="mx-auto mb-4 d-flex align-items-center justify-content-center"
+                        style={{
+                            width: "70px",
+                            height: "70px",
+                            borderRadius: "20px",
+                            background: "#111111",
+                            color: "#ffffff",
+                            fontSize: "1.4rem",
+                            fontWeight: 800,
+                        }}
+                    >
+                        !
+                    </div>
 
-                <p className="text-muted">
-                    The product you are looking for does not exist.
-                </p>
-            </div>
+                    <h2
+                        className="fw-bold mb-2"
+                        style={{
+                            letterSpacing: "-0.035em",
+                        }}
+                    >
+                        Product Not Found
+                    </h2>
+
+                    <p
+                        className="mb-4"
+                        style={{
+                            color: "#777",
+                        }}
+                    >
+                        The product you are looking
+                        for does not exist.
+                    </p>
+
+                    <Link
+                        to="/products"
+                        className="btn text-white px-4 py-2 text-decoration-none"
+                        style={{
+                            background: "#111111",
+                            borderRadius: "10px",
+                            fontWeight: 700,
+                        }}
+                    >
+                        Browse Sneakers
+                    </Link>
+                </motion.div>
+            </main>
         );
     }
 
     return (
-        <div className="container py-5">
-            <div className="row g-5">
+        <main
+            style={{
+                background: "#fafaf8",
+                minHeight: "100vh",
+            }}
+        >
+            {/* =========================================
+                BREADCRUMB
+            ========================================== */}
 
-                <div className="col-lg-6">
-                    <ProductGallery product={product} />
-                </div>
+            <div className="container pt-4">
 
-                <div className="col-lg-6">
-                    <ProductInfo product={product} />
-                </div>
+                <motion.div
+                    className="d-flex align-items-center gap-2"
+                    initial={{
+                        opacity: 0,
+                        x: -10,
+                    }}
+                    animate={{
+                        opacity: 1,
+                        x: 0,
+                    }}
+                    transition={{
+                        duration: 0.4,
+                    }}
+                    style={{
+                        fontSize: "0.72rem",
+                    }}
+                >
+                    <Link
+                        to="/products"
+                        className="text-decoration-none"
+                        style={{
+                            color: "#777",
+                            fontWeight: 600,
+                        }}
+                    >
+                        Collection
+                    </Link>
+
+                    <ChevronRight
+                        size={14}
+                        color="#aaa"
+                    />
+
+                    <span
+                        style={{
+                            color: "#222",
+                            fontWeight: 700,
+                        }}
+                    >
+                        {product.name}
+                    </span>
+                </motion.div>
 
             </div>
-        </div>
+
+            {/* =========================================
+                PRODUCT
+            ========================================== */}
+
+            <section className="container py-4 py-lg-5">
+
+                <div className="row g-4 g-xl-5 align-items-start">
+
+                    {/* =====================================
+                        PRODUCT GALLERY
+                    ====================================== */}
+
+                    <div className="col-lg-7">
+
+                        <ProductGallery
+                            product={product}
+                        />
+
+                    </div>
+
+                    {/* =====================================
+                        PRODUCT INFORMATION
+                    ====================================== */}
+
+                    <div className="col-lg-5">
+
+                        <motion.div
+                            initial={{
+                                opacity: 0,
+                                x: 25,
+                            }}
+                            animate={{
+                                opacity: 1,
+                                x: 0,
+                            }}
+                            transition={{
+                                duration: 0.65,
+                                delay: 0.1,
+                                ease: [
+                                    0.22,
+                                    1,
+                                    0.36,
+                                    1,
+                                ],
+                            }}
+                            style={{
+                                position: "sticky",
+                                top: "110px",
+                            }}
+                        >
+
+                            {/* Category */}
+
+                            <div
+                                className="d-flex align-items-center gap-2 mb-3"
+                                style={{
+                                    color:
+                                        "var(--sx-accent)",
+                                    fontSize:
+                                        "0.7rem",
+                                    fontWeight: 800,
+                                    letterSpacing:
+                                        "0.1em",
+                                    textTransform:
+                                        "uppercase",
+                                }}
+                            >
+                                <span
+                                    style={{
+                                        width: "25px",
+                                        height: "2px",
+                                        background:
+                                            "var(--sx-accent)",
+                                    }}
+                                />
+
+                                {product.category}
+                            </div>
+
+                            {/* Product Title */}
+
+                            <h1
+                                className="fw-bold mb-3"
+                                style={{
+                                    color: "#111113",
+                                    fontSize:
+                                        "clamp(2.4rem, 5vw, 4rem)",
+                                    lineHeight: 0.98,
+                                    letterSpacing:
+                                        "-0.055em",
+                                }}
+                            >
+                                {product.name}
+
+                                <span
+                                    style={{
+                                        color:
+                                            "var(--sx-accent)",
+                                    }}
+                                >
+                                    .
+                                </span>
+                            </h1>
+
+                            {/* Description */}
+
+                            <p
+                                className="mb-4"
+                                style={{
+                                    color: "#77777b",
+                                    fontSize: "0.95rem",
+                                    lineHeight: 1.75,
+                                    maxWidth: "500px",
+                                }}
+                            >
+                                {product.description}
+                            </p>
+
+                            {/* Price */}
+
+                            <div
+                                className="d-flex align-items-end gap-3 mb-4 pb-4"
+                                style={{
+                                    borderBottom:
+                                        "1px solid #e5e5e2",
+                                }}
+                            >
+                                <span
+                                    style={{
+                                        color: "#111113",
+                                        fontSize: "1.8rem",
+                                        fontWeight: 850,
+                                        letterSpacing:
+                                            "-0.035em",
+                                    }}
+                                >
+                                    ₹
+                                    {product.price.toLocaleString(
+                                        "en-IN"
+                                    )}
+                                </span>
+
+                                <span
+                                    style={{
+                                        color: "#999",
+                                        fontSize: "0.72rem",
+                                        paddingBottom: "5px",
+                                    }}
+                                >
+                                    Inclusive of taxes
+                                </span>
+                            </div>
+
+                            {/* =====================================
+                                EXISTING PRODUCT INFO
+                                Contains:
+                                - Size
+                                - Quantity
+                                - Add to Cart
+                                - Wishlist
+                                - Delivery
+                                - Secure Checkout
+                            ====================================== */}
+
+                            <ProductInfo
+                                product={product}
+                            />
+
+                        </motion.div>
+
+                    </div>
+
+                </div>
+
+            </section>
+
+            {/* =========================================
+                BACK TO COLLECTION
+            ========================================== */}
+
+            <div className="container pb-5">
+
+                <Link
+                    to="/products"
+                    className="d-inline-flex align-items-center gap-2 text-decoration-none"
+                    style={{
+                        color: "#555",
+                        fontSize: "0.78rem",
+                        fontWeight: 700,
+                    }}
+                >
+                    <ArrowLeft size={15} />
+
+                    Back to collection
+                </Link>
+
+            </div>
+
+        </main>
     );
 }
 

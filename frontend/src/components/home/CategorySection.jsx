@@ -6,6 +6,7 @@ import {
     Trophy,
     Zap,
 } from "lucide-react";
+import { Link } from "react-router-dom";
 import "../../pages/Home/home.css";
 
 const categories = [
@@ -76,7 +77,6 @@ function CategorySection() {
                                 key={category.name}
                             >
                                 <motion.div
-                                    className="sx-category-card"
                                     initial={{
                                         opacity: 0,
                                         y: 30,
@@ -96,23 +96,41 @@ function CategorySection() {
                                     whileHover={{
                                         y: -7,
                                     }}
+                                    whileTap={{
+                                        scale: 0.98,
+                                    }}
                                 >
-                                    <span className="sx-category-number">
-                                        0{index + 1}
-                                    </span>
+                                    <Link
+                                        to={`/products?category=${encodeURIComponent(
+                                            category.name
+                                        )}`}
+                                        className="text-decoration-none"
+                                        style={{
+                                            display: "block",
+                                            color: "inherit",
+                                        }}
+                                    >
+                                        <div className="sx-category-card">
 
-                                    <div className="sx-category-icon">
-                                        <Icon size={22} />
-                                    </div>
+                                            <span className="sx-category-number">
+                                                0{index + 1}
+                                            </span>
 
-                                    <h3 className="sx-category-name">
-                                        {category.name}
-                                    </h3>
+                                            <div className="sx-category-icon">
+                                                <Icon size={22} />
+                                            </div>
 
-                                    <span className="sx-category-explore">
-                                        Explore
-                                        <ArrowRight size={15} />
-                                    </span>
+                                            <h3 className="sx-category-name">
+                                                {category.name}
+                                            </h3>
+
+                                            <span className="sx-category-explore">
+                                                Explore
+                                                <ArrowRight size={15} />
+                                            </span>
+
+                                        </div>
+                                    </Link>
                                 </motion.div>
                             </div>
                         );
