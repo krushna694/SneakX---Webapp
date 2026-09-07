@@ -1,4 +1,7 @@
+import { motion } from "framer-motion";
+import { ArrowRight, Flame } from "lucide-react";
 import ProductCard from "../product/ProductCard";
+import "../../pages/Home/home.css";
 
 const products = [
     {
@@ -25,34 +28,92 @@ const products = [
 
 function FeaturedProducts() {
     return (
-        <section className="py-5 bg-light">
+        <section className="sx-home-section sx-home-section-soft sx-product-section">
             <div className="container">
 
-                <div className="d-flex justify-content-between align-items-center mb-4">
+                <motion.div
+                    className="sx-section-heading"
+                    initial={{
+                        opacity: 0,
+                        y: 20,
+                    }}
+                    whileInView={{
+                        opacity: 1,
+                        y: 0,
+                    }}
+                    viewport={{
+                        once: true,
+                    }}
+                    transition={{
+                        duration: 0.6,
+                    }}
+                >
                     <div>
-                        <h2 className="fw-bold mb-1">
+
+                        <p className="sx-section-kicker">
+                            <Flame
+                                size={13}
+                                className="me-1"
+                            />
+                            Trending Now
+                        </p>
+
+                        <h2 className="sx-home-title">
                             Featured Sneakers
                         </h2>
 
-                        <p className="text-muted mb-0">
+                        <p className="sx-home-subtitle">
                             Our popular picks.
                         </p>
+
                     </div>
 
-                    <button className="btn btn-dark">
+                    <motion.button
+                        type="button"
+                        className="sx-view-all"
+                        whileHover={{
+                            x: 3,
+                        }}
+                        whileTap={{
+                            scale: 0.97,
+                        }}
+                    >
                         View All
-                    </button>
-                </div>
+                        <ArrowRight size={15} />
+                    </motion.button>
+
+                </motion.div>
 
                 <div className="row g-4">
-                    {products.map((product) => (
+
+                    {products.map((product, index) => (
                         <div
                             className="col-6 col-md-3"
                             key={product.id}
                         >
-                            <ProductCard product={product} />
+                            <motion.div
+                                initial={{
+                                    opacity: 0,
+                                    y: 35,
+                                }}
+                                whileInView={{
+                                    opacity: 1,
+                                    y: 0,
+                                }}
+                                viewport={{
+                                    once: true,
+                                    amount: 0.15,
+                                }}
+                                transition={{
+                                    duration: 0.55,
+                                    delay: index * 0.08,
+                                }}
+                            >
+                                <ProductCard product={product} />
+                            </motion.div>
                         </div>
                     ))}
+
                 </div>
 
             </div>

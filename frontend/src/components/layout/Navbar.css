@@ -1,0 +1,259 @@
+/* =========================================
+   SneakX Navbar
+========================================= */
+
+.sx-navbar {
+  position: sticky;
+  top: 0;
+  z-index: 1055;
+
+  background: rgba(11, 11, 12, 0.97);
+
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+}
+
+.sx-navbar-inner {
+  min-height: 78px;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 30px;
+}
+
+/* -----------------------------------------
+   Brand
+----------------------------------------- */
+
+.sx-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+
+  color: #ffffff !important;
+  text-decoration: none;
+
+  flex-shrink: 0;
+}
+
+.sx-brand:hover {
+  color: #ffffff;
+}
+
+.sx-brand-mark {
+  width: 38px;
+  height: 38px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 11px;
+
+  background: var(--sx-accent);
+  color: #ffffff;
+
+  box-shadow: 0 8px 20px rgba(255, 90, 31, 0.25);
+
+  transition:
+    transform var(--sx-transition),
+    box-shadow var(--sx-transition);
+}
+
+.sx-brand:hover .sx-brand-mark {
+  transform: rotate(-6deg) scale(1.06);
+
+  box-shadow: 0 12px 28px rgba(255, 90, 31, 0.35);
+}
+
+.sx-brand-text {
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 1.55rem;
+  font-weight: 700;
+  letter-spacing: -0.05em;
+}
+
+.sx-brand-text span {
+  color: var(--sx-accent);
+}
+
+/* -----------------------------------------
+   Desktop Navigation
+----------------------------------------- */
+
+.sx-desktop-navigation {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.sx-navbar-link {
+  position: relative;
+
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+
+  min-height: 42px;
+  padding: 8px 13px;
+
+  color: rgba(255, 255, 255, 0.68) !important;
+  text-decoration: none;
+
+  border-radius: 9px;
+
+  font-size: 0.9rem;
+  font-weight: 500;
+
+  transition:
+    color var(--sx-transition),
+    background-color var(--sx-transition),
+    transform var(--sx-transition);
+}
+
+.sx-navbar-link:hover {
+  color: #ffffff !important;
+  background: rgba(255, 255, 255, 0.07);
+
+  transform: translateY(-1px);
+}
+
+.sx-navbar-link.active {
+  color: #ffffff !important;
+  background: rgba(255, 255, 255, 0.09);
+}
+
+.sx-navbar-link.active::after {
+  content: "";
+
+  position: absolute;
+
+  left: 50%;
+  bottom: 3px;
+
+  width: 5px;
+  height: 5px;
+
+  transform: translateX(-50%);
+
+  border-radius: 50%;
+
+  background: var(--sx-accent);
+}
+
+/* -----------------------------------------
+   Navigation Count
+----------------------------------------- */
+
+.sx-nav-count {
+  min-width: 20px;
+  height: 20px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 0 5px;
+
+  border-radius: 999px;
+
+  background: var(--sx-accent);
+  color: #ffffff;
+
+  font-size: 0.68rem;
+  font-weight: 700;
+
+  box-shadow: 0 4px 12px rgba(255, 90, 31, 0.25);
+}
+
+/* -----------------------------------------
+   Mobile
+----------------------------------------- */
+
+.sx-mobile-actions {
+  display: none;
+  align-items: center;
+  gap: 8px;
+}
+
+.sx-mobile-menu-button {
+  width: 42px;
+  height: 42px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+
+  background: rgba(255, 255, 255, 0.06);
+  color: #ffffff;
+
+  transition:
+    background-color var(--sx-transition),
+    border-color var(--sx-transition);
+}
+
+.sx-mobile-menu-button:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.22);
+}
+
+/* -----------------------------------------
+   Mobile Navigation
+----------------------------------------- */
+
+.sx-mobile-navigation {
+  display: none;
+
+  overflow: hidden;
+}
+
+.sx-mobile-navigation-inner {
+  padding: 10px 0 20px;
+
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sx-mobile-navigation .sx-navbar-link {
+  width: 100%;
+  min-height: 48px;
+  padding: 11px 14px;
+}
+
+/* -----------------------------------------
+   Responsive
+----------------------------------------- */
+
+@media (max-width: 991px) {
+  .sx-navbar-inner {
+    min-height: 70px;
+  }
+
+  .sx-desktop-navigation {
+    display: none;
+  }
+
+  .sx-mobile-actions {
+    display: flex;
+  }
+
+  .sx-mobile-navigation {
+    display: block;
+  }
+}
+
+@media (max-width: 480px) {
+  .sx-brand-text {
+    font-size: 1.35rem;
+  }
+
+  .sx-brand-mark {
+    width: 35px;
+    height: 35px;
+  }
+}

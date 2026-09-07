@@ -1,0 +1,344 @@
+/* =========================================
+   SneakX User Menu
+========================================= */
+
+.sx-user-menu-item {
+  position: relative;
+  list-style: none;
+}
+
+/* -----------------------------------------
+   Login
+----------------------------------------- */
+
+.sx-login-button {
+  min-height: 42px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+
+  padding: 8px 16px;
+
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 9px;
+
+  color: #ffffff !important;
+  background: rgba(255, 255, 255, 0.05);
+
+  text-decoration: none;
+
+  font-size: 0.9rem;
+  font-weight: 600;
+
+  transition:
+    background-color var(--sx-transition),
+    border-color var(--sx-transition),
+    transform var(--sx-transition);
+}
+
+.sx-login-button:hover {
+  color: #ffffff !important;
+
+  background: var(--sx-accent);
+  border-color: var(--sx-accent);
+
+  transform: translateY(-1px);
+
+  box-shadow: 0 8px 22px rgba(255, 90, 31, 0.2);
+}
+
+/* -----------------------------------------
+   Account Trigger
+----------------------------------------- */
+
+.sx-account-trigger {
+  min-height: 42px;
+
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+
+  padding: 5px 10px 5px 6px;
+
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+
+  color: #ffffff !important;
+  background: rgba(255, 255, 255, 0.05);
+
+  font-size: 0.88rem;
+  font-weight: 600;
+
+  transition:
+    background-color var(--sx-transition),
+    border-color var(--sx-transition),
+    transform var(--sx-transition);
+}
+
+.sx-account-trigger:hover,
+.sx-account-trigger.show {
+  color: #ffffff !important;
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.22);
+}
+
+.sx-account-trigger::after {
+  display: none;
+}
+
+.sx-account-avatar {
+  width: 32px;
+  height: 32px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 8px;
+
+  background: var(--sx-accent);
+  color: #ffffff;
+}
+
+.sx-account-name {
+  max-width: 100px;
+
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sx-account-chevron {
+  opacity: 0.65;
+
+  transition: transform var(--sx-transition);
+}
+
+.sx-account-trigger.show .sx-account-chevron {
+  transform: rotate(180deg);
+}
+
+/* -----------------------------------------
+   Dropdown
+----------------------------------------- */
+
+.sx-account-dropdown {
+  width: 285px;
+  min-width: 285px;
+
+  margin-top: 12px !important;
+  padding: 8px;
+
+  border: 1px solid var(--sx-border);
+  border-radius: 16px;
+
+  background: rgba(255, 255, 255, 0.98);
+
+  box-shadow: 0 22px 55px rgba(0, 0, 0, 0.16);
+
+  animation: sxDropdownIn 180ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes sxDropdownIn {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* -----------------------------------------
+   Header
+----------------------------------------- */
+
+.sx-account-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+
+  padding: 12px;
+}
+
+.sx-account-large-avatar {
+  width: 45px;
+  height: 45px;
+
+  flex-shrink: 0;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 12px;
+
+  background: linear-gradient(135deg, var(--sx-accent), #ff814f);
+
+  color: #ffffff;
+
+  box-shadow: 0 8px 20px rgba(255, 90, 31, 0.2);
+}
+
+.sx-account-user-info {
+  min-width: 0;
+
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sx-account-user-info strong {
+  color: var(--sx-text);
+
+  font-size: 0.92rem;
+
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sx-account-user-info span {
+  color: var(--sx-text-secondary);
+
+  font-size: 0.74rem;
+
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* -----------------------------------------
+   Divider
+----------------------------------------- */
+
+.sx-dropdown-divider {
+  height: 1px;
+  margin: 7px 5px;
+
+  background: var(--sx-border);
+}
+
+/* -----------------------------------------
+   Dropdown Item
+----------------------------------------- */
+
+.sx-dropdown-item {
+  width: 100%;
+  min-height: 43px;
+
+  display: flex;
+  align-items: center;
+  gap: 11px;
+
+  padding: 8px 10px;
+
+  border: 0;
+  border-radius: 9px;
+
+  color: var(--sx-text) !important;
+  background: transparent;
+
+  text-decoration: none;
+
+  font-size: 0.88rem;
+  font-weight: 500;
+
+  transition:
+    color var(--sx-transition),
+    background-color var(--sx-transition),
+    transform var(--sx-transition);
+}
+
+.sx-dropdown-item:hover {
+  color: var(--sx-text) !important;
+  background: var(--sx-background);
+
+  transform: translateX(3px);
+}
+
+.sx-dropdown-icon {
+  width: 32px;
+  height: 32px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  flex-shrink: 0;
+
+  border-radius: 8px;
+
+  background: #f1f1f2;
+  color: #55555a;
+
+  transition:
+    background-color var(--sx-transition),
+    color var(--sx-transition);
+}
+
+.sx-dropdown-item:hover .sx-dropdown-icon {
+  background: var(--sx-accent-soft);
+  color: var(--sx-accent);
+}
+
+/* -----------------------------------------
+   Logout
+----------------------------------------- */
+
+.sx-logout-item {
+  color: var(--sx-danger) !important;
+}
+
+.sx-logout-item .sx-dropdown-icon {
+  color: var(--sx-danger);
+  background: #fff0f1;
+}
+
+.sx-logout-item:hover {
+  color: #b02a37 !important;
+  background: #fff5f5;
+}
+
+.sx-logout-item:hover .sx-dropdown-icon {
+  color: #b02a37;
+  background: #ffe1e4;
+}
+
+/* -----------------------------------------
+   Mobile
+----------------------------------------- */
+
+@media (max-width: 991px) {
+  .sx-user-menu-item {
+    display: flex;
+  }
+
+  .sx-account-name {
+    display: none;
+  }
+
+  .sx-account-trigger {
+    padding: 4px;
+    border: 0;
+    background: transparent;
+  }
+
+  .sx-account-trigger:hover,
+  .sx-account-trigger.show {
+    background: rgba(255, 255, 255, 0.08);
+  }
+
+  .sx-account-chevron {
+    display: none;
+  }
+
+  .sx-account-dropdown {
+    position: absolute;
+    right: 0;
+  }
+}

@@ -1,133 +1,175 @@
-import { Link } from "react-router-dom";
+import { motion } from "framer-motion";
 import {
-    User,
-    Package,
+    ChevronDown,
     Heart,
+    LogOut,
     MapPin,
+    Package,
     Settings,
-    LogOut
+    User,
 } from "lucide-react";
+import { Link } from "react-router-dom";
 import { useAuth } from "../../features/authentication/hooks/useAuth";
+import "./UserMenu.css";
 
 function UserMenu() {
     const { user, isAuthenticated, logout } = useAuth();
 
     if (!isAuthenticated) {
         return (
-            <li className="nav-item">
-                <Link className="nav-link" to="/login">
-                    Login
+            <li className="sx-user-menu-item">
+                <Link
+                    className="sx-login-button"
+                    to="/login"
+                >
+                    <User size={17} />
+                    <span>Login</span>
                 </Link>
             </li>
         );
     }
 
     return (
-        <li className="nav-item dropdown">
+        <li className="sx-user-menu-item dropdown">
 
             <button
-                className="btn btn-link nav-link dropdown-toggle d-flex align-items-center"
+                className="sx-account-trigger dropdown-toggle"
                 type="button"
                 data-bs-toggle="dropdown"
                 aria-expanded="false"
                 title="Account"
             >
-                <User size={21} strokeWidth={1.8} />
+                <span className="sx-account-avatar">
+                    <User size={17} />
+                </span>
+
+                <span className="sx-account-name">
+                    {user?.name?.split(" ")[0] || "Account"}
+                </span>
+
+                <ChevronDown
+                    className="sx-account-chevron"
+                    size={15}
+                />
             </button>
 
             <ul
-                className="dropdown-menu dropdown-menu-end"
-                style={{
-                    zIndex: 2000,
-                    minWidth: "220px",
-                }}
+                className="dropdown-menu dropdown-menu-end sx-account-dropdown"
             >
 
-                {/* User Information */}
+                {/* User Header */}
                 <li>
-                    <div className="dropdown-header">
-                        <strong>{user?.name}</strong>
+                    <div className="sx-account-header">
 
-                        <br />
+                        <div className="sx-account-large-avatar">
+                            <User size={22} />
+                        </div>
 
-                        <small className="text-muted">
-                            {user?.email}
-                        </small>
+                        <div className="sx-account-user-info">
+                            <strong>
+                                {user?.name}
+                            </strong>
+
+                            <span>
+                                {user?.email}
+                            </span>
+                        </div>
+
                     </div>
                 </li>
 
                 <li>
-                    <hr className="dropdown-divider" />
+                    <div className="sx-dropdown-divider" />
                 </li>
 
                 {/* Profile */}
                 <li>
                     <Link
-                        className="dropdown-item d-flex align-items-center gap-2"
+                        className="sx-dropdown-item"
                         to="/profile"
                     >
-                        <User size={17} />
-                        My Profile
+                        <span className="sx-dropdown-icon">
+                            <User size={17} />
+                        </span>
+
+                        <span>My Profile</span>
                     </Link>
                 </li>
 
                 {/* Orders */}
                 <li>
                     <Link
-                        className="dropdown-item d-flex align-items-center gap-2"
+                        className="sx-dropdown-item"
                         to="/orders"
                     >
-                        <Package size={17} />
-                        My Orders
+                        <span className="sx-dropdown-icon">
+                            <Package size={17} />
+                        </span>
+
+                        <span>My Orders</span>
                     </Link>
                 </li>
 
                 {/* Wishlist */}
                 <li>
                     <Link
-                        className="dropdown-item d-flex align-items-center gap-2"
+                        className="sx-dropdown-item"
                         to="/wishlist"
                     >
-                        <Heart size={17} />
-                        Wishlist
+                        <span className="sx-dropdown-icon">
+                            <Heart size={17} />
+                        </span>
+
+                        <span>Wishlist</span>
                     </Link>
                 </li>
 
                 {/* Addresses */}
                 <li>
                     <Link
-                        className="dropdown-item d-flex align-items-center gap-2"
+                        className="sx-dropdown-item"
                         to="/profile/addresses"
                     >
-                        <MapPin size={17} />
-                        Addresses
+                        <span className="sx-dropdown-icon">
+                            <MapPin size={17} />
+                        </span>
+
+                        <span>Addresses</span>
                     </Link>
                 </li>
 
-                {/* Account */}
+                {/* Account Settings */}
                 <li>
                     <Link
-                        className="dropdown-item d-flex align-items-center gap-2"
+                        className="sx-dropdown-item"
                         to="/profile/account"
                     >
-                        <Settings size={17} />
-                        Account Settings
+                        <span className="sx-dropdown-icon">
+                            <Settings size={17} />
+                        </span>
+
+                        <span>Account Settings</span>
                     </Link>
                 </li>
 
                 <li>
-                    <hr className="dropdown-divider" />
+                    <div className="sx-dropdown-divider" />
                 </li>
 
                 {/* Logout */}
                 <li>
-                    <button
-                        className="dropdown-item text-danger d-flex align-items-center gap-2"
+                    <motion.button
+                        type="button"
+                        className="sx-dropdown-item sx-logout-item"
                         onClick={logout}
+                        whileTap={{ scale: 0.98 }}
                     >
-                        <LogOut size={17} />
-                        Logout
-                    </button>
+                        <span className="sx-dropdown-icon">
+                            <LogOut size={17} />
+                        </span>
+
+                        <span>Logout</span>
+                    </motion.button>
                 </li>
 
             </ul>
