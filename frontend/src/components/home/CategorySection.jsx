@@ -7,7 +7,7 @@ import {
     Zap,
 } from "lucide-react";
 import { Link } from "react-router-dom";
-import "../../pages/Home/home.css";
+import "../../pages/Home/Home.css";
 
 const categories = [
     {

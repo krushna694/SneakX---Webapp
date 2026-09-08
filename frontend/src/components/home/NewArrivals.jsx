@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import { ArrowUpRight, Sparkles } from "lucide-react";
 import ProductCard from "../product/ProductCard";
-import "../../pages/Home/home.css";
+import "../../pages/Home/Home.css";
 
 const products = [
     {

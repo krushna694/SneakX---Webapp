@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ArrowRight, Sparkles } from "lucide-react";
-import "../../pages/Home/home.css";
+import "../../pages/Home/Home.css";
 
 function HeroSection() {
     return (
