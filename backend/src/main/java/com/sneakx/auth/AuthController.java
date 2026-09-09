@@ -2,8 +2,6 @@ package com.sneakx.auth;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
-import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -39,16 +37,5 @@ public class AuthController {
         AuthResponse response = authService.login(request);
 
         return ResponseEntity.ok(response);
-    }
-
-    /**
-     * Temporary protected endpoint used to verify
-     * that JWT authentication is working correctly.
-     */
-    @GetMapping("/me")
-    public ResponseEntity<String> me(Authentication authentication) {
-
-        return ResponseEntity.ok(
-                "Authenticated as: " + authentication.getName());
     }
 }
