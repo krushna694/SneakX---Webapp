@@ -16,17 +16,17 @@ import io.jsonwebtoken.security.Keys;
 @Service
 public class JwtService {
 
-    @Value("${sneakx.jwt.secret}")
+    @Value("${jwt.secret}")
     private String secret;
 
-    @Value("${sneakx.jwt.expiration}")
-    private long jwtExpiration;
+    @Value("${jwt.expiration}")
+    private long expiration;
 
     public String generateToken(String email) {
         return Jwts.builder()
                 .subject(email)
                 .issuedAt(new Date())
-                .expiration(new Date(System.currentTimeMillis() + jwtExpiration))
+                .expiration(new Date(System.currentTimeMillis() + expiration))
                 .signWith(getSigningKey())
                 .compact();
     }

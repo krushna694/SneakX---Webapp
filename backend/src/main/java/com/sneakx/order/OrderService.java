@@ -16,6 +16,7 @@ import com.sneakx.address.AddressRepository;
 import com.sneakx.cart.Cart;
 import com.sneakx.cart.CartItem;
 import com.sneakx.cart.CartRepository;
+import com.sneakx.inventory.InventoryService;
 import com.sneakx.payment.PaymentStatus;
 import com.sneakx.product.Product;
 import com.sneakx.product.ProductVariant;
@@ -25,278 +26,359 @@ import com.sneakx.user.UserRepository;
 @Service
 public class OrderService {
 
-    private final OrderRepository orderRepository;
-    private final OrderItemRepository orderItemRepository;
-    private final UserRepository userRepository;
-    private final AddressRepository addressRepository;
-    private final CartRepository cartRepository;
+        private final OrderRepository orderRepository;
+        private final OrderItemRepository orderItemRepository;
+        private final UserRepository userRepository;
+        private final AddressRepository addressRepository;
+        private final CartRepository cartRepository;
+        private final InventoryService inventoryService;
 
-    public OrderService(
-            OrderRepository orderRepository,
-            OrderItemRepository orderItemRepository,
-            UserRepository userRepository,
-            AddressRepository addressRepository,
-            CartRepository cartRepository) {
-        this.orderRepository = orderRepository;
-        this.orderItemRepository = orderItemRepository;
-        this.userRepository = userRepository;
-        this.addressRepository = addressRepository;
-        this.cartRepository = cartRepository;
-    }
+        public OrderService(
+                        OrderRepository orderRepository,
+                        OrderItemRepository orderItemRepository,
+                        UserRepository userRepository,
+                        AddressRepository addressRepository,
+                        CartRepository cartRepository,
+                        InventoryService inventoryService) {
 
-    @Transactional
-    public OrderResponse createOrder(
-            OrderRequest request,
-            Authentication authentication) {
-
-        String email = authentication.getName();
-
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found"));
-
-        Address address = addressRepository
-                .findByIdAndUserId(request.getAddressId(), user.getId())
-                .orElseThrow(() -> new RuntimeException("Address not found"));
-
-        Cart cart = cartRepository
-                .findByUserId(user.getId())
-                .orElseThrow(() -> new RuntimeException("Cart not found"));
-
-        if (cart.getItems() == null || cart.getItems().isEmpty()) {
-            throw new RuntimeException("Cannot create order from empty cart");
+                this.orderRepository = orderRepository;
+                this.orderItemRepository = orderItemRepository;
+                this.userRepository = userRepository;
+                this.addressRepository = addressRepository;
+                this.cartRepository = cartRepository;
+                this.inventoryService = inventoryService;
         }
 
-        BigDecimal subtotal = BigDecimal.ZERO;
-        BigDecimal discountAmount = BigDecimal.ZERO;
+        // --------------------------------------------------
+        // CREATE ORDER
+        // --------------------------------------------------
 
-        Order order = new Order();
+        @Transactional
+        public OrderResponse createOrder(
+                        OrderRequest request,
+                        Authentication authentication) {
 
-        order.setUser(user);
-        order.setAddress(address);
-        order.setOrderNumber(generateOrderNumber());
+                String email = authentication.getName();
 
-        order.setStatus(OrderStatus.PENDING);
-        order.setPaymentStatus(PaymentStatus.PENDING);
+                User user = userRepository.findByEmail(email)
+                                .orElseThrow(() -> new RuntimeException("User not found"));
 
-        for (CartItem cartItem : cart.getItems()) {
+                Address address = addressRepository
+                                .findByIdAndUserId(
+                                                request.getAddressId(),
+                                                user.getId())
+                                .orElseThrow(() -> new RuntimeException("Address not found"));
 
-            ProductVariant variant = cartItem.getVariant();
+                Cart cart = cartRepository
+                                .findByUserId(user.getId())
+                                .orElseThrow(() -> new RuntimeException("Cart not found"));
 
-            if (variant == null) {
-                throw new RuntimeException(
-                        "Product variant not found");
-            }
+                if (cart.getItems() == null || cart.getItems().isEmpty()) {
+                        throw new RuntimeException(
+                                        "Cannot create order from empty cart");
+                }
 
-            Product product = variant.getProduct();
+                BigDecimal subtotal = BigDecimal.ZERO;
+                BigDecimal discountAmount = BigDecimal.ZERO;
 
-            if (product == null) {
-                throw new RuntimeException(
-                        "Product not found");
-            }
+                Order order = new Order();
 
-            if (!product.isActive()) {
-                throw new RuntimeException(
-                        "Product is no longer available: "
-                                + product.getName());
-            }
+                order.setUser(user);
+                order.setAddress(address);
+                order.setOrderNumber(generateOrderNumber());
 
-            if (!variant.isActive()) {
-                throw new RuntimeException(
-                        "Product variant is no longer available");
-            }
+                order.setStatus(OrderStatus.PENDING);
+                order.setPaymentStatus(PaymentStatus.PENDING);
 
-            if (variant.getStockQuantity() < cartItem.getQuantity()) {
-                throw new RuntimeException(
-                        "Insufficient stock for "
-                                + product.getName());
-            }
+                for (CartItem cartItem : cart.getItems()) {
 
-            BigDecimal basePrice = variant.getPriceOverride() != null
-                    ? variant.getPriceOverride()
-                    : product.getPrice();
+                        ProductVariant variant = cartItem.getVariant();
 
-            BigDecimal discountPercentage = product.getDiscountPercentage() != null
-                    ? product.getDiscountPercentage()
-                    : BigDecimal.ZERO;
+                        if (variant == null) {
+                                throw new RuntimeException(
+                                                "Product variant not found");
+                        }
 
-            BigDecimal itemDiscount = basePrice
-                    .multiply(discountPercentage)
-                    .divide(
-                            BigDecimal.valueOf(100),
-                            2,
-                            RoundingMode.HALF_UP);
+                        Product product = variant.getProduct();
 
-            BigDecimal finalUnitPrice = basePrice.subtract(itemDiscount);
+                        if (product == null) {
+                                throw new RuntimeException(
+                                                "Product not found");
+                        }
 
-            BigDecimal itemTotal = finalUnitPrice.multiply(
-                    BigDecimal.valueOf(cartItem.getQuantity()));
+                        if (!product.isActive()) {
+                                throw new RuntimeException(
+                                                "Product is no longer available: "
+                                                                + product.getName());
+                        }
 
-            BigDecimal originalTotal = basePrice.multiply(
-                    BigDecimal.valueOf(cartItem.getQuantity()));
+                        if (!variant.isActive()) {
+                                throw new RuntimeException(
+                                                "Product variant is no longer available");
+                        }
 
-            BigDecimal totalDiscount = originalTotal.subtract(itemTotal);
+                        // --------------------------------------------------
+                        // RESERVE INVENTORY
+                        // --------------------------------------------------
 
-            subtotal = subtotal.add(originalTotal);
-            discountAmount = discountAmount.add(totalDiscount);
+                        inventoryService.reserveStock(
+                                        variant.getId(),
+                                        cartItem.getQuantity());
 
-            OrderItem orderItem = new OrderItem();
+                        // --------------------------------------------------
+                        // CALCULATE PRICE
+                        // --------------------------------------------------
 
-            orderItem.setProduct(product);
-            orderItem.setVariant(variant);
+                        BigDecimal basePrice = variant.getPriceOverride() != null
+                                        ? variant.getPriceOverride()
+                                        : product.getPrice();
 
-            orderItem.setProductName(product.getName());
-            orderItem.setSku(variant.getSku());
-            orderItem.setSize(variant.getSize());
+                        BigDecimal discountPercentage = product.getDiscountPercentage() != null
+                                        ? product.getDiscountPercentage()
+                                        : BigDecimal.ZERO;
 
-            orderItem.setUnitPrice(finalUnitPrice);
-            orderItem.setDiscountAmount(totalDiscount);
-            orderItem.setQuantity(cartItem.getQuantity());
-            orderItem.setTotalPrice(itemTotal);
+                        BigDecimal itemDiscount = basePrice
+                                        .multiply(discountPercentage)
+                                        .divide(
+                                                        BigDecimal.valueOf(100),
+                                                        2,
+                                                        RoundingMode.HALF_UP);
 
-            order.addItem(orderItem);
+                        BigDecimal finalUnitPrice = basePrice.subtract(itemDiscount);
+
+                        BigDecimal itemTotal = finalUnitPrice.multiply(
+                                        BigDecimal.valueOf(
+                                                        cartItem.getQuantity()));
+
+                        BigDecimal originalTotal = basePrice.multiply(
+                                        BigDecimal.valueOf(
+                                                        cartItem.getQuantity()));
+
+                        BigDecimal totalDiscount = originalTotal.subtract(itemTotal);
+
+                        subtotal = subtotal.add(originalTotal);
+                        discountAmount = discountAmount.add(totalDiscount);
+
+                        // --------------------------------------------------
+                        // CREATE ORDER ITEM SNAPSHOT
+                        // --------------------------------------------------
+
+                        OrderItem orderItem = new OrderItem();
+
+                        orderItem.setProduct(product);
+                        orderItem.setVariant(variant);
+
+                        orderItem.setProductName(product.getName());
+                        orderItem.setSku(variant.getSku());
+                        orderItem.setSize(variant.getSize());
+
+                        orderItem.setUnitPrice(finalUnitPrice);
+                        orderItem.setDiscountAmount(totalDiscount);
+                        orderItem.setQuantity(cartItem.getQuantity());
+                        orderItem.setTotalPrice(itemTotal);
+
+                        order.addItem(orderItem);
+                }
+
+                // --------------------------------------------------
+                // SHIPPING & TAX
+                // --------------------------------------------------
+
+                BigDecimal shippingAmount = calculateShipping(subtotal);
+
+                BigDecimal taxAmount = BigDecimal.ZERO;
+
+                BigDecimal totalAmount = subtotal
+                                .subtract(discountAmount)
+                                .add(shippingAmount)
+                                .add(taxAmount);
+
+                order.setSubtotal(subtotal);
+                order.setDiscountAmount(discountAmount);
+                order.setShippingAmount(shippingAmount);
+                order.setTaxAmount(taxAmount);
+                order.setTotalAmount(totalAmount);
+
+                // --------------------------------------------------
+                // SAVE ORDER
+                // --------------------------------------------------
+
+                Order savedOrder = orderRepository.save(order);
+
+                // --------------------------------------------------
+                // CLEAR CART
+                // --------------------------------------------------
+
+                cart.getItems().clear();
+
+                return mapToResponse(savedOrder);
         }
 
-        BigDecimal shippingAmount = calculateShipping(subtotal);
-        BigDecimal taxAmount = BigDecimal.ZERO;
+        // --------------------------------------------------
+        // GET MY ORDERS
+        // --------------------------------------------------
 
-        BigDecimal totalAmount = subtotal
-                .subtract(discountAmount)
-                .add(shippingAmount)
-                .add(taxAmount);
+        @Transactional(readOnly = true)
+        public List<OrderResponse> getMyOrders(
+                        Authentication authentication) {
 
-        order.setSubtotal(subtotal);
-        order.setDiscountAmount(discountAmount);
-        order.setShippingAmount(shippingAmount);
-        order.setTaxAmount(taxAmount);
-        order.setTotalAmount(totalAmount);
+                String email = authentication.getName();
 
-        Order savedOrder = orderRepository.save(order);
+                User user = userRepository.findByEmail(email)
+                                .orElseThrow(() -> new RuntimeException("User not found"));
 
-        cart.getItems().clear();
-
-        return mapToResponse(savedOrder);
-    }
-
-    @Transactional(readOnly = true)
-    public List<OrderResponse> getMyOrders(
-            Authentication authentication) {
-
-        String email = authentication.getName();
-
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found"));
-
-        return orderRepository
-                .findByUserIdOrderByCreatedAtDesc(user.getId())
-                .stream()
-                .map(this::mapToResponse)
-                .toList();
-    }
-
-    @Transactional(readOnly = true)
-    public OrderResponse getMyOrder(
-            Long orderId,
-            Authentication authentication) {
-
-        String email = authentication.getName();
-
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found"));
-
-        Order order = orderRepository
-                .findByIdAndUserId(orderId, user.getId())
-                .orElseThrow(() -> new RuntimeException("Order not found"));
-
-        return mapToResponse(order);
-    }
-
-    private BigDecimal calculateShipping(BigDecimal subtotal) {
-
-        // Free shipping for orders >= ₹2000
-        if (subtotal.compareTo(BigDecimal.valueOf(2000)) >= 0) {
-            return BigDecimal.ZERO;
+                return orderRepository
+                                .findByUserIdOrderByCreatedAtDesc(user.getId())
+                                .stream()
+                                .map(this::mapToResponse)
+                                .toList();
         }
 
-        return BigDecimal.valueOf(100);
-    }
+        // --------------------------------------------------
+        // GET MY ORDER
+        // --------------------------------------------------
 
-    private String generateOrderNumber() {
+        @Transactional(readOnly = true)
+        public OrderResponse getMyOrder(
+                        Long orderId,
+                        Authentication authentication) {
 
-        String timestamp = LocalDateTime.now()
-                .format(
-                        DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
+                String email = authentication.getName();
 
-        String randomPart = UUID.randomUUID()
-                .toString()
-                .substring(0, 6)
-                .toUpperCase();
+                User user = userRepository.findByEmail(email)
+                                .orElseThrow(() -> new RuntimeException("User not found"));
 
-        return "SNX-" + timestamp + "-" + randomPart;
-    }
+                Order order = orderRepository
+                                .findByIdAndUserId(
+                                                orderId,
+                                                user.getId())
+                                .orElseThrow(() -> new RuntimeException("Order not found"));
 
-    private OrderResponse mapToResponse(Order order) {
+                return mapToResponse(order);
+        }
 
-        OrderResponse response = new OrderResponse();
+        // --------------------------------------------------
+        // SHIPPING CALCULATION
+        // --------------------------------------------------
 
-        response.setId(order.getId());
-        response.setOrderNumber(order.getOrderNumber());
+        private BigDecimal calculateShipping(
+                        BigDecimal subtotal) {
 
-        response.setStatus(order.getStatus());
-        response.setPaymentStatus(order.getPaymentStatus());
+                // Free shipping for orders >= ₹2000
+                if (subtotal.compareTo(
+                                BigDecimal.valueOf(2000)) >= 0) {
 
-        response.setAddressId(
-                order.getAddress().getId());
+                        return BigDecimal.ZERO;
+                }
 
-        response.setSubtotal(order.getSubtotal());
-        response.setDiscountAmount(order.getDiscountAmount());
-        response.setShippingAmount(order.getShippingAmount());
-        response.setTaxAmount(order.getTaxAmount());
-        response.setTotalAmount(order.getTotalAmount());
+                return BigDecimal.valueOf(100);
+        }
 
-        response.setCreatedAt(order.getCreatedAt());
-        response.setUpdatedAt(order.getUpdatedAt());
+        // --------------------------------------------------
+        // ORDER NUMBER
+        // --------------------------------------------------
 
-        List<OrderResponse.OrderItemResponse> items = order.getItems()
-                .stream()
-                .map(item -> {
+        private String generateOrderNumber() {
 
-                    OrderResponse.OrderItemResponse itemResponse = new OrderResponse.OrderItemResponse();
+                String timestamp = LocalDateTime.now()
+                                .format(
+                                                DateTimeFormatter.ofPattern(
+                                                                "yyyyMMddHHmmss"));
 
-                    itemResponse.setId(item.getId());
+                String randomPart = UUID.randomUUID()
+                                .toString()
+                                .substring(0, 6)
+                                .toUpperCase();
 
-                    itemResponse.setProductId(
-                            item.getProduct().getId());
+                return "SNX-" + timestamp + "-" + randomPart;
+        }
 
-                    itemResponse.setVariantId(
-                            item.getVariant().getId());
+        // --------------------------------------------------
+        // ORDER RESPONSE MAPPER
+        // --------------------------------------------------
 
-                    itemResponse.setProductName(
-                            item.getProductName());
+        private OrderResponse mapToResponse(
+                        Order order) {
 
-                    itemResponse.setSku(
-                            item.getSku());
+                OrderResponse response = new OrderResponse();
 
-                    itemResponse.setSize(
-                            item.getSize());
+                response.setId(order.getId());
 
-                    itemResponse.setUnitPrice(
-                            item.getUnitPrice());
+                response.setOrderNumber(
+                                order.getOrderNumber());
 
-                    itemResponse.setDiscountAmount(
-                            item.getDiscountAmount());
+                response.setStatus(
+                                order.getStatus());
 
-                    itemResponse.setQuantity(
-                            item.getQuantity());
+                response.setPaymentStatus(
+                                order.getPaymentStatus());
 
-                    itemResponse.setTotalPrice(
-                            item.getTotalPrice());
+                response.setAddressId(
+                                order.getAddress().getId());
 
-                    return itemResponse;
-                })
-                .toList();
+                response.setSubtotal(
+                                order.getSubtotal());
 
-        response.setItems(items);
+                response.setDiscountAmount(
+                                order.getDiscountAmount());
 
-        return response;
-    }
+                response.setShippingAmount(
+                                order.getShippingAmount());
+
+                response.setTaxAmount(
+                                order.getTaxAmount());
+
+                response.setTotalAmount(
+                                order.getTotalAmount());
+
+                response.setCreatedAt(
+                                order.getCreatedAt());
+
+                response.setUpdatedAt(
+                                order.getUpdatedAt());
+
+                List<OrderResponse.OrderItemResponse> items = order.getItems()
+                                .stream()
+                                .map(item -> {
+
+                                        OrderResponse.OrderItemResponse itemResponse = new OrderResponse.OrderItemResponse();
+
+                                        itemResponse.setId(
+                                                        item.getId());
+
+                                        itemResponse.setProductId(
+                                                        item.getProduct().getId());
+
+                                        itemResponse.setVariantId(
+                                                        item.getVariant().getId());
+
+                                        itemResponse.setProductName(
+                                                        item.getProductName());
+
+                                        itemResponse.setSku(
+                                                        item.getSku());
+
+                                        itemResponse.setSize(
+                                                        item.getSize());
+
+                                        itemResponse.setUnitPrice(
+                                                        item.getUnitPrice());
+
+                                        itemResponse.setDiscountAmount(
+                                                        item.getDiscountAmount());
+
+                                        itemResponse.setQuantity(
+                                                        item.getQuantity());
+
+                                        itemResponse.setTotalPrice(
+                                                        item.getTotalPrice());
+
+                                        return itemResponse;
+                                })
+                                .toList();
+
+                response.setItems(items);
+
+                return response;
+        }
 }
