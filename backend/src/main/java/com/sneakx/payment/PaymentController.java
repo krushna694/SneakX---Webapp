@@ -1,10 +1,12 @@
 package com.sneakx.payment;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -18,10 +20,17 @@ import jakarta.validation.constraints.NotNull;
 public class PaymentController {
 
     private final PaymentService paymentService;
+    private final RazorpayWebhookSignatureService razorpayWebhookSignatureService;
+    private final PaymentWebhookService paymentWebhookService;
 
     public PaymentController(
-            PaymentService paymentService) {
+            PaymentService paymentService,
+            RazorpayWebhookSignatureService razorpayWebhookSignatureService,
+            PaymentWebhookService paymentWebhookService) {
+
         this.paymentService = paymentService;
+        this.razorpayWebhookSignatureService = razorpayWebhookSignatureService;
+        this.paymentWebhookService = paymentWebhookService;
     }
 
     // --------------------------------------------------
@@ -61,5 +70,70 @@ public class PaymentController {
                 authentication);
 
         return ResponseEntity.ok(response);
+    }
+
+    // --------------------------------------------------
+    // RAZORPAY WEBHOOK
+    // --------------------------------------------------
+
+    @PostMapping("/webhook")
+    public ResponseEntity<Void> handleRazorpayWebhook(
+
+            @RequestHeader(value = "X-Razorpay-Signature", required = false) String signature,
+
+            @RequestHeader(value = "X-Razorpay-Event-Id", required = false) String eventId,
+
+            @RequestHeader(value = "X-Razorpay-Event", required = false) String eventType,
+
+            @RequestBody String payload) {
+
+        // --------------------------------------------------
+        // 1. VERIFY RAZORPAY SIGNATURE
+        // --------------------------------------------------
+
+        boolean validSignature = razorpayWebhookSignatureService.verifySignature(
+                payload,
+                signature);
+
+        if (!validSignature) {
+            return ResponseEntity
+                    .status(HttpStatus.UNAUTHORIZED)
+                    .build();
+        }
+
+        // --------------------------------------------------
+        // 2. VALIDATE EVENT ID
+        // --------------------------------------------------
+
+        if (eventId == null || eventId.isBlank()) {
+            return ResponseEntity
+                    .badRequest()
+                    .build();
+        }
+
+        // --------------------------------------------------
+        // 3. VALIDATE EVENT TYPE
+        // --------------------------------------------------
+
+        if (eventType == null || eventType.isBlank()) {
+            return ResponseEntity
+                    .badRequest()
+                    .build();
+        }
+
+        // --------------------------------------------------
+        // 4. STORE WEBHOOK EVENT
+        // --------------------------------------------------
+
+        paymentWebhookService.receiveWebhook(
+                eventId,
+                eventType,
+                payload);
+
+        // --------------------------------------------------
+        // 5. ACKNOWLEDGE WEBHOOK
+        // --------------------------------------------------
+
+        return ResponseEntity.ok().build();
     }
 }

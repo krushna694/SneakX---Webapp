@@ -18,13 +18,15 @@ public class SecurityConfig {
 
         private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
-        public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter) {
+        public SecurityConfig(
+                        JwtAuthenticationFilter jwtAuthenticationFilter) {
+
                 this.jwtAuthenticationFilter = jwtAuthenticationFilter;
         }
 
         @Bean
-        public SecurityFilterChain securityFilterChain(HttpSecurity http)
-                        throws Exception {
+        public SecurityFilterChain securityFilterChain(
+                        HttpSecurity http) throws Exception {
 
                 http
                                 // JWT-based APIs do not use browser sessions or CSRF tokens.
@@ -36,30 +38,35 @@ public class SecurityConfig {
                                 // Disable HTTP Basic authentication.
                                 .httpBasic(basic -> basic.disable())
 
-                                // Every request must be authenticated unless explicitly
-                                // marked as public below.
+                                // Stateless API.
                                 .sessionManagement(session -> session.sessionCreationPolicy(
                                                 SessionCreationPolicy.STATELESS))
 
                                 // Authentication and authorization rules.
                                 .authorizeHttpRequests(auth -> auth
 
-                                                // Public authentication endpoints.
+                                                // Public authentication endpoints
+                                                // and Razorpay webhook.
                                                 .requestMatchers(
                                                                 "/api/auth/register",
-                                                                "/api/auth/login")
+                                                                "/api/auth/login",
+                                                                "/api/payments/webhook")
                                                 .permitAll()
 
                                                 // Every other API requires authentication.
-                                                .anyRequest().authenticated())
+                                                .anyRequest()
+                                                .authenticated())
 
-                                // Convert unauthenticated requests into HTTP 401.
+                                // Authentication / authorization errors.
                                 .exceptionHandling(exception -> exception
-                                                .authenticationEntryPoint(authenticationEntryPoint())
-                                                .accessDeniedHandler(accessDeniedHandler()))
 
-                                // JWT must run before Spring Security tries to authorize
-                                // the request.
+                                                .authenticationEntryPoint(
+                                                                authenticationEntryPoint())
+
+                                                .accessDeniedHandler(
+                                                                accessDeniedHandler()))
+
+                                // JWT filter.
                                 .addFilterBefore(
                                                 jwtAuthenticationFilter,
                                                 UsernamePasswordAuthenticationFilter.class);
@@ -68,14 +75,7 @@ public class SecurityConfig {
         }
 
         /**
-         * Handles requests where the user has not authenticated.
-         *
-         * Example:
-         * GET /api/auth/me
-         * without Authorization header
-         *
-         * Result:
-         * HTTP 401 Unauthorized
+         * Handles unauthenticated requests.
          */
         @Bean
         public AuthenticationEntryPoint authenticationEntryPoint() {
@@ -89,14 +89,8 @@ public class SecurityConfig {
         }
 
         /**
-         * Handles requests where the user is authenticated but
-         * does not have the required role.
-         *
-         * Example:
-         * CUSTOMER trying to access ADMIN endpoint
-         *
-         * Result:
-         * HTTP 403 Forbidden
+         * Handles authenticated users who do not
+         * have the required role.
          */
         @Bean
         public AccessDeniedHandler accessDeniedHandler() {

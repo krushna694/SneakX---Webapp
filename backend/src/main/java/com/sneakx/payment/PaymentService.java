@@ -1,6 +1,7 @@
 package com.sneakx.payment;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
@@ -9,8 +10,12 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.sneakx.inventory.InventoryService;
 import com.sneakx.order.Order;
+import com.sneakx.order.OrderItem;
 import com.sneakx.order.OrderRepository;
 import com.sneakx.order.OrderStatus;
+import com.sneakx.payment.RazorpayOrderResponse;
+import com.sneakx.payment.RazorpayService;
+import com.sneakx.payment.RazorpaySignatureService;
 import com.sneakx.user.User;
 import com.sneakx.user.UserRepository;
 
@@ -19,457 +24,756 @@ import jakarta.persistence.EntityNotFoundException;
 @Service
 public class PaymentService {
 
-    private final PaymentRepository paymentRepository;
-    private final OrderRepository orderRepository;
-    private final UserRepository userRepository;
-    private final InventoryService inventoryService;
-    private final RazorpayService razorpayService;
-    private final RazorpaySignatureService razorpaySignatureService;
+        private final PaymentRepository paymentRepository;
+        private final OrderRepository orderRepository;
+        private final UserRepository userRepository;
+        private final InventoryService inventoryService;
+        private final RazorpayService razorpayService;
+        private final RazorpaySignatureService razorpaySignatureService;
 
-    @Value("${razorpay.key.id}")
-    private String razorpayKeyId;
+        @Value("${razorpay.key.id}")
+        private String razorpayKeyId;
 
-    public PaymentService(
-            PaymentRepository paymentRepository,
-            OrderRepository orderRepository,
-            UserRepository userRepository,
-            InventoryService inventoryService,
-            RazorpayService razorpayService,
-            RazorpaySignatureService razorpaySignatureService) {
+        public PaymentService(
+                        PaymentRepository paymentRepository,
+                        OrderRepository orderRepository,
+                        UserRepository userRepository,
+                        InventoryService inventoryService,
+                        RazorpayService razorpayService,
+                        RazorpaySignatureService razorpaySignatureService) {
 
-        this.paymentRepository = paymentRepository;
-        this.orderRepository = orderRepository;
-        this.userRepository = userRepository;
-        this.inventoryService = inventoryService;
-        this.razorpayService = razorpayService;
-        this.razorpaySignatureService = razorpaySignatureService;
-    }
-
-    // --------------------------------------------------
-    // GET PAYMENT
-    // --------------------------------------------------
-
-    @Transactional(readOnly = true)
-    public PaymentResponse getPayment(
-            Long orderId,
-            Authentication authentication) {
-
-        User user = getAuthenticatedUser(authentication);
-
-        Order order = orderRepository
-                .findByIdAndUserId(orderId, user.getId())
-                .orElseThrow(() -> new EntityNotFoundException("Order not found"));
-
-        Payment payment = paymentRepository
-                .findByOrderId(order.getId())
-                .orElseThrow(() -> new EntityNotFoundException(
-                        "Payment not found for order"));
-
-        return toResponse(payment);
-    }
-
-    // --------------------------------------------------
-    // CREATE PAYMENT
-    // --------------------------------------------------
-
-    @Transactional
-    public PaymentResponse createPayment(
-            Long orderId,
-            PaymentMethod paymentMethod,
-            String idempotencyKey,
-            Authentication authentication) {
-
-        User user = getAuthenticatedUser(authentication);
-
-        // --------------------------------------------------
-        // REQUEST VALIDATION
-        // --------------------------------------------------
-
-        if (idempotencyKey == null || idempotencyKey.isBlank()) {
-            throw new IllegalArgumentException(
-                    "Idempotency key is required");
-        }
-
-        if (paymentMethod == null) {
-            throw new IllegalArgumentException(
-                    "Payment method is required");
+                this.paymentRepository = paymentRepository;
+                this.orderRepository = orderRepository;
+                this.userRepository = userRepository;
+                this.inventoryService = inventoryService;
+                this.razorpayService = razorpayService;
+                this.razorpaySignatureService = razorpaySignatureService;
         }
 
         // --------------------------------------------------
-        // LOAD ORDER
+        // GET PAYMENT
         // --------------------------------------------------
 
-        Order order = orderRepository
-                .findByIdAndUserId(orderId, user.getId())
-                .orElseThrow(() -> new EntityNotFoundException("Order not found"));
+        @Transactional(readOnly = true)
+        public PaymentResponse getPayment(
+                        Long orderId,
+                        Authentication authentication) {
 
-        // --------------------------------------------------
-        // IDEMPOTENCY CHECK
-        // --------------------------------------------------
+                User user = getAuthenticatedUser(authentication);
 
-        Payment existingPayment = paymentRepository
-                .findByIdempotencyKey(idempotencyKey)
-                .orElse(null);
+                Order order = orderRepository
+                                .findByIdAndUserId(orderId, user.getId())
+                                .orElseThrow(() -> new EntityNotFoundException("Order not found"));
 
-        if (existingPayment != null) {
+                Payment payment = paymentRepository
+                                .findByOrderId(order.getId())
+                                .orElseThrow(() -> new EntityNotFoundException(
+                                                "Payment not found for order"));
 
-            /*
-             * Prevent an idempotency key belonging to
-             * another order from being reused.
-             */
-            if (!existingPayment.getOrder()
-                    .getId()
-                    .equals(order.getId())) {
-
-                throw new IllegalStateException(
-                        "Idempotency key already belongs to another order");
-            }
-
-            return toResponse(existingPayment);
+                return toResponse(payment);
         }
 
         // --------------------------------------------------
-        // ONE PAYMENT PER ORDER
+        // CREATE PAYMENT
         // --------------------------------------------------
 
-        if (paymentRepository.existsByOrderId(order.getId())) {
-            throw new IllegalStateException(
-                    "Payment already exists for this order");
+        @Transactional
+        public PaymentResponse createPayment(
+                        Long orderId,
+                        PaymentMethod paymentMethod,
+                        String idempotencyKey,
+                        Authentication authentication) {
+
+                User user = getAuthenticatedUser(authentication);
+
+                // --------------------------------------------------
+                // REQUEST VALIDATION
+                // --------------------------------------------------
+
+                if (idempotencyKey == null || idempotencyKey.isBlank()) {
+                        throw new IllegalArgumentException(
+                                        "Idempotency key is required");
+                }
+
+                if (paymentMethod == null) {
+                        throw new IllegalArgumentException(
+                                        "Payment method is required");
+                }
+
+                String normalizedIdempotencyKey = idempotencyKey.trim();
+
+                if (normalizedIdempotencyKey.length() > 100) {
+                        throw new IllegalArgumentException(
+                                        "Idempotency key is too long");
+                }
+
+                // --------------------------------------------------
+                // LOAD ORDER
+                // --------------------------------------------------
+
+                Order order = orderRepository
+                                .findByIdAndUserId(orderId, user.getId())
+                                .orElseThrow(() -> new EntityNotFoundException("Order not found"));
+
+                // --------------------------------------------------
+                // IDEMPOTENCY CHECK
+                // --------------------------------------------------
+
+                Payment existingPayment = paymentRepository
+                                .findByIdempotencyKey(normalizedIdempotencyKey)
+                                .orElse(null);
+
+                if (existingPayment != null) {
+
+                        /*
+                         * Prevent an idempotency key belonging to
+                         * another order from being reused.
+                         */
+                        if (!existingPayment.getOrder()
+                                        .getId()
+                                        .equals(order.getId())) {
+
+                                throw new IllegalStateException(
+                                                "Idempotency key already belongs to another order");
+                        }
+
+                        /*
+                         * Prevent the same idempotency key from being
+                         * reused with another payment method.
+                         */
+                        if (existingPayment.getPaymentMethod() != paymentMethod) {
+
+                                throw new IllegalStateException(
+                                                "Idempotency key cannot be reused with another payment method");
+                        }
+
+                        return toResponse(existingPayment);
+                }
+
+                // --------------------------------------------------
+                // ONE PAYMENT PER ORDER
+                // --------------------------------------------------
+
+                if (paymentRepository.existsByOrderId(order.getId())) {
+                        throw new IllegalStateException(
+                                        "Payment already exists for this order");
+                }
+
+                // --------------------------------------------------
+                // ORDER VALIDATION
+                // --------------------------------------------------
+
+                if (order.getStatus() != OrderStatus.PENDING) {
+                        throw new IllegalStateException(
+                                        "Payment cannot be created for this order. Current status: "
+                                                        + order.getStatus());
+                }
+
+                if (order.getTotalAmount() == null) {
+                        throw new IllegalStateException(
+                                        "Order total amount is missing");
+                }
+
+                if (order.getTotalAmount().signum() < 0) {
+                        throw new IllegalStateException(
+                                        "Order total amount cannot be negative");
+                }
+
+                // --------------------------------------------------
+                // CREATE LOCAL PAYMENT
+                // --------------------------------------------------
+
+                Payment payment = new Payment();
+
+                payment.setOrder(order);
+                payment.setPaymentMethod(paymentMethod);
+                payment.setStatus(PaymentStatus.PENDING);
+                payment.setAmount(order.getTotalAmount());
+                payment.setCurrency("INR");
+                payment.setIdempotencyKey(normalizedIdempotencyKey);
+
+                // --------------------------------------------------
+                // RAZORPAY
+                // --------------------------------------------------
+
+                if (paymentMethod == PaymentMethod.RAZORPAY) {
+
+                        payment.setProvider("RAZORPAY");
+
+                        /*
+                         * Razorpay amount comes from our trusted
+                         * server-side Order entity.
+                         *
+                         * React must never decide the payment amount.
+                         */
+                        RazorpayOrderResponse razorpayOrder = razorpayService.createOrder(
+                                        order,
+                                        razorpayKeyId);
+
+                        payment.setProviderOrderId(
+                                        razorpayOrder.razorpayOrderId());
+                }
+
+                // --------------------------------------------------
+                // CASH ON DELIVERY
+                // --------------------------------------------------
+
+                else if (paymentMethod == PaymentMethod.COD) {
+
+                        payment.setProvider("COD");
+
+                        /*
+                         * COD confirmation will be handled by the
+                         * dedicated COD order-confirmation flow.
+                         */
+                }
+
+                // --------------------------------------------------
+                // SAVE PAYMENT
+                // --------------------------------------------------
+
+                Payment savedPayment = paymentRepository.save(payment);
+
+                return toResponse(savedPayment);
         }
 
         // --------------------------------------------------
-        // ORDER VALIDATION
+        // VERIFY RAZORPAY PAYMENT
         // --------------------------------------------------
 
-        if (order.getStatus() != OrderStatus.PENDING) {
-            throw new IllegalStateException(
-                    "Payment cannot be created for this order. Current status: "
-                            + order.getStatus());
-        }
+        @Transactional
+        public PaymentResponse verifyRazorpayPayment(
+                        Long orderId,
+                        PaymentVerificationRequest request,
+                        Authentication authentication) {
 
-        if (order.getTotalAmount() == null) {
-            throw new IllegalStateException(
-                    "Order total amount is missing");
-        }
+                User user = getAuthenticatedUser(authentication);
 
-        // --------------------------------------------------
-        // CREATE LOCAL PAYMENT
-        // --------------------------------------------------
+                // --------------------------------------------------
+                // REQUEST VALIDATION
+                // --------------------------------------------------
 
-        Payment payment = new Payment();
+                if (request == null) {
+                        throw new IllegalArgumentException(
+                                        "Payment verification request is required");
+                }
 
-        payment.setOrder(order);
-        payment.setPaymentMethod(paymentMethod);
-        payment.setStatus(PaymentStatus.PENDING);
-        payment.setAmount(order.getTotalAmount());
-        payment.setCurrency("INR");
-        payment.setIdempotencyKey(idempotencyKey);
+                if (request.razorpayPaymentId() == null
+                                || request.razorpayPaymentId().isBlank()) {
 
-        // --------------------------------------------------
-        // RAZORPAY
-        // --------------------------------------------------
+                        throw new IllegalArgumentException(
+                                        "Razorpay payment ID is required");
+                }
 
-        if (paymentMethod == PaymentMethod.RAZORPAY) {
+                if (request.razorpayOrderId() == null
+                                || request.razorpayOrderId().isBlank()) {
 
-            payment.setProvider("RAZORPAY");
+                        throw new IllegalArgumentException(
+                                        "Razorpay order ID is required");
+                }
 
-            /*
-             * The Razorpay amount comes from our trusted
-             * server-side Order entity.
-             *
-             * React must never decide the payment amount.
-             */
-            RazorpayOrderResponse razorpayOrder = razorpayService.createOrder(
-                    order,
-                    razorpayKeyId);
+                if (request.razorpaySignature() == null
+                                || request.razorpaySignature().isBlank()) {
 
-            payment.setProviderOrderId(
-                    razorpayOrder.razorpayOrderId());
-        }
+                        throw new IllegalArgumentException(
+                                        "Razorpay payment signature is required");
+                }
 
-        // --------------------------------------------------
-        // CASH ON DELIVERY
-        // --------------------------------------------------
+                // --------------------------------------------------
+                // LOAD USER'S ORDER
+                // --------------------------------------------------
 
-        else if (paymentMethod == PaymentMethod.COD) {
+                Order order = orderRepository
+                                .findByIdAndUserId(orderId, user.getId())
+                                .orElseThrow(() -> new EntityNotFoundException(
+                                                "Order not found"));
 
-            payment.setProvider("COD");
+                // --------------------------------------------------
+                // LOAD PAYMENT
+                // --------------------------------------------------
 
-            /*
-             * COD confirmation and inventory handling
-             * will be implemented separately.
-             */
-        }
+                Payment existingPayment = paymentRepository
+                                .findByOrderId(order.getId())
+                                .orElseThrow(() -> new EntityNotFoundException(
+                                                "Payment not found for order"));
 
-        // --------------------------------------------------
-        // SAVE PAYMENT
-        // --------------------------------------------------
+                /*
+                 * Reload the payment using a pessimistic database lock.
+                 *
+                 * This prevents frontend verification and Razorpay
+                 * webhook processing from confirming the same payment
+                 * simultaneously.
+                 */
+                Payment payment = paymentRepository
+                                .findByIdForUpdate(existingPayment.getId())
+                                .orElseThrow(() -> new EntityNotFoundException(
+                                                "Payment not found for order"));
 
-        Payment savedPayment = paymentRepository.save(payment);
+                // --------------------------------------------------
+                // PAYMENT METHOD VALIDATION
+                // --------------------------------------------------
 
-        return toResponse(savedPayment);
-    }
+                if (payment.getPaymentMethod() != PaymentMethod.RAZORPAY) {
 
-    // --------------------------------------------------
-    // VERIFY RAZORPAY PAYMENT
-    // --------------------------------------------------
+                        throw new IllegalStateException(
+                                        "This order is not a Razorpay payment");
+                }
 
-    @Transactional
-    public PaymentResponse verifyRazorpayPayment(
-            Long orderId,
-            PaymentVerificationRequest request,
-            Authentication authentication) {
+                // --------------------------------------------------
+                // IDEMPOTENT SUCCESS
+                // --------------------------------------------------
 
-        User user = getAuthenticatedUser(authentication);
+                if (payment.getStatus() == PaymentStatus.SUCCESS) {
 
-        // --------------------------------------------------
-        // LOAD USER'S ORDER
-        // --------------------------------------------------
+                        return toResponse(payment);
+                }
 
-        Order order = orderRepository
-                .findByIdAndUserId(orderId, user.getId())
-                .orElseThrow(() -> new EntityNotFoundException(
-                        "Order not found"));
+                // --------------------------------------------------
+                // PAYMENT STATUS VALIDATION
+                // --------------------------------------------------
 
-        // --------------------------------------------------
-        // LOAD PAYMENT
-        // --------------------------------------------------
+                if (payment.getStatus() != PaymentStatus.PENDING) {
 
-        Payment payment = paymentRepository
-                .findByOrderId(order.getId())
-                .orElseThrow(() -> new EntityNotFoundException(
-                        "Payment not found for order"));
+                        throw new IllegalStateException(
+                                        "Payment cannot be verified from status: "
+                                                        + payment.getStatus());
+                }
 
-        // --------------------------------------------------
-        // PAYMENT METHOD VALIDATION
-        // --------------------------------------------------
+                // --------------------------------------------------
+                // RAZORPAY ORDER ID VALIDATION
+                // --------------------------------------------------
 
-        if (payment.getPaymentMethod() != PaymentMethod.RAZORPAY) {
+                if (payment.getProviderOrderId() == null
+                                || !payment.getProviderOrderId()
+                                                .equals(request.razorpayOrderId())) {
 
-            throw new IllegalStateException(
-                    "This order is not a Razorpay payment");
-        }
+                        throw new IllegalArgumentException(
+                                        "Razorpay order ID does not match");
+                }
 
-        // --------------------------------------------------
-        // IDEMPOTENT SUCCESS
-        // --------------------------------------------------
+                // --------------------------------------------------
+                // SIGNATURE VERIFICATION
+                // --------------------------------------------------
 
-        if (payment.getStatus() == PaymentStatus.SUCCESS) {
+                boolean signatureValid = razorpaySignatureService
+                                .verifyPaymentSignature(
+                                                request.razorpayOrderId(),
+                                                request.razorpayPaymentId(),
+                                                request.razorpaySignature());
 
-            return toResponse(payment);
-        }
+                if (!signatureValid) {
 
-        // --------------------------------------------------
-        // PAYMENT STATUS VALIDATION
-        // --------------------------------------------------
+                        throw new IllegalArgumentException(
+                                        "Invalid Razorpay payment signature");
+                }
 
-        if (payment.getStatus() != PaymentStatus.PENDING) {
+                // --------------------------------------------------
+                // MARK PAYMENT SUCCESSFUL
+                // --------------------------------------------------
 
-            throw new IllegalStateException(
-                    "Payment cannot be verified from status: "
-                            + payment.getStatus());
-        }
-
-        // --------------------------------------------------
-        // RAZORPAY ORDER ID VALIDATION
-        // --------------------------------------------------
-
-        if (payment.getProviderOrderId() == null
-                || !payment.getProviderOrderId()
-                        .equals(request.razorpayOrderId())) {
-
-            throw new IllegalArgumentException(
-                    "Razorpay order ID does not match");
+                return markPaymentSuccessfulInternal(
+                                payment,
+                                request.razorpayPaymentId(),
+                                request.razorpaySignature());
         }
 
         // --------------------------------------------------
-        // SIGNATURE VERIFICATION
+        // INTERNAL PAYMENT SUCCESS
         // --------------------------------------------------
 
-        boolean signatureValid = razorpaySignatureService
-                .verifyPaymentSignature(
-                        request.razorpayOrderId(),
-                        request.razorpayPaymentId(),
-                        request.razorpaySignature());
+        @Transactional
+        public PaymentResponse markPaymentSuccessful(
+                        Long paymentId,
+                        String providerPaymentId,
+                        String providerSignature) {
 
-        if (!signatureValid) {
+                Payment payment = paymentRepository
+                                .findByIdForUpdate(paymentId)
+                                .orElseThrow(() -> new EntityNotFoundException(
+                                                "Payment not found"));
 
-            throw new IllegalArgumentException(
-                    "Invalid Razorpay payment signature");
+                return markPaymentSuccessfulInternal(
+                                payment,
+                                providerPaymentId,
+                                providerSignature);
         }
 
         // --------------------------------------------------
-        // MARK PAYMENT SUCCESSFUL
+        // PAYMENT SUCCESS PROCESSOR
         // --------------------------------------------------
 
-        return markPaymentSuccessful(
-                payment.getId(),
-                request.razorpayPaymentId(),
-                request.razorpaySignature());
-    }
+        private PaymentResponse markPaymentSuccessfulInternal(
+                        Payment payment,
+                        String providerPaymentId,
+                        String providerSignature) {
 
-    // --------------------------------------------------
-    // INTERNAL PAYMENT SUCCESS
-    // --------------------------------------------------
+                // --------------------------------------------------
+                // IDEMPOTENT SUCCESS
+                // --------------------------------------------------
 
-    @Transactional
-    public PaymentResponse markPaymentSuccessful(
-            Long paymentId,
-            String providerPaymentId,
-            String providerSignature) {
+                if (payment.getStatus() == PaymentStatus.SUCCESS) {
 
-        Payment payment = paymentRepository
-                .findById(paymentId)
-                .orElseThrow(() -> new EntityNotFoundException(
-                        "Payment not found"));
+                        return toResponse(payment);
+                }
 
-        // --------------------------------------------------
-        // IDEMPOTENT SUCCESS
-        // --------------------------------------------------
+                // --------------------------------------------------
+                // STATUS VALIDATION
+                // --------------------------------------------------
 
-        if (payment.getStatus() == PaymentStatus.SUCCESS) {
-            return toResponse(payment);
+                if (payment.getStatus() != PaymentStatus.PENDING) {
+
+                        throw new IllegalStateException(
+                                        "Payment cannot be marked successful from status: "
+                                                        + payment.getStatus());
+                }
+
+                // --------------------------------------------------
+                // PROVIDER VALIDATION
+                // --------------------------------------------------
+
+                if (providerPaymentId == null
+                                || providerPaymentId.isBlank()) {
+
+                        throw new IllegalArgumentException(
+                                        "Provider payment ID is required");
+                }
+
+                // --------------------------------------------------
+                // LOAD ORDER
+                // --------------------------------------------------
+
+                Order order = payment.getOrder();
+
+                if (order == null) {
+                        throw new IllegalStateException(
+                                        "Payment is not associated with an order");
+                }
+
+                // --------------------------------------------------
+                // VERIFY ORDER STATE
+                // --------------------------------------------------
+
+                if (order.getStatus() != OrderStatus.PENDING) {
+
+                        /*
+                         * A payment should only transition an order
+                         * from PENDING to CONFIRMED.
+                         */
+                        throw new IllegalStateException(
+                                        "Order cannot be confirmed from status: "
+                                                        + order.getStatus());
+                }
+
+                // --------------------------------------------------
+                // STORE PROVIDER INFORMATION
+                // --------------------------------------------------
+
+                payment.setProviderPaymentId(
+                                providerPaymentId);
+
+                payment.setProviderSignature(
+                                providerSignature);
+
+                payment.setStatus(
+                                PaymentStatus.SUCCESS);
+
+                payment.setPaidAt(
+                                LocalDateTime.now());
+
+                payment.setFailureReason(null);
+
+                // --------------------------------------------------
+                // CONFIRM RESERVED INVENTORY
+                // --------------------------------------------------
+
+                /*
+                 * Inventory was reserved when the order was created.
+                 *
+                 * Successful payment converts:
+                 *
+                 * reserved stock
+                 * ↓
+                 * confirmed/consumed stock
+                 */
+                confirmReservedInventory(order);
+
+                // --------------------------------------------------
+                // CONFIRM ORDER
+                // --------------------------------------------------
+
+                order.setPaymentStatus(
+                                PaymentStatus.SUCCESS);
+
+                order.setStatus(
+                                OrderStatus.CONFIRMED);
+
+                // --------------------------------------------------
+                // SAVE
+                // --------------------------------------------------
+
+                paymentRepository.save(payment);
+                orderRepository.save(order);
+
+                return toResponse(payment);
         }
 
         // --------------------------------------------------
-        // STATUS VALIDATION
+        // INTERNAL PAYMENT FAILURE
         // --------------------------------------------------
 
-        if (payment.getStatus() != PaymentStatus.PENDING) {
+        @Transactional
+        public PaymentResponse markPaymentFailed(
+                        Long paymentId,
+                        String failureReason) {
 
-            throw new IllegalStateException(
-                    "Payment cannot be marked successful from status: "
-                            + payment.getStatus());
+                Payment payment = paymentRepository
+                                .findByIdForUpdate(paymentId)
+                                .orElseThrow(() -> new EntityNotFoundException(
+                                                "Payment not found"));
+
+                // --------------------------------------------------
+                // IDEMPOTENT FAILURE
+                // --------------------------------------------------
+
+                if (payment.getStatus() == PaymentStatus.FAILED) {
+
+                        return toResponse(payment);
+                }
+
+                // --------------------------------------------------
+                // SUCCESS PROTECTION
+                // --------------------------------------------------
+
+                if (payment.getStatus() == PaymentStatus.SUCCESS) {
+
+                        throw new IllegalStateException(
+                                        "Successful payment cannot be marked as failed");
+                }
+
+                // --------------------------------------------------
+                // STATUS VALIDATION
+                // --------------------------------------------------
+
+                if (payment.getStatus() != PaymentStatus.PENDING
+                                && payment.getStatus() != PaymentStatus.PROCESSING) {
+
+                        throw new IllegalStateException(
+                                        "Payment cannot be marked failed from status: "
+                                                        + payment.getStatus());
+                }
+
+                // --------------------------------------------------
+                // LOAD ORDER
+                // --------------------------------------------------
+
+                Order order = payment.getOrder();
+
+                if (order == null) {
+                        throw new IllegalStateException(
+                                        "Payment is not associated with an order");
+                }
+
+                // --------------------------------------------------
+                // RELEASE RESERVED INVENTORY
+                // --------------------------------------------------
+
+                /*
+                 * Payment failed.
+                 *
+                 * Release the stock reservation so that
+                 * another customer can purchase the product.
+                 */
+                releaseReservedInventory(order);
+
+                // --------------------------------------------------
+                // UPDATE PAYMENT
+                // --------------------------------------------------
+
+                payment.setStatus(
+                                PaymentStatus.FAILED);
+
+                payment.setFailureReason(
+                                normalizeFailureReason(failureReason));
+
+                // --------------------------------------------------
+                // UPDATE ORDER
+                // --------------------------------------------------
+
+                order.setPaymentStatus(
+                                PaymentStatus.FAILED);
+
+                /*
+                 * IMPORTANT:
+                 *
+                 * Do not cancel the order here.
+                 *
+                 * Keeping it PENDING allows the customer to retry
+                 * payment for the same order.
+                 */
+                order.setStatus(
+                                OrderStatus.PENDING);
+
+                // --------------------------------------------------
+                // SAVE
+                // --------------------------------------------------
+
+                paymentRepository.save(payment);
+                orderRepository.save(order);
+
+                return toResponse(payment);
         }
 
         // --------------------------------------------------
-        // STORE PROVIDER INFORMATION
+        // CONFIRM RESERVED INVENTORY
         // --------------------------------------------------
 
-        payment.setProviderPaymentId(
-                providerPaymentId);
+        private void confirmReservedInventory(
+                        Order order) {
 
-        payment.setProviderSignature(
-                providerSignature);
+                List<OrderItem> items = order.getItems();
 
-        payment.setStatus(
-                PaymentStatus.SUCCESS);
+                if (items == null || items.isEmpty()) {
 
-        payment.setPaidAt(
-                LocalDateTime.now());
+                        throw new IllegalStateException(
+                                        "Order contains no items");
+                }
 
-        // --------------------------------------------------
-        // CONFIRM ORDER
-        // --------------------------------------------------
+                for (OrderItem item : items) {
 
-        Order order = payment.getOrder();
+                        if (item.getVariant() == null) {
 
-        order.setStatus(
-                OrderStatus.CONFIRMED);
+                                throw new IllegalStateException(
+                                                "Order item has no product variant");
+                        }
 
-        /*
-         * Inventory confirmation will be connected
-         * to the trusted payment confirmation flow.
-         *
-         * We intentionally do not confirm inventory here
-         * until the complete payment/inventory workflow
-         * is implemented.
-         */
+                        if (item.getQuantity() <= 0) {
 
-        return toResponse(
-                paymentRepository.save(payment));
-    }
+                                throw new IllegalStateException(
+                                                "Order item quantity must be greater than zero");
+                        }
 
-    // --------------------------------------------------
-    // INTERNAL PAYMENT FAILURE
-    // --------------------------------------------------
-
-    @Transactional
-    public PaymentResponse markPaymentFailed(
-            Long paymentId,
-            String failureReason) {
-
-        Payment payment = paymentRepository
-                .findById(paymentId)
-                .orElseThrow(() -> new EntityNotFoundException(
-                        "Payment not found"));
-
-        if (payment.getStatus() == PaymentStatus.SUCCESS) {
-
-            throw new IllegalStateException(
-                    "Successful payment cannot be marked as failed");
+                        inventoryService.confirmReservedStock(
+                                        item.getVariant().getId(),
+                                        item.getQuantity());
+                }
         }
 
-        payment.setStatus(
-                PaymentStatus.FAILED);
+        // --------------------------------------------------
+        // RELEASE RESERVED INVENTORY
+        // --------------------------------------------------
 
-        payment.setFailureReason(
-                failureReason);
+        private void releaseReservedInventory(
+                        Order order) {
 
-        /*
-         * Reserved inventory release will be connected
-         * to the final payment failure/expiration flow.
-         */
+                List<OrderItem> items = order.getItems();
 
-        return toResponse(
-                paymentRepository.save(payment));
-    }
+                if (items == null || items.isEmpty()) {
+                        return;
+                }
 
-    // --------------------------------------------------
-    // AUTHENTICATED USER
-    // --------------------------------------------------
+                for (OrderItem item : items) {
 
-    private User getAuthenticatedUser(
-            Authentication authentication) {
+                        if (item.getVariant() == null) {
 
-        if (authentication == null
-                || !authentication.isAuthenticated()) {
+                                throw new IllegalStateException(
+                                                "Order item has no product variant");
+                        }
 
-            throw new IllegalStateException(
-                    "Authentication is required");
+                        if (item.getQuantity() <= 0) {
+
+                                throw new IllegalStateException(
+                                                "Order item quantity must be greater than zero");
+                        }
+
+                        inventoryService.releaseStock(
+                                        item.getVariant().getId(),
+                                        item.getQuantity());
+                }
         }
 
-        String email = authentication.getName();
+        // --------------------------------------------------
+        // FAILURE REASON NORMALIZATION
+        // --------------------------------------------------
 
-        return userRepository
-                .findByEmail(email)
-                .orElseThrow(() -> new EntityNotFoundException(
-                        "User not found"));
-    }
+        private String normalizeFailureReason(
+                        String failureReason) {
 
-    // --------------------------------------------------
-    // RESPONSE MAPPER
-    // --------------------------------------------------
+                if (failureReason == null
+                                || failureReason.isBlank()) {
 
-    private PaymentResponse toResponse(
-            Payment payment) {
+                        return "Payment failed";
+                }
 
-        Order order = payment.getOrder();
+                String normalized = failureReason.trim();
 
-        /*
-         * Razorpay Key ID is safe to send to the frontend.
-         *
-         * Razorpay Key Secret is NEVER returned.
-         */
-        String checkoutKeyId = payment.getPaymentMethod() == PaymentMethod.RAZORPAY
-                ? razorpayKeyId
-                : null;
+                if (normalized.length() > 500) {
+                        return normalized.substring(0, 500);
+                }
 
-        return new PaymentResponse(
-                payment.getId(),
-                order.getId(),
-                order.getOrderNumber(),
-                payment.getPaymentMethod(),
-                payment.getStatus(),
-                payment.getAmount(),
-                payment.getCurrency(),
-                payment.getProvider(),
-                payment.getProviderOrderId(),
-                payment.getProviderPaymentId(),
-                checkoutKeyId,
-                payment.getFailureReason(),
-                payment.getPaidAt(),
-                payment.getCreatedAt(),
-                payment.getUpdatedAt());
-    }
+                return normalized;
+        }
+
+        // --------------------------------------------------
+        // AUTHENTICATED USER
+        // --------------------------------------------------
+
+        private User getAuthenticatedUser(
+                        Authentication authentication) {
+
+                if (authentication == null
+                                || !authentication.isAuthenticated()) {
+
+                        throw new IllegalStateException(
+                                        "Authentication is required");
+                }
+
+                String email = authentication.getName();
+
+                if (email == null || email.isBlank()) {
+
+                        throw new IllegalStateException(
+                                        "Authenticated user email is missing");
+                }
+
+                return userRepository
+                                .findByEmail(email)
+                                .orElseThrow(() -> new EntityNotFoundException(
+                                                "User not found"));
+        }
+
+        // --------------------------------------------------
+        // RESPONSE MAPPER
+        // --------------------------------------------------
+
+        private PaymentResponse toResponse(
+                        Payment payment) {
+
+                Order order = payment.getOrder();
+
+                /*
+                 * Razorpay Key ID is safe to send to the frontend.
+                 *
+                 * Razorpay Key Secret is NEVER returned.
+                 */
+                String checkoutKeyId = payment.getPaymentMethod() == PaymentMethod.RAZORPAY
+                                ? razorpayKeyId
+                                : null;
+
+                return new PaymentResponse(
+                                payment.getId(),
+                                order.getId(),
+                                order.getOrderNumber(),
+                                payment.getPaymentMethod(),
+                                payment.getStatus(),
+                                payment.getAmount(),
+                                payment.getCurrency(),
+                                payment.getProvider(),
+                                payment.getProviderOrderId(),
+                                payment.getProviderPaymentId(),
+                                checkoutKeyId,
+                                payment.getFailureReason(),
+                                payment.getPaidAt(),
+                                payment.getCreatedAt(),
+                                payment.getUpdatedAt());
+        }
 }
