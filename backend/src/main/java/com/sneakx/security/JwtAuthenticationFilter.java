@@ -1,6 +1,7 @@
 package com.sneakx.security;
 
 import java.io.IOException;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -20,74 +21,127 @@ import jakarta.servlet.http.HttpServletResponse;
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
-    private final JwtService jwtService;
-    private final UserRepository userRepository;
+        private static final String BEARER_PREFIX = "Bearer ";
 
-    public JwtAuthenticationFilter(
-            JwtService jwtService,
-            UserRepository userRepository) {
+        private final JwtService jwtService;
+        private final UserRepository userRepository;
 
-        this.jwtService = jwtService;
-        this.userRepository = userRepository;
-    }
+        public JwtAuthenticationFilter(
+                        JwtService jwtService,
+                        UserRepository userRepository) {
 
-    @Override
-    protected void doFilterInternal(
-            HttpServletRequest request,
-            HttpServletResponse response,
-            FilterChain filterChain)
-            throws ServletException, IOException {
-
-        String authHeader = request.getHeader("Authorization");
-
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            filterChain.doFilter(request, response);
-            return;
+                this.jwtService = jwtService;
+                this.userRepository = userRepository;
         }
 
-        String token = authHeader.substring(7);
+        @Override
+        protected void doFilterInternal(
+                        HttpServletRequest request,
+                        HttpServletResponse response,
+                        FilterChain filterChain)
+                        throws ServletException, IOException {
 
-        try {
-            String email = jwtService.extractEmail(token);
+                String authHeader = request.getHeader("Authorization");
 
-            if (email != null
-                    && SecurityContextHolder.getContext()
-                            .getAuthentication() == null) {
-
-                User user = userRepository.findByEmail(email)
-                        .orElse(null);
-
-                if (user != null
-                        && user.isActive()
-                        && jwtService.isTokenValid(token, email)) {
-
-                    var authorities = user.getRoles()
-                            .stream()
-                            .map(role -> new SimpleGrantedAuthority(
-                                    "ROLE_" + role.getName()))
-                            .collect(Collectors.toSet());
-
-                    UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
-                            user,
-                            null,
-                            authorities);
-
-                    SecurityContextHolder
-                            .getContext()
-                            .setAuthentication(authentication);
+                /*
+                 * No Authorization header:
+                 *
+                 * Continue normally.
+                 * Public endpoints can proceed, while protected
+                 * endpoints will later be rejected by Spring Security.
+                 */
+                if (authHeader == null || authHeader.isBlank()) {
+                        filterChain.doFilter(request, response);
+                        return;
                 }
-            }
 
-        } catch (Exception exception) {
-            /*
-             * Invalid or expired JWT.
-             *
-             * We do not expose token parsing details to the client.
-             * The request continues without authentication and
-             * Spring Security will reject protected endpoints.
-             */
+                /*
+                 * Ignore non-Bearer authorization schemes.
+                 */
+                if (!authHeader.startsWith(BEARER_PREFIX)) {
+                        filterChain.doFilter(request, response);
+                        return;
+                }
+
+                String token = authHeader.substring(
+                                BEARER_PREFIX.length()).trim();
+
+                /*
+                 * Empty Bearer token is invalid.
+                 */
+                if (token.isBlank()) {
+                        filterChain.doFilter(request, response);
+                        return;
+                }
+
+                try {
+
+                        /*
+                         * Do not replace an authentication that another
+                         * security mechanism may already have established.
+                         */
+                        if (SecurityContextHolder.getContext()
+                                        .getAuthentication() != null) {
+
+                                filterChain.doFilter(request, response);
+                                return;
+                        }
+
+                        String email = jwtService.extractEmail(token);
+
+                        if (email == null || email.isBlank()) {
+                                filterChain.doFilter(request, response);
+                                return;
+                        }
+
+                        /*
+                         * Load the current user from the database.
+                         *
+                         * This means account deactivation and role changes
+                         * take effect without waiting for JWT expiration.
+                         */
+                        User user = userRepository.findByEmail(email)
+                                        .orElse(null);
+
+                        if (user == null || !user.isActive()) {
+                                filterChain.doFilter(request, response);
+                                return;
+                        }
+
+                        /*
+                         * Verify signature, subject and expiration.
+                         */
+                        if (!jwtService.isTokenValid(token, email)) {
+                                filterChain.doFilter(request, response);
+                                return;
+                        }
+
+                        Set<SimpleGrantedAuthority> authorities = user.getRoles()
+                                        .stream()
+                                        .map(role -> new SimpleGrantedAuthority(
+                                                        "ROLE_" + role.getName()))
+                                        .collect(Collectors.toSet());
+
+                        UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
+                                        user,
+                                        null,
+                                        authorities);
+
+                        SecurityContextHolder
+                                        .getContext()
+                                        .setAuthentication(authentication);
+
+                } catch (Exception exception) {
+
+                        /*
+                         * Never expose JWT parsing/signature details.
+                         *
+                         * The request continues without authentication.
+                         * Spring Security will return the appropriate 401/403
+                         * response for protected resources.
+                         */
+                }
+
+                filterChain.doFilter(request, response);
         }
-
-        filterChain.doFilter(request, response);
-    }
 }

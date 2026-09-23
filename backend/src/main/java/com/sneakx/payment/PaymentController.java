@@ -19,121 +19,133 @@ import jakarta.validation.constraints.NotNull;
 @RequestMapping("/api/payments")
 public class PaymentController {
 
-    private final PaymentService paymentService;
-    private final RazorpayWebhookSignatureService razorpayWebhookSignatureService;
-    private final PaymentWebhookService paymentWebhookService;
+        private final PaymentService paymentService;
+        private final RazorpayWebhookSignatureService razorpayWebhookSignatureService;
+        private final PaymentWebhookService paymentWebhookService;
 
-    public PaymentController(
-            PaymentService paymentService,
-            RazorpayWebhookSignatureService razorpayWebhookSignatureService,
-            PaymentWebhookService paymentWebhookService) {
+        public PaymentController(
+                        PaymentService paymentService,
+                        RazorpayWebhookSignatureService razorpayWebhookSignatureService,
+                        PaymentWebhookService paymentWebhookService) {
 
-        this.paymentService = paymentService;
-        this.razorpayWebhookSignatureService = razorpayWebhookSignatureService;
-        this.paymentWebhookService = paymentWebhookService;
-    }
-
-    // --------------------------------------------------
-    // CREATE PAYMENT
-    // --------------------------------------------------
-
-    @PostMapping("/orders/{orderId}")
-    public ResponseEntity<PaymentResponse> createPayment(
-            @PathVariable Long orderId,
-
-            @RequestParam @NotNull PaymentMethod paymentMethod,
-
-            @RequestHeader("Idempotency-Key") @NotBlank String idempotencyKey,
-
-            Authentication authentication) {
-
-        PaymentResponse response = paymentService.createPayment(
-                orderId,
-                paymentMethod,
-                idempotencyKey,
-                authentication);
-
-        return ResponseEntity.ok(response);
-    }
-
-    // --------------------------------------------------
-    // GET PAYMENT
-    // --------------------------------------------------
-
-    @GetMapping("/orders/{orderId}")
-    public ResponseEntity<PaymentResponse> getPayment(
-            @PathVariable Long orderId,
-            Authentication authentication) {
-
-        PaymentResponse response = paymentService.getPayment(
-                orderId,
-                authentication);
-
-        return ResponseEntity.ok(response);
-    }
-
-    // --------------------------------------------------
-    // RAZORPAY WEBHOOK
-    // --------------------------------------------------
-
-    @PostMapping("/webhook")
-    public ResponseEntity<Void> handleRazorpayWebhook(
-
-            @RequestHeader(value = "X-Razorpay-Signature", required = false) String signature,
-
-            @RequestHeader(value = "X-Razorpay-Event-Id", required = false) String eventId,
-
-            @RequestHeader(value = "X-Razorpay-Event", required = false) String eventType,
-
-            @RequestBody String payload) {
-
-        // --------------------------------------------------
-        // 1. VERIFY RAZORPAY SIGNATURE
-        // --------------------------------------------------
-
-        boolean validSignature = razorpayWebhookSignatureService.verifySignature(
-                payload,
-                signature);
-
-        if (!validSignature) {
-            return ResponseEntity
-                    .status(HttpStatus.UNAUTHORIZED)
-                    .build();
+                this.paymentService = paymentService;
+                this.razorpayWebhookSignatureService = razorpayWebhookSignatureService;
+                this.paymentWebhookService = paymentWebhookService;
         }
 
         // --------------------------------------------------
-        // 2. VALIDATE EVENT ID
+        // CREATE PAYMENT
         // --------------------------------------------------
 
-        if (eventId == null || eventId.isBlank()) {
-            return ResponseEntity
-                    .badRequest()
-                    .build();
+        @PostMapping("/orders/{orderId}")
+        public ResponseEntity<PaymentResponse> createPayment(
+                        @PathVariable Long orderId,
+
+                        @RequestParam @NotNull PaymentMethod paymentMethod,
+
+                        @RequestHeader("Idempotency-Key") @NotBlank String idempotencyKey,
+
+                        Authentication authentication) {
+
+                PaymentResponse response = paymentService.createPayment(
+                                orderId,
+                                paymentMethod,
+                                idempotencyKey,
+                                authentication);
+
+                return ResponseEntity.ok(response);
         }
 
         // --------------------------------------------------
-        // 3. VALIDATE EVENT TYPE
+        // GET PAYMENT
         // --------------------------------------------------
 
-        if (eventType == null || eventType.isBlank()) {
-            return ResponseEntity
-                    .badRequest()
-                    .build();
+        @GetMapping("/orders/{orderId}")
+        public ResponseEntity<PaymentResponse> getPayment(
+                        @PathVariable Long orderId,
+                        Authentication authentication) {
+
+                PaymentResponse response = paymentService.getPayment(
+                                orderId,
+                                authentication);
+
+                return ResponseEntity.ok(response);
         }
 
         // --------------------------------------------------
-        // 4. STORE WEBHOOK EVENT
+        // RAZORPAY WEBHOOK
         // --------------------------------------------------
 
-        paymentWebhookService.receiveWebhook(
-                eventId,
-                eventType,
-                payload);
+        @PostMapping("/webhook")
+        public ResponseEntity<Void> handleRazorpayWebhook(
 
-        // --------------------------------------------------
-        // 5. ACKNOWLEDGE WEBHOOK
-        // --------------------------------------------------
+                        @RequestHeader(value = "X-Razorpay-Signature", required = false) String signature,
 
-        return ResponseEntity.ok().build();
-    }
+                        @RequestHeader(value = "X-Razorpay-Event-Id", required = false) String eventId,
+
+                        @RequestBody String payload) {
+
+                // --------------------------------------------------
+                // 1. VALIDATE EVENT ID
+                // --------------------------------------------------
+
+                if (eventId == null || eventId.isBlank()) {
+
+                        return ResponseEntity
+                                        .badRequest()
+                                        .build();
+                }
+
+                // --------------------------------------------------
+                // 2. VALIDATE PAYLOAD
+                // --------------------------------------------------
+
+                if (payload == null || payload.isBlank()) {
+
+                        return ResponseEntity
+                                        .badRequest()
+                                        .build();
+                }
+
+                // --------------------------------------------------
+                // 3. VERIFY RAZORPAY SIGNATURE
+                // --------------------------------------------------
+
+                /*
+                 * IMPORTANT:
+                 *
+                 * The signature must be calculated against the
+                 * exact raw webhook body.
+                 *
+                 * Do not parse and re-serialize the JSON before
+                 * performing this verification.
+                 */
+                boolean validSignature = razorpayWebhookSignatureService
+                                .verifySignature(
+                                                payload,
+                                                signature);
+
+                if (!validSignature) {
+
+                        return ResponseEntity
+                                        .status(HttpStatus.UNAUTHORIZED)
+                                        .build();
+                }
+
+                // --------------------------------------------------
+                // 4. PROCESS WEBHOOK
+                // --------------------------------------------------
+
+                paymentWebhookService.receiveWebhook(
+                                eventId,
+                                payload);
+
+                // --------------------------------------------------
+                // 5. ACKNOWLEDGE WEBHOOK
+                // --------------------------------------------------
+
+                return ResponseEntity
+                                .ok()
+                                .build();
+        }
 }

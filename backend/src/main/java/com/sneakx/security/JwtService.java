@@ -1,7 +1,6 @@
 package com.sneakx.security;
 
 import java.util.Date;
-import java.util.function.Function;
 
 import javax.crypto.SecretKey;
 
@@ -23,47 +22,72 @@ public class JwtService {
     private long expiration;
 
     public String generateToken(String email) {
+
+        if (email == null || email.isBlank()) {
+            throw new IllegalArgumentException(
+                    "Email is required to generate JWT");
+        }
+
         return Jwts.builder()
                 .subject(email)
                 .issuedAt(new Date())
-                .expiration(new Date(System.currentTimeMillis() + expiration))
+                .expiration(
+                        new Date(System.currentTimeMillis() + expiration))
                 .signWith(getSigningKey())
                 .compact();
     }
 
     public String extractEmail(String token) {
-        return extractClaim(token, Claims::getSubject);
+
+        Claims claims = parseToken(token);
+
+        return claims.getSubject();
     }
 
     public boolean isTokenValid(String token, String email) {
-        String extractedEmail = extractEmail(token);
 
-        return extractedEmail.equals(email) && !isTokenExpired(token);
+        if (token == null
+                || token.isBlank()
+                || email == null
+                || email.isBlank()) {
+
+            return false;
+        }
+
+        Claims claims = parseToken(token);
+
+        String extractedEmail = claims.getSubject();
+        Date expirationDate = claims.getExpiration();
+
+        return extractedEmail != null
+                && extractedEmail.equals(email)
+                && expirationDate != null
+                && expirationDate.after(new Date());
     }
 
-    private boolean isTokenExpired(String token) {
-        return extractExpiration(token).before(new Date());
-    }
+    private Claims parseToken(String token) {
 
-    private Date extractExpiration(String token) {
-        return extractClaim(token, Claims::getExpiration);
-    }
+        if (token == null || token.isBlank()) {
+            throw new IllegalArgumentException(
+                    "JWT token is required");
+        }
 
-    private <T> T extractClaim(
-            String token,
-            Function<Claims, T> claimsResolver) {
-
-        Claims claims = Jwts.parser()
+        return Jwts.parser()
                 .verifyWith(getSigningKey())
                 .build()
                 .parseSignedClaims(token)
                 .getPayload();
-
-        return claimsResolver.apply(claims);
     }
 
     private SecretKey getSigningKey() {
+
+        if (secret == null || secret.isBlank()) {
+            throw new IllegalStateException(
+                    "JWT secret is not configured");
+        }
+
         byte[] keyBytes = Decoders.BASE64.decode(secret);
+
         return Keys.hmacShaKeyFor(keyBytes);
     }
 }

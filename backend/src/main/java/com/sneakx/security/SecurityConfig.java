@@ -6,9 +6,7 @@ import org.springframework.security.config.annotation.method.configuration.Enabl
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @Configuration
@@ -17,11 +15,17 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SecurityConfig {
 
         private final JwtAuthenticationFilter jwtAuthenticationFilter;
+        private final RestAuthenticationEntryPoint authenticationEntryPoint;
+        private final RestAccessDeniedHandler accessDeniedHandler;
 
         public SecurityConfig(
-                        JwtAuthenticationFilter jwtAuthenticationFilter) {
+                        JwtAuthenticationFilter jwtAuthenticationFilter,
+                        RestAuthenticationEntryPoint authenticationEntryPoint,
+                        RestAccessDeniedHandler accessDeniedHandler) {
 
                 this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+                this.authenticationEntryPoint = authenticationEntryPoint;
+                this.accessDeniedHandler = accessDeniedHandler;
         }
 
         @Bean
@@ -29,8 +33,32 @@ public class SecurityConfig {
                         HttpSecurity http) throws Exception {
 
                 http
-                                // JWT-based APIs do not use browser sessions or CSRF tokens.
+                                // JWT APIs are stateless and do not use CSRF tokens.
                                 .csrf(csrf -> csrf.disable())
+
+                                // Enable application-level CORS configuration.
+                                .cors(cors -> {
+                                })
+
+                                // Security response headers.
+                                .headers(headers -> headers
+
+                                                // Prevent MIME-type sniffing.
+                                                .contentTypeOptions(contentTypeOptions -> {
+                                                })
+
+                                                // Prevent clickjacking/frame embedding.
+                                                .frameOptions(frameOptions -> frameOptions.deny())
+
+                                                // Restrict referrer information.
+                                                .referrerPolicy(referrerPolicy -> referrerPolicy.policy(
+                                                                org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter.ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN))
+
+                                                // Force HTTPS in production.
+                                                .httpStrictTransportSecurity(hsts -> hsts
+                                                                .includeSubDomains(true)
+                                                                .preload(false)
+                                                                .maxAgeInSeconds(31536000)))
 
                                 // Disable Spring Security's default login page.
                                 .formLogin(form -> form.disable())
@@ -61,10 +89,10 @@ public class SecurityConfig {
                                 .exceptionHandling(exception -> exception
 
                                                 .authenticationEntryPoint(
-                                                                authenticationEntryPoint())
+                                                                authenticationEntryPoint)
 
                                                 .accessDeniedHandler(
-                                                                accessDeniedHandler()))
+                                                                accessDeniedHandler))
 
                                 // JWT filter.
                                 .addFilterBefore(
@@ -72,34 +100,5 @@ public class SecurityConfig {
                                                 UsernamePasswordAuthenticationFilter.class);
 
                 return http.build();
-        }
-
-        /**
-         * Handles unauthenticated requests.
-         */
-        @Bean
-        public AuthenticationEntryPoint authenticationEntryPoint() {
-
-                return (request, response, authenticationException) -> {
-
-                        response.sendError(
-                                        401,
-                                        "Authentication required");
-                };
-        }
-
-        /**
-         * Handles authenticated users who do not
-         * have the required role.
-         */
-        @Bean
-        public AccessDeniedHandler accessDeniedHandler() {
-
-                return (request, response, accessDeniedException) -> {
-
-                        response.sendError(
-                                        403,
-                                        "Access denied");
-                };
         }
 }

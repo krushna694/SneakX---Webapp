@@ -13,9 +13,6 @@ import com.sneakx.order.Order;
 import com.sneakx.order.OrderItem;
 import com.sneakx.order.OrderRepository;
 import com.sneakx.order.OrderStatus;
-import com.sneakx.payment.RazorpayOrderResponse;
-import com.sneakx.payment.RazorpayService;
-import com.sneakx.payment.RazorpaySignatureService;
 import com.sneakx.user.User;
 import com.sneakx.user.UserRepository;
 
@@ -712,7 +709,28 @@ public class PaymentService {
 
                 return normalized;
         }
+        // --------------------------------------------------
+        // FIND PAYMENT BY RAZORPAY ORDER ID
+        // --------------------------------------------------
 
+        @Transactional(readOnly = true)
+        public Payment findPaymentByProviderOrderId(
+                        String providerOrderId) {
+
+                if (providerOrderId == null
+                                || providerOrderId.isBlank()) {
+
+                        throw new IllegalArgumentException(
+                                        "Razorpay order ID is required");
+                }
+
+                return paymentRepository
+                                .findByProviderOrderId(
+                                                providerOrderId)
+                                .orElseThrow(() -> new EntityNotFoundException(
+                                                "Payment not found for Razorpay order: "
+                                                                + providerOrderId));
+        }
         // --------------------------------------------------
         // AUTHENTICATED USER
         // --------------------------------------------------
