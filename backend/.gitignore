@@ -13,4 +13,8 @@ target/
 
 # Local environment and secrets
 .env
+.env.*
+!.env.example
 application-local.properties
+application-*.properties
+!application.properties

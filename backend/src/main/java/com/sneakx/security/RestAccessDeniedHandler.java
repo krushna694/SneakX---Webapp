@@ -6,12 +6,22 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.stereotype.Component;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.sneakx.common.response.ApiResponse;
+
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 @Component
-public class RestAccessDeniedHandler implements AccessDeniedHandler {
+public class RestAccessDeniedHandler
+        implements AccessDeniedHandler {
+
+    private final ObjectMapper objectMapper;
+
+    public RestAccessDeniedHandler(ObjectMapper objectMapper) {
+        this.objectMapper = objectMapper;
+    }
 
     @Override
     public void handle(
@@ -24,12 +34,8 @@ public class RestAccessDeniedHandler implements AccessDeniedHandler {
         response.setContentType("application/json");
         response.setCharacterEncoding("UTF-8");
 
-        response.getWriter().write("""
-                {
-                    "status": 403,
-                    "error": "FORBIDDEN",
-                    "message": "Access denied"
-                }
-                """);
+        ApiResponse<Void> apiResponse = ApiResponse.error("Access denied");
+
+        objectMapper.writeValue(response.getWriter(), apiResponse);
     }
 }

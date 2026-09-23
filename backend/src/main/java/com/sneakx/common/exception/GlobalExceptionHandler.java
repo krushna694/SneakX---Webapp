@@ -16,50 +16,32 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
+import com.sneakx.common.response.ApiResponse;
+
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-        // ==========================================
-        // 400 - Bad Request
-        // ==========================================
-
         @ExceptionHandler(BadRequestException.class)
-        public ResponseEntity<Map<String, Object>> handleBadRequest(
+        public ResponseEntity<ApiResponse<Void>> handleBadRequest(
                         BadRequestException exception) {
 
                 return buildResponse(
                                 HttpStatus.BAD_REQUEST,
-                                "BAD_REQUEST",
                                 exception.getMessage());
         }
 
-        // ==========================================
-        // 404 - Resource Not Found
-        // ==========================================
-
         @ExceptionHandler(ResourceNotFoundException.class)
-        public ResponseEntity<Map<String, Object>> handleResourceNotFound(
+        public ResponseEntity<ApiResponse<Void>> handleResourceNotFound(
                         ResourceNotFoundException exception) {
 
                 return buildResponse(
                                 HttpStatus.NOT_FOUND,
-                                "NOT_FOUND",
                                 exception.getMessage());
         }
 
-        // ==========================================
-        // 400 - Validation Errors
-        // ==========================================
-
         @ExceptionHandler(MethodArgumentNotValidException.class)
-        public ResponseEntity<Map<String, Object>> handleValidationErrors(
+        public ResponseEntity<ApiResponse<Map<String, String>>> handleValidationErrors(
                         MethodArgumentNotValidException exception) {
-
-                Map<String, Object> response = new LinkedHashMap<>();
-
-                response.put("status", HttpStatus.BAD_REQUEST.value());
-                response.put("error", "VALIDATION_ERROR");
-                response.put("message", "Request validation failed");
 
                 Map<String, String> errors = new LinkedHashMap<>();
 
@@ -69,148 +51,96 @@ public class GlobalExceptionHandler {
                                         error.getDefaultMessage());
                 }
 
-                response.put("fieldErrors", errors);
+                ApiResponse<Map<String, String>> response = new ApiResponse<>(
+                                false,
+                                "Request validation failed",
+                                errors);
 
                 return ResponseEntity
                                 .status(HttpStatus.BAD_REQUEST)
                                 .body(response);
         }
 
-        // ==========================================
-        // 400 - Illegal Argument
-        // ==========================================
-
         @ExceptionHandler(IllegalArgumentException.class)
-        public ResponseEntity<Map<String, Object>> handleIllegalArgument(
+        public ResponseEntity<ApiResponse<Void>> handleIllegalArgument(
                         IllegalArgumentException exception) {
 
                 return buildResponse(
                                 HttpStatus.BAD_REQUEST,
-                                "BAD_REQUEST",
                                 exception.getMessage());
         }
 
-        // ==========================================
-        // 409 - Illegal State
-        // ==========================================
-
         @ExceptionHandler(IllegalStateException.class)
-        public ResponseEntity<Map<String, Object>> handleIllegalState(
+        public ResponseEntity<ApiResponse<Void>> handleIllegalState(
                         IllegalStateException exception) {
 
                 return buildResponse(
                                 HttpStatus.CONFLICT,
-                                "CONFLICT",
                                 exception.getMessage());
         }
 
-        // ==========================================
-        // 409 - Database Constraint Violation
-        // ==========================================
-
         @ExceptionHandler(DataIntegrityViolationException.class)
-        public ResponseEntity<Map<String, Object>> handleDataIntegrityViolation(
+        public ResponseEntity<ApiResponse<Void>> handleDataIntegrityViolation(
                         DataIntegrityViolationException exception) {
 
                 return buildResponse(
                                 HttpStatus.CONFLICT,
-                                "CONFLICT",
                                 "The request conflicts with existing data");
         }
 
-        // ==========================================
-        // 400 - Invalid JSON
-        // ==========================================
-
         @ExceptionHandler(HttpMessageNotReadableException.class)
-        public ResponseEntity<Map<String, Object>> handleInvalidJson(
+        public ResponseEntity<ApiResponse<Void>> handleInvalidJson(
                         HttpMessageNotReadableException exception) {
 
                 return buildResponse(
                                 HttpStatus.BAD_REQUEST,
-                                "INVALID_REQUEST",
                                 "Request body is invalid");
         }
 
-        // ==========================================
-        // 400 - Missing Request Parameter
-        // ==========================================
-
         @ExceptionHandler(MissingServletRequestParameterException.class)
-        public ResponseEntity<Map<String, Object>> handleMissingParameter(
+        public ResponseEntity<ApiResponse<Void>> handleMissingParameter(
                         MissingServletRequestParameterException exception) {
 
                 return buildResponse(
                                 HttpStatus.BAD_REQUEST,
-                                "MISSING_PARAMETER",
                                 "Required parameter is missing: "
                                                 + exception.getParameterName());
         }
 
-        // ==========================================
-        // 403 - Access Denied
-        // ==========================================
-
         @ExceptionHandler(AccessDeniedException.class)
-        public ResponseEntity<Map<String, Object>> handleAccessDenied(
+        public ResponseEntity<ApiResponse<Void>> handleAccessDenied(
                         AccessDeniedException exception) {
 
                 return buildResponse(
                                 HttpStatus.FORBIDDEN,
-                                "FORBIDDEN",
                                 "Access denied");
         }
 
-        // ==========================================
-        // 404 - Resource Not Found
-        // ==========================================
-
         @ExceptionHandler(NoResourceFoundException.class)
-        public ResponseEntity<Map<String, Object>> handleNoResourceFound(
+        public ResponseEntity<ApiResponse<Void>> handleNoResourceFound(
                         NoResourceFoundException exception) {
 
                 return buildResponse(
                                 HttpStatus.NOT_FOUND,
-                                "NOT_FOUND",
                                 "Requested resource was not found");
         }
 
-        // ==========================================
-        // 500 - Unexpected Server Error
-        // ==========================================
-
         @ExceptionHandler(Exception.class)
-        public ResponseEntity<Map<String, Object>> handleGenericException(
+        public ResponseEntity<ApiResponse<Void>> handleGenericException(
                         Exception exception,
                         WebRequest request) {
 
-                /*
-                 * Do not expose internal exception details
-                 * to the client.
-                 */
                 return buildResponse(
                                 HttpStatus.INTERNAL_SERVER_ERROR,
-                                "INTERNAL_SERVER_ERROR",
                                 "An unexpected error occurred");
         }
 
-        // ==========================================
-        // Common Response Builder
-        // ==========================================
-
-        private ResponseEntity<Map<String, Object>> buildResponse(
+        private ResponseEntity<ApiResponse<Void>> buildResponse(
                         HttpStatus status,
-                        String error,
                         String message) {
-
-                Map<String, Object> response = new LinkedHashMap<>();
-
-                response.put("status", status.value());
-                response.put("error", error);
-                response.put("message", message);
 
                 return ResponseEntity
                                 .status(status)
-                                .body(response);
+                                .body(ApiResponse.error(message));
         }
 }

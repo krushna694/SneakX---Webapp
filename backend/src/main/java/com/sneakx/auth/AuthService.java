@@ -12,105 +12,105 @@ import com.sneakx.user.UserRepository;
 @Service
 public class AuthService {
 
-    private final UserRepository userRepository;
-    private final RoleRepository roleRepository;
-    private final PasswordEncoder passwordEncoder;
-    private final JwtService jwtService;
+        private final UserRepository userRepository;
+        private final RoleRepository roleRepository;
+        private final PasswordEncoder passwordEncoder;
+        private final JwtService jwtService;
 
-    public AuthService(
-            UserRepository userRepository,
-            RoleRepository roleRepository,
-            PasswordEncoder passwordEncoder,
-            JwtService jwtService) {
+        public AuthService(
+                        UserRepository userRepository,
+                        RoleRepository roleRepository,
+                        PasswordEncoder passwordEncoder,
+                        JwtService jwtService) {
 
-        this.userRepository = userRepository;
-        this.roleRepository = roleRepository;
-        this.passwordEncoder = passwordEncoder;
-        this.jwtService = jwtService;
-    }
-
-    public AuthResponse register(RegisterRequest request) {
-
-        String email = request.getEmail().trim().toLowerCase();
-
-        if (userRepository.existsByEmail(email)) {
-            throw new IllegalArgumentException(
-                    "An account with this email already exists");
+                this.userRepository = userRepository;
+                this.roleRepository = roleRepository;
+                this.passwordEncoder = passwordEncoder;
+                this.jwtService = jwtService;
         }
 
-        Role customerRole = roleRepository.findByName("CUSTOMER")
-                .orElseThrow(() -> new IllegalStateException(
-                        "CUSTOMER role is not configured"));
+        public AuthResponse register(RegisterRequest request) {
 
-        User user = new User();
+                String email = request.getEmail().trim().toLowerCase();
 
-        user.setFirstName(request.getFirstName().trim());
+                if (userRepository.existsByEmail(email)) {
+                        throw new IllegalArgumentException(
+                                        "An account with this email already exists");
+                }
 
-        user.setLastName(
-                request.getLastName() != null
-                        ? request.getLastName().trim()
-                        : null);
+                Role customerRole = roleRepository.findByName("CUSTOMER")
+                                .orElseThrow(() -> new IllegalStateException(
+                                                "CUSTOMER role is not configured"));
 
-        user.setEmail(email);
+                User user = new User();
 
-        user.setPassword(
-                passwordEncoder.encode(request.getPassword()));
+                user.setFirstName(request.getFirstName().trim());
 
-        user.setPhone(
-                request.getPhone() != null
-                        ? request.getPhone().trim()
-                        : null);
+                user.setLastName(
+                                request.getLastName() != null
+                                                ? request.getLastName().trim()
+                                                : null);
 
-        user.addRole(customerRole);
+                user.setEmail(email);
 
-        User savedUser = userRepository.save(user);
+                user.setPassword(
+                                passwordEncoder.encode(request.getPassword()));
 
-        String token = jwtService.generateToken(savedUser.getEmail());
+                user.setPhone(
+                                request.getPhone() != null
+                                                ? request.getPhone().trim()
+                                                : null);
 
-        return new AuthResponse(
-                token,
-                savedUser.getId(),
-                savedUser.getFirstName(),
-                savedUser.getLastName(),
-                savedUser.getEmail(),
-                savedUser.getRoles()
-                        .stream()
-                        .map(Role::getName)
-                        .collect(java.util.stream.Collectors.toSet()));
-    }
+                user.addRole(customerRole);
 
-    public AuthResponse login(LoginRequest request) {
+                User savedUser = userRepository.save(user);
 
-        String email = request.getEmail().trim().toLowerCase();
+                String token = jwtService.generateToken(savedUser.getEmail());
 
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new IllegalArgumentException(
-                        "Invalid email or password"));
-
-        if (!user.isActive()) {
-            throw new IllegalStateException(
-                    "Your account is currently inactive");
+                return new AuthResponse(
+                                token,
+                                savedUser.getId(),
+                                savedUser.getFirstName(),
+                                savedUser.getLastName(),
+                                savedUser.getEmail(),
+                                savedUser.getRoles()
+                                                .stream()
+                                                .map(Role::getName)
+                                                .collect(java.util.stream.Collectors.toSet()));
         }
 
-        if (!passwordEncoder.matches(
-                request.getPassword(),
-                user.getPassword())) {
+        public AuthResponse login(LoginRequest request) {
 
-            throw new IllegalArgumentException(
-                    "Invalid email or password");
+                String email = request.getEmail().trim().toLowerCase();
+
+                User user = userRepository.findByEmail(email)
+                                .orElseThrow(() -> new IllegalArgumentException(
+                                                "Invalid email or password"));
+
+                if (!user.isActive()) {
+                        throw new IllegalStateException(
+                                        "Invalid email or password");
+                }
+
+                if (!passwordEncoder.matches(
+                                request.getPassword(),
+                                user.getPassword())) {
+
+                        throw new IllegalArgumentException(
+                                        "Invalid email or password");
+                }
+
+                String token = jwtService.generateToken(user.getEmail());
+
+                return new AuthResponse(
+                                token,
+                                user.getId(),
+                                user.getFirstName(),
+                                user.getLastName(),
+                                user.getEmail(),
+                                user.getRoles()
+                                                .stream()
+                                                .map(Role::getName)
+                                                .collect(java.util.stream.Collectors.toSet()));
         }
-
-        String token = jwtService.generateToken(user.getEmail());
-
-        return new AuthResponse(
-                token,
-                user.getId(),
-                user.getFirstName(),
-                user.getLastName(),
-                user.getEmail(),
-                user.getRoles()
-                        .stream()
-                        .map(Role::getName)
-                        .collect(java.util.stream.Collectors.toSet()));
-    }
 }
