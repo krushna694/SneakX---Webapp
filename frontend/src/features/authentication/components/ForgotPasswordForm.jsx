@@ -9,14 +9,30 @@ import {
     Mail,
 } from "lucide-react";
 
+import {
+    forgotPasswordApi,
+    verifyResetOtpApi,
+} from "../api/authApi";
+
 function ForgotPasswordForm() {
     const navigate = useNavigate();
 
+    const [step, setStep] = useState("email");
+
     const [email, setEmail] = useState("");
+    const [otp, setOtp] = useState("");
+
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
 
-    const handleSubmit = (event) => {
+    const [loading, setLoading] = useState(false);
+
+    /*
+     * -----------------------------------------
+     * SEND OTP
+     * -----------------------------------------
+     */
+    const handleEmailSubmit = async (event) => {
         event.preventDefault();
 
         setError("");
@@ -32,49 +48,148 @@ function ForgotPasswordForm() {
             return;
         }
 
-        const savedUsers =
-            localStorage.getItem("sneakx_users");
+        setLoading(true);
 
-        const users = savedUsers
-            ? JSON.parse(savedUsers)
-            : [];
+        try {
+            const response =
+                await forgotPasswordApi(
+                    normalizedEmail
+                );
 
-        const existingUser = users.find(
-            (user) =>
-                user.email === normalizedEmail
-        );
+            /*
+             * Backend intentionally returns the same
+             * successful response whether the account
+             * exists or not.
+             */
+            if (!response?.success) {
+                setError(
+                    response?.message ||
+                    "Unable to process your request."
+                );
+                return;
+            }
 
-        if (!existingUser) {
+            setStep("otp");
+
+            setSuccess(
+                "If an account exists for this email, a password reset OTP has been sent."
+            );
+        } catch (requestError) {
             setError(
-                "No account was found with this email address."
+                requestError.response?.data?.message ||
+                "Unable to process your request. Please try again."
+            );
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    /*
+     * -----------------------------------------
+     * VERIFY OTP
+     * -----------------------------------------
+     */
+    const handleOtpSubmit = async (event) => {
+        event.preventDefault();
+
+        setError("");
+        setSuccess("");
+
+        const normalizedEmail =
+            email.trim().toLowerCase();
+
+        const normalizedOtp = otp.trim();
+
+        if (!/^\d{6}$/.test(normalizedOtp)) {
+            setError(
+                "Please enter the 6-digit OTP."
             );
             return;
         }
 
-        /*
-         * Temporary frontend reset flow.
-         * This will be replaced by a secure
-         * backend password-reset token flow.
-         */
-        localStorage.setItem(
-            "sneakx_reset_email",
-            normalizedEmail
-        );
+        setLoading(true);
 
-        setSuccess(
-            "Email verified. You can now reset your password."
-        );
+        try {
+            const response =
+                await verifyResetOtpApi(
+                    normalizedEmail,
+                    normalizedOtp
+                );
 
-        setTimeout(() => {
-            navigate("/reset-password");
-        }, 800);
+            if (
+                !response?.success ||
+                !response?.data
+            ) {
+                setError(
+                    response?.message ||
+                    "Invalid or expired OTP."
+                );
+                return;
+            }
+
+            /*
+             * IMPORTANT:
+             *
+             * This is NOT the login JWT.
+             *
+             * It is a short-lived token that can only
+             * be used for password reset.
+             */
+            sessionStorage.setItem(
+                "sneakx_password_reset_token",
+                response.data
+            );
+
+            sessionStorage.setItem(
+                "sneakx_password_reset_email",
+                normalizedEmail
+            );
+
+            setSuccess(
+                "OTP verified successfully."
+            );
+
+            setTimeout(() => {
+                navigate("/reset-password");
+            }, 600);
+        } catch (requestError) {
+            setError(
+                requestError.response?.data?.message ||
+                "Invalid or expired OTP."
+            );
+        } finally {
+            setLoading(false);
+        }
     };
 
+    /*
+     * -----------------------------------------
+     * INPUT HANDLERS
+     * -----------------------------------------
+     */
     const handleEmailChange = (event) => {
         setEmail(event.target.value);
+
         setError("");
+        setSuccess("");
     };
 
+    const handleOtpChange = (event) => {
+        const value = event.target.value
+            .replace(/\D/g, "")
+            .slice(0, 6);
+
+        setOtp(value);
+
+        setError("");
+        setSuccess("");
+    };
+
+    /*
+     * -----------------------------------------
+     * RENDER
+     * -----------------------------------------
+     */
     return (
         <motion.div
             initial={{
@@ -105,7 +220,7 @@ function ForgotPasswordForm() {
                 Back to Login
             </Link>
 
-            {/* HEADER ICON */}
+            {/* HEADER */}
             <div className="text-center mb-4">
                 <div
                     className="d-inline-flex align-items-center justify-content-center mb-3"
@@ -117,10 +232,17 @@ function ForgotPasswordForm() {
                         color: "#ff5a1f",
                     }}
                 >
-                    <KeyRound
-                        size={23}
-                        strokeWidth={1.9}
-                    />
+                    {step === "email" ? (
+                        <KeyRound
+                            size={23}
+                            strokeWidth={1.9}
+                        />
+                    ) : (
+                        <Mail
+                            size={23}
+                            strokeWidth={1.9}
+                        />
+                    )}
                 </div>
 
                 <h3
@@ -130,7 +252,9 @@ function ForgotPasswordForm() {
                         color: "#111111",
                     }}
                 >
-                    Forgot Password?
+                    {step === "email"
+                        ? "Forgot Password?"
+                        : "Verify OTP"}
                 </h3>
 
                 <p
@@ -141,19 +265,20 @@ function ForgotPasswordForm() {
                         color: "#888888",
                     }}
                 >
-                    Enter your registered email and
-                    we'll help you reset your password.
+                    {step === "email"
+                        ? "Enter your registered email and we'll send you a password reset OTP."
+                        : `Enter the 6-digit OTP sent to ${email}.`}
                 </p>
             </div>
 
-            {/* ERROR */}
-            <AnimatePresence>
+            {/* ERROR / SUCCESS */}
+            <AnimatePresence mode="wait">
                 {error && (
                     <motion.div
-                        className="d-flex align-items-center gap-2 mb-4"
+                        key="error"
                         initial={{
                             opacity: 0,
-                            y: -10,
+                            y: -8,
                         }}
                         animate={{
                             opacity: 1,
@@ -161,48 +286,23 @@ function ForgotPasswordForm() {
                         }}
                         exit={{
                             opacity: 0,
-                            y: -10,
+                            y: -8,
                         }}
+                        className="alert alert-danger py-2 px-3"
                         style={{
-                            padding: "12px 14px",
-                            borderRadius: "10px",
-                            border:
-                                "1px solid #f0cccc",
-                            background:
-                                "#fff6f6",
-                            color: "#b33a3a",
-                            fontSize: "11px",
-                            lineHeight: "1.5",
+                            fontSize: "12px",
                         }}
                     >
-                        <span
-                            className="d-flex align-items-center justify-content-center fw-bold flex-shrink-0"
-                            style={{
-                                width: "18px",
-                                height: "18px",
-                                borderRadius: "50%",
-                                background:
-                                    "#b33a3a",
-                                color: "#ffffff",
-                                fontSize: "11px",
-                            }}
-                        >
-                            !
-                        </span>
-
-                        <span>{error}</span>
+                        {error}
                     </motion.div>
                 )}
-            </AnimatePresence>
 
-            {/* SUCCESS */}
-            <AnimatePresence>
                 {success && (
                     <motion.div
-                        className="d-flex align-items-center gap-2 mb-4"
+                        key="success"
                         initial={{
                             opacity: 0,
-                            y: -10,
+                            y: -8,
                         }}
                         animate={{
                             opacity: 1,
@@ -210,138 +310,152 @@ function ForgotPasswordForm() {
                         }}
                         exit={{
                             opacity: 0,
-                            y: -10,
+                            y: -8,
                         }}
+                        className="alert alert-success py-2 px-3 d-flex align-items-center gap-2"
                         style={{
-                            padding: "12px 14px",
-                            borderRadius: "10px",
-                            border:
-                                "1px solid #cfe8d5",
-                            background:
-                                "#f3fbf5",
-                            color: "#287a3d",
-                            fontSize: "11px",
-                            lineHeight: "1.5",
+                            fontSize: "12px",
                         }}
                     >
-                        <CheckCircle
-                            size={17}
-                            className="flex-shrink-0"
-                        />
+                        <CheckCircle size={15} />
 
                         <span>{success}</span>
                     </motion.div>
                 )}
             </AnimatePresence>
 
-            <form onSubmit={handleSubmit}>
-                {/* EMAIL */}
-                <div className="mb-4">
-                    <label
-                        htmlFor="forgotEmail"
-                        className="form-label fw-semibold mb-2"
-                        style={{
-                            fontSize: "11px",
-                            color: "#333333",
-                        }}
-                    >
-                        Email Address
-                    </label>
-
-                    <div
-                        className="d-flex align-items-center"
-                        style={{
-                            border:
-                                "1px solid #e5e5e5",
-                            borderRadius: "10px",
-                            background:
-                                "#ffffff",
-                            overflow: "hidden",
-                        }}
-                    >
-                        <div
-                            className="d-flex align-items-center justify-content-center flex-shrink-0"
+            {/* EMAIL STEP */}
+            {step === "email" && (
+                <form
+                    onSubmit={handleEmailSubmit}
+                    className="mt-4"
+                >
+                    <div className="mb-3">
+                        <label
+                            htmlFor="forgotEmail"
+                            className="form-label"
                             style={{
-                                width: "46px",
-                                color: "#999999",
+                                fontSize: "12px",
+                                fontWeight: "600",
                             }}
                         >
-                            <Mail size={17} />
-                        </div>
+                            Email Address
+                        </label>
 
                         <input
                             id="forgotEmail"
                             type="email"
+                            className="form-control"
                             value={email}
-                            onChange={
-                                handleEmailChange
-                            }
-                            placeholder="Enter your registered email"
+                            onChange={handleEmailChange}
+                            placeholder="Enter your email"
                             autoComplete="email"
-                            className="border-0 shadow-none"
+                            disabled={loading}
+                            required
+                        />
+                    </div>
+
+                    <button
+                        type="submit"
+                        className="btn w-100 d-flex align-items-center justify-content-center gap-2"
+                        disabled={loading}
+                        style={{
+                            background: "#111111",
+                            color: "#ffffff",
+                            minHeight: "44px",
+                            fontSize: "12px",
+                            fontWeight: "600",
+                        }}
+                    >
+                        {loading
+                            ? "Sending OTP..."
+                            : "Send OTP"}
+
+                        {!loading && (
+                            <ArrowRight size={15} />
+                        )}
+                    </button>
+                </form>
+            )}
+
+            {/* OTP STEP */}
+            {step === "otp" && (
+                <form
+                    onSubmit={handleOtpSubmit}
+                    className="mt-4"
+                >
+                    <div className="mb-3">
+                        <label
+                            htmlFor="resetOtp"
+                            className="form-label"
                             style={{
-                                height: "48px",
-                                flex: 1,
-                                minWidth: 0,
-                                padding:
-                                    "0 14px 0 0",
                                 fontSize: "12px",
-                                color: "#222222",
-                                outline: "none",
+                                fontWeight: "600",
+                            }}
+                        >
+                            6-Digit OTP
+                        </label>
+
+                        <input
+                            id="resetOtp"
+                            type="text"
+                            inputMode="numeric"
+                            maxLength={6}
+                            className="form-control text-center"
+                            value={otp}
+                            onChange={handleOtpChange}
+                            placeholder="000000"
+                            autoComplete="one-time-code"
+                            disabled={loading}
+                            required
+                            style={{
+                                letterSpacing: "7px",
+                                fontSize: "20px",
+                                fontWeight: "600",
                             }}
                         />
                     </div>
-                </div>
 
-                {/* CONTINUE */}
-                <motion.button
-                    type="submit"
-                    className="btn w-100 d-flex align-items-center justify-content-center gap-2"
-                    whileHover={{
-                        y: -1,
-                        boxShadow:
-                            "0 8px 20px rgba(0,0,0,0.14)",
-                    }}
-                    whileTap={{
-                        scale: 0.98,
-                    }}
-                    style={{
-                        height: "48px",
-                        borderRadius: "10px",
-                        border: "none",
-                        background: "#111111",
-                        color: "#ffffff",
-                        fontSize: "12px",
-                        fontWeight: "600",
-                    }}
-                >
-                    <KeyRound size={17} />
+                    <button
+                        type="submit"
+                        className="btn w-100 d-flex align-items-center justify-content-center gap-2"
+                        disabled={loading}
+                        style={{
+                            background: "#111111",
+                            color: "#ffffff",
+                            minHeight: "44px",
+                            fontSize: "12px",
+                            fontWeight: "600",
+                        }}
+                    >
+                        {loading
+                            ? "Verifying..."
+                            : "Verify OTP"}
 
-                    Continue
+                        {!loading && (
+                            <ArrowRight size={15} />
+                        )}
+                    </button>
 
-                    <ArrowRight size={16} />
-                </motion.button>
-            </form>
-
-            {/* REGISTER */}
-            <div
-                className="text-center mt-4"
-                style={{
-                    fontSize: "11px",
-                    color: "#888888",
-                }}
-            >
-                Don't have an account?{" "}
-                <Link
-                    to="/register"
-                    className="text-decoration-none fw-semibold"
-                    style={{
-                        color: "#ff5a1f",
-                    }}
-                >
-                    Create Account
-                </Link>
-            </div>
+                    <button
+                        type="button"
+                        className="btn btn-link w-100 mt-2"
+                        disabled={loading}
+                        onClick={() => {
+                            setStep("email");
+                            setOtp("");
+                            setError("");
+                            setSuccess("");
+                        }}
+                        style={{
+                            fontSize: "11px",
+                            color: "#555555",
+                        }}
+                    >
+                        Change email
+                    </button>
+                </form>
+            )}
         </motion.div>
     );
 }

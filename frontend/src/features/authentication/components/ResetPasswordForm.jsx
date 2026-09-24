@@ -12,14 +12,35 @@ import {
     Lock,
 } from "lucide-react";
 
+import { resetPasswordApi } from "../api/authApi";
+
 function ResetPasswordForm() {
     const navigate = useNavigate();
 
-    const resetEmail = localStorage.getItem(
-        "sneakx_reset_email"
+    // -----------------------------------------
+    // PASSWORD RESET SESSION
+    // -----------------------------------------
+
+    const [resetToken, setResetToken] = useState(
+        () =>
+            sessionStorage.getItem(
+                "sneakx_password_reset_token"
+            )
     );
 
+    const [resetEmail] = useState(
+        () =>
+            sessionStorage.getItem(
+                "sneakx_password_reset_email"
+            ) || ""
+    );
+
+    // -----------------------------------------
+    // PASSWORD STATE
+    // -----------------------------------------
+
     const [password, setPassword] = useState("");
+
     const [confirmPassword, setConfirmPassword] =
         useState("");
 
@@ -29,27 +50,51 @@ function ResetPasswordForm() {
     const [showConfirmPassword, setShowConfirmPassword] =
         useState(false);
 
-    const [error, setError] = useState("");
+    // -----------------------------------------
+    // UI STATE
+    // -----------------------------------------
+
+    const [error, setError] = useState(() => {
+        const token = sessionStorage.getItem(
+            "sneakx_password_reset_token"
+        );
+
+        return token
+            ? ""
+            : "Password reset session has expired. Please request a new OTP.";
+    });
+
     const [success, setSuccess] = useState("");
 
-    const handleSubmit = (event) => {
+    const [loading, setLoading] = useState(false);
+
+    // -----------------------------------------
+    // RESET PASSWORD
+    // -----------------------------------------
+
+    const handleSubmit = async (event) => {
         event.preventDefault();
 
         setError("");
         setSuccess("");
 
-        if (!resetEmail) {
+        // Make sure a reset token exists.
+        if (!resetToken) {
             setError(
-                "Password reset session has expired. Please try again."
+                "Password reset session has expired. Please request a new OTP."
             );
             return;
         }
 
+        // Validate fields.
         if (!password || !confirmPassword) {
-            setError("Please fill in all fields.");
+            setError(
+                "Please fill in all fields."
+            );
             return;
         }
 
+        // Validate password length.
         if (password.length < 8) {
             setError(
                 "Password must be at least 8 characters."
@@ -57,68 +102,90 @@ function ResetPasswordForm() {
             return;
         }
 
+        // Validate password confirmation.
         if (password !== confirmPassword) {
-            setError("Passwords do not match.");
-            return;
-        }
-
-        const savedUsers =
-            localStorage.getItem("sneakx_users");
-
-        const users = savedUsers
-            ? JSON.parse(savedUsers)
-            : [];
-
-        const userIndex = users.findIndex(
-            (user) => user.email === resetEmail
-        );
-
-        if (userIndex === -1) {
             setError(
-                "User account could not be found."
+                "Passwords do not match."
             );
             return;
         }
 
-        const updatedUsers = [...users];
+        setLoading(true);
 
-        updatedUsers[userIndex] = {
-            ...updatedUsers[userIndex],
-            password,
-        };
+        try {
+            const response = await resetPasswordApi(
+                resetToken,
+                password
+            );
 
-        localStorage.setItem(
-            "sneakx_users",
-            JSON.stringify(updatedUsers)
-        );
+            if (!response?.success) {
+                setError(
+                    response?.message ||
+                    "Unable to reset password."
+                );
+                return;
+            }
 
-        localStorage.removeItem(
-            "sneakx_reset_email"
-        );
+            // -----------------------------------------
+            // REMOVE TEMPORARY RESET CREDENTIALS
+            // -----------------------------------------
 
-        setSuccess(
-            "Your password has been reset successfully."
-        );
+            sessionStorage.removeItem(
+                "sneakx_password_reset_token"
+            );
 
-        setTimeout(() => {
-            navigate("/login", {
-                state: {
-                    message:
-                        "Password reset successfully. Please login with your new password.",
-                },
-            });
-        }, 1000);
+            sessionStorage.removeItem(
+                "sneakx_password_reset_email"
+            );
+
+            setResetToken(null);
+
+            setSuccess(
+                "Your password has been reset successfully."
+            );
+
+            // Redirect to login.
+            setTimeout(() => {
+                navigate("/login", {
+                    state: {
+                        message:
+                            "Password reset successfully. Please login with your new password.",
+                    },
+                });
+            }, 900);
+        } catch (requestError) {
+            setError(
+                requestError.response?.data?.message ||
+                "Unable to reset password. Please try again."
+            );
+        } finally {
+            setLoading(false);
+        }
     };
+
+    // -----------------------------------------
+    // PASSWORD INPUT
+    // -----------------------------------------
 
     const handlePasswordChange = (event) => {
         setPassword(event.target.value);
         setError("");
     };
 
-    const handleConfirmPasswordChange = (event) => {
+    // -----------------------------------------
+    // CONFIRM PASSWORD INPUT
+    // -----------------------------------------
+
+    const handleConfirmPasswordChange = (
+        event
+    ) => {
         setConfirmPassword(event.target.value);
         setError("");
     };
+
+    // -----------------------------------------
+    // RENDER
+    // -----------------------------------------
 
     return (
         <motion.div
@@ -135,7 +202,10 @@ function ResetPasswordForm() {
                 ease: [0.22, 1, 0.36, 1],
             }}
         >
-            {/* BACK TO LOGIN */}
+            {/* =====================================
+                BACK TO LOGIN
+            ====================================== */}
+
             <Link
                 to="/login"
                 className="text-decoration-none d-inline-flex align-items-center gap-2 mb-4"
@@ -150,7 +220,10 @@ function ResetPasswordForm() {
                 Back to Login
             </Link>
 
-            {/* HEADER */}
+            {/* =====================================
+                HEADER
+            ====================================== */}
+
             <div className="text-center mb-4">
                 <div
                     className="d-inline-flex align-items-center justify-content-center mb-3"
@@ -191,8 +264,11 @@ function ResetPasswordForm() {
                 </p>
             </div>
 
-            {/* RESET EMAIL */}
-            {resetEmail && (
+            {/* =====================================
+                RESET EMAIL
+            ====================================== */}
+
+            {resetEmail && resetToken && (
                 <motion.div
                     initial={{
                         opacity: 0,
@@ -228,7 +304,10 @@ function ResetPasswordForm() {
                 </motion.div>
             )}
 
-            {/* ERROR */}
+            {/* =====================================
+                ERROR
+            ====================================== */}
+
             <AnimatePresence>
                 {error && (
                     <motion.div
@@ -277,7 +356,10 @@ function ResetPasswordForm() {
                 )}
             </AnimatePresence>
 
-            {/* SUCCESS */}
+            {/* =====================================
+                SUCCESS
+            ====================================== */}
+
             <AnimatePresence>
                 {success && (
                     <motion.div
@@ -316,215 +398,265 @@ function ResetPasswordForm() {
                 )}
             </AnimatePresence>
 
-            <form onSubmit={handleSubmit}>
-                {/* NEW PASSWORD */}
-                <div className="mb-4">
-                    <label
-                        htmlFor="resetPassword"
-                        className="form-label fw-semibold mb-2"
-                        style={{
-                            fontSize: "11px",
-                            color: "#333333",
-                        }}
-                    >
-                        New Password
-                    </label>
+            {/* =====================================
+                PASSWORD FORM
+            ====================================== */}
 
-                    <div
-                        className="d-flex align-items-center"
-                        style={{
-                            border:
-                                "1px solid #e5e5e5",
-                            borderRadius: "10px",
-                            background:
-                                "#ffffff",
-                            overflow: "hidden",
-                        }}
-                    >
-                        <div
-                            className="d-flex align-items-center justify-content-center flex-shrink-0"
+            {resetToken && !success && (
+                <form onSubmit={handleSubmit}>
+                    {/* NEW PASSWORD */}
+
+                    <div className="mb-4">
+                        <label
+                            htmlFor="resetPassword"
+                            className="form-label fw-semibold mb-2"
                             style={{
-                                width: "46px",
+                                fontSize: "11px",
+                                color: "#333333",
+                            }}
+                        >
+                            New Password
+                        </label>
+
+                        <div
+                            className="d-flex align-items-center"
+                            style={{
+                                border:
+                                    "1px solid #e5e5e5",
+                                borderRadius: "10px",
+                                background:
+                                    "#ffffff",
+                                overflow: "hidden",
+                            }}
+                        >
+                            <div
+                                className="d-flex align-items-center justify-content-center flex-shrink-0"
+                                style={{
+                                    width: "46px",
+                                    color: "#999999",
+                                }}
+                            >
+                                <Lock size={17} />
+                            </div>
+
+                            <input
+                                id="resetPassword"
+                                type={
+                                    showPassword
+                                        ? "text"
+                                        : "password"
+                                }
+                                value={password}
+                                onChange={
+                                    handlePasswordChange
+                                }
+                                placeholder="Enter new password"
+                                autoComplete="new-password"
+                                className="border-0 shadow-none"
+                                disabled={loading}
+                                minLength={8}
+                                required
+                                style={{
+                                    height: "48px",
+                                    flex: 1,
+                                    minWidth: 0,
+                                    padding:
+                                        "0 10px 0 0",
+                                    fontSize: "12px",
+                                    color: "#222222",
+                                    outline: "none",
+                                }}
+                            />
+
+                            <button
+                                type="button"
+                                className="btn border-0 d-flex align-items-center justify-content-center"
+                                onClick={() =>
+                                    setShowPassword(
+                                        (current) =>
+                                            !current
+                                    )
+                                }
+                                disabled={loading}
+                                aria-label={
+                                    showPassword
+                                        ? "Hide password"
+                                        : "Show password"
+                                }
+                                style={{
+                                    width: "46px",
+                                    height: "48px",
+                                    color: "#888888",
+                                    background:
+                                        "transparent",
+                                }}
+                            >
+                                {showPassword ? (
+                                    <EyeOff size={17} />
+                                ) : (
+                                    <Eye size={17} />
+                                )}
+                            </button>
+                        </div>
+
+                        <div
+                            className="d-flex align-items-center gap-1 mt-2"
+                            style={{
+                                fontSize: "10px",
                                 color: "#999999",
                             }}
                         >
-                            <Lock size={17} />
+                            <Check size={12} />
+
+                            Minimum 8 characters
                         </div>
+                    </div>
 
-                        <input
-                            id="resetPassword"
-                            type={
-                                showPassword
-                                    ? "text"
-                                    : "password"
-                            }
-                            value={password}
-                            onChange={
-                                handlePasswordChange
-                            }
-                            placeholder="Enter new password"
-                            autoComplete="new-password"
-                            className="border-0 shadow-none"
-                            style={{
-                                height: "48px",
-                                flex: 1,
-                                minWidth: 0,
-                                padding:
-                                    "0 10px 0 0",
-                                fontSize: "12px",
-                                color: "#222222",
-                                outline: "none",
-                            }}
-                        />
+                    {/* CONFIRM PASSWORD */}
 
-                        <button
-                            type="button"
-                            className="btn border-0 d-flex align-items-center justify-content-center"
-                            onClick={() =>
-                                setShowPassword(
-                                    (current) =>
-                                        !current
-                                )
-                            }
-                            aria-label={
-                                showPassword
-                                    ? "Hide password"
-                                    : "Show password"
-                            }
+                    <div className="mb-4">
+                        <label
+                            htmlFor="resetConfirmPassword"
+                            className="form-label fw-semibold mb-2"
                             style={{
-                                width: "46px",
-                                height: "48px",
-                                color: "#888888",
-                                background:
-                                    "transparent",
+                                fontSize: "11px",
+                                color: "#333333",
                             }}
                         >
-                            {showPassword ? (
-                                <EyeOff size={17} />
-                            ) : (
-                                <Eye size={17} />
-                            )}
-                        </button>
-                    </div>
+                            Confirm New Password
+                        </label>
 
-                    <div
-                        className="d-flex align-items-center gap-1 mt-2"
-                        style={{
-                            fontSize: "10px",
-                            color: "#999999",
-                        }}
-                    >
-                        <Check size={12} />
-
-                        Minimum 8 characters
-                    </div>
-                </div>
-
-                {/* CONFIRM PASSWORD */}
-                <div className="mb-4">
-                    <label
-                        htmlFor="resetConfirmPassword"
-                        className="form-label fw-semibold mb-2"
-                        style={{
-                            fontSize: "11px",
-                            color: "#333333",
-                        }}
-                    >
-                        Confirm New Password
-                    </label>
-
-                    <div
-                        className="d-flex align-items-center"
-                        style={{
-                            border:
-                                "1px solid #e5e5e5",
-                            borderRadius: "10px",
-                            background:
-                                "#ffffff",
-                            overflow: "hidden",
-                        }}
-                    >
                         <div
-                            className="d-flex align-items-center justify-content-center flex-shrink-0"
+                            className="d-flex align-items-center"
                             style={{
-                                width: "46px",
-                                color: "#999999",
-                            }}
-                        >
-                            <Lock size={17} />
-                        </div>
-
-                        <input
-                            id="resetConfirmPassword"
-                            type={
-                                showConfirmPassword
-                                    ? "text"
-                                    : "password"
-                            }
-                            value={
-                                confirmPassword
-                            }
-                            onChange={
-                                handleConfirmPasswordChange
-                            }
-                            placeholder="Confirm new password"
-                            autoComplete="new-password"
-                            className="border-0 shadow-none"
-                            style={{
-                                height: "48px",
-                                flex: 1,
-                                minWidth: 0,
-                                padding:
-                                    "0 10px 0 0",
-                                fontSize: "12px",
-                                color: "#222222",
-                                outline: "none",
-                            }}
-                        />
-
-                        <button
-                            type="button"
-                            className="btn border-0 d-flex align-items-center justify-content-center"
-                            onClick={() =>
-                                setShowConfirmPassword(
-                                    (current) =>
-                                        !current
-                                )
-                            }
-                            aria-label={
-                                showConfirmPassword
-                                    ? "Hide password"
-                                    : "Show password"
-                            }
-                            style={{
-                                width: "46px",
-                                height: "48px",
-                                color: "#888888",
+                                border:
+                                    "1px solid #e5e5e5",
+                                borderRadius: "10px",
                                 background:
-                                    "transparent",
+                                    "#ffffff",
+                                overflow: "hidden",
                             }}
                         >
-                            {showConfirmPassword ? (
-                                <EyeOff size={17} />
-                            ) : (
-                                <Eye size={17} />
-                            )}
-                        </button>
-                    </div>
-                </div>
+                            <div
+                                className="d-flex align-items-center justify-content-center flex-shrink-0"
+                                style={{
+                                    width: "46px",
+                                    color: "#999999",
+                                }}
+                            >
+                                <Lock size={17} />
+                            </div>
 
-                {/* RESET BUTTON */}
-                <motion.button
-                    type="submit"
-                    className="btn w-100 d-flex align-items-center justify-content-center gap-2"
-                    whileHover={{
-                        y: -1,
-                        boxShadow:
-                            "0 8px 20px rgba(0,0,0,0.14)",
-                    }}
-                    whileTap={{
-                        scale: 0.98,
-                    }}
+                            <input
+                                id="resetConfirmPassword"
+                                type={
+                                    showConfirmPassword
+                                        ? "text"
+                                        : "password"
+                                }
+                                value={
+                                    confirmPassword
+                                }
+                                onChange={
+                                    handleConfirmPasswordChange
+                                }
+                                placeholder="Confirm new password"
+                                autoComplete="new-password"
+                                className="border-0 shadow-none"
+                                disabled={loading}
+                                minLength={8}
+                                required
+                                style={{
+                                    height: "48px",
+                                    flex: 1,
+                                    minWidth: 0,
+                                    padding:
+                                        "0 10px 0 0",
+                                    fontSize: "12px",
+                                    color: "#222222",
+                                    outline: "none",
+                                }}
+                            />
+
+                            <button
+                                type="button"
+                                className="btn border-0 d-flex align-items-center justify-content-center"
+                                onClick={() =>
+                                    setShowConfirmPassword(
+                                        (current) =>
+                                            !current
+                                    )
+                                }
+                                disabled={loading}
+                                aria-label={
+                                    showConfirmPassword
+                                        ? "Hide password"
+                                        : "Show password"
+                                }
+                                style={{
+                                    width: "46px",
+                                    height: "48px",
+                                    color: "#888888",
+                                    background:
+                                        "transparent",
+                                }}
+                            >
+                                {showConfirmPassword ? (
+                                    <EyeOff size={17} />
+                                ) : (
+                                    <Eye size={16} />
+                                )}
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* RESET BUTTON */}
+
+                    <motion.button
+                        type="submit"
+                        className="btn w-100 d-flex align-items-center justify-content-center gap-2"
+                        whileHover={{
+                            y: -1,
+                            boxShadow:
+                                "0 8px 20px rgba(0,0,0,0.14)",
+                        }}
+                        whileTap={{
+                            scale: 0.98,
+                        }}
+                        disabled={loading}
+                        style={{
+                            height: "48px",
+                            borderRadius: "10px",
+                            border: "none",
+                            background: "#111111",
+                            color: "#ffffff",
+                            fontSize: "12px",
+                            fontWeight: "600",
+                        }}
+                    >
+                        {loading ? (
+                            "Resetting Password..."
+                        ) : (
+                            <>
+                                <KeyRound size={17} />
+
+                                Reset Password
+
+                                <ArrowRight size={16} />
+                            </>
+                        )}
+                    </motion.button>
+                </form>
+            )}
+
+            {/* =====================================
+                NO RESET SESSION
+            ====================================== */}
+
+            {!resetToken && !success && (
+                <Link
+                    to="/forgot-password"
+                    className="btn w-100 d-flex align-items-center justify-content-center gap-2 mt-4"
                     style={{
                         height: "48px",
                         borderRadius: "10px",
@@ -535,15 +667,16 @@ function ResetPasswordForm() {
                         fontWeight: "600",
                     }}
                 >
-                    <KeyRound size={17} />
-
-                    Reset Password
+                    Request New OTP
 
                     <ArrowRight size={16} />
-                </motion.button>
-            </form>
+                </Link>
+            )}
 
-            {/* LOGIN */}
+            {/* =====================================
+                LOGIN LINK
+            ====================================== */}
+
             <div
                 className="text-center mt-4"
                 style={{
