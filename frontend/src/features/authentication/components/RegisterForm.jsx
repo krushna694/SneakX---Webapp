@@ -32,6 +32,7 @@ function RegisterForm() {
         useState(false);
 
     const [error, setError] = useState("");
+    const [isLoading, setIsLoading] = useState(false);
 
     const handleChange = (event) => {
         const { name, value } = event.target;
@@ -44,14 +45,21 @@ function RegisterForm() {
         setError("");
     };
 
-    const handleSubmit = (event) => {
+    const handleSubmit = async (event) => {
         event.preventDefault();
+
+        if (isLoading) {
+            return;
+        }
+
         setError("");
 
         const name = formData.name.trim();
-        const email = formData.email.trim().toLowerCase();
+        const email =
+            formData.email.trim().toLowerCase();
         const password = formData.password;
-        const confirmPassword = formData.confirmPassword;
+        const confirmPassword =
+            formData.confirmPassword;
 
         if (
             !name ||
@@ -64,7 +72,9 @@ function RegisterForm() {
         }
 
         if (name.length < 2) {
-            setError("Please enter a valid full name.");
+            setError(
+                "Please enter a valid full name."
+            );
             return;
         }
 
@@ -80,23 +90,34 @@ function RegisterForm() {
             return;
         }
 
-        const result = register({
-            name,
-            email,
-            password,
-        });
+        setIsLoading(true);
 
-        if (!result.success) {
-            setError(result.message);
-            return;
+        try {
+            const result = await register({
+                name,
+                email,
+                password,
+            });
+
+            if (!result.success) {
+                setError(
+                    result.message ||
+                    "Registration failed."
+                );
+                return;
+            }
+
+            navigate("/login", {
+                replace: true,
+                state: {
+                    message:
+                        "Registration successful. Please login to continue.",
+                },
+            });
+
+        } finally {
+            setIsLoading(false);
         }
-
-        navigate("/login", {
-            state: {
-                message:
-                    "Registration successful. Please login to continue.",
-            },
-        });
     };
 
     return (
@@ -206,6 +227,7 @@ function RegisterForm() {
                             onChange={handleChange}
                             placeholder="Enter your full name"
                             autoComplete="name"
+                            disabled={isLoading}
                             className="border-0 shadow-none"
                             style={{
                                 height: "48px",
@@ -263,6 +285,7 @@ function RegisterForm() {
                             onChange={handleChange}
                             placeholder="Enter your email"
                             autoComplete="email"
+                            disabled={isLoading}
                             className="border-0 shadow-none"
                             style={{
                                 height: "48px",
@@ -324,6 +347,7 @@ function RegisterForm() {
                             onChange={handleChange}
                             placeholder="Create a password"
                             autoComplete="new-password"
+                            disabled={isLoading}
                             className="border-0 shadow-none"
                             style={{
                                 height: "48px",
@@ -351,6 +375,7 @@ function RegisterForm() {
                                     ? "Hide password"
                                     : "Show password"
                             }
+                            disabled={isLoading}
                             style={{
                                 width: "46px",
                                 height: "48px",
@@ -427,6 +452,7 @@ function RegisterForm() {
                             onChange={handleChange}
                             placeholder="Confirm your password"
                             autoComplete="new-password"
+                            disabled={isLoading}
                             className="border-0 shadow-none"
                             style={{
                                 height: "48px",
@@ -454,6 +480,7 @@ function RegisterForm() {
                                     ? "Hide password"
                                     : "Show password"
                             }
+                            disabled={isLoading}
                             style={{
                                 width: "46px",
                                 height: "48px",
@@ -475,17 +502,26 @@ function RegisterForm() {
                 <motion.button
                     type="submit"
                     className="btn w-100 d-flex align-items-center justify-content-center gap-2"
-                    whileHover={{
-                        y: -1,
-                        boxShadow:
-                            "0 8px 20px rgba(0,0,0,0.14)",
-                    }}
-                    whileTap={{
-                        scale: 0.98,
-                    }}
+                    whileHover={
+                        !isLoading
+                            ? {
+                                  y: -1,
+                                  boxShadow:
+                                      "0 8px 20px rgba(0,0,0,0.14)",
+                              }
+                            : undefined
+                    }
+                    whileTap={
+                        !isLoading
+                            ? {
+                                  scale: 0.98,
+                              }
+                            : undefined
+                    }
                     transition={{
                         duration: 0.2,
                     }}
+                    disabled={isLoading}
                     style={{
                         height: "48px",
                         borderRadius: "10px",
@@ -494,13 +530,29 @@ function RegisterForm() {
                         color: "#ffffff",
                         fontSize: "12px",
                         fontWeight: "600",
+                        opacity: isLoading
+                            ? 0.7
+                            : 1,
+                        cursor: isLoading
+                            ? "not-allowed"
+                            : "pointer",
                     }}
                 >
-                    <UserPlus size={17} />
-
-                    Create Account
-
-                    <ArrowRight size={16} />
+                    {isLoading ? (
+                        <>
+                            <span
+                                className="spinner-border spinner-border-sm"
+                                aria-hidden="true"
+                            />
+                            Creating account...
+                        </>
+                    ) : (
+                        <>
+                            <UserPlus size={17} />
+                            Create Account
+                            <ArrowRight size={16} />
+                        </>
+                    )}
                 </motion.button>
             </form>
 

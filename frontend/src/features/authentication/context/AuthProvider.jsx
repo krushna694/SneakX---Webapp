@@ -1,10 +1,15 @@
 import { useEffect, useState } from "react";
 import { AuthContext } from "./AuthContext";
+import {
+    loginApi,
+    registerApi,
+} from "../api/authApi";
 
 function AuthProvider({ children }) {
 
     const [user, setUser] = useState(() => {
-        const savedUser = localStorage.getItem("sneakx_user");
+        const savedUser =
+            localStorage.getItem("sneakx_user");
 
         return savedUser
             ? JSON.parse(savedUser)
@@ -12,12 +17,14 @@ function AuthProvider({ children }) {
     });
 
     const [isAuthenticated, setIsAuthenticated] = useState(() => {
-        return (
-            localStorage.getItem(
-                "sneakx_isAuthenticated"
-            ) === "true"
+        return Boolean(
+            localStorage.getItem("sneakx_token")
         );
     });
+
+    // -----------------------------------------
+    // PERSIST USER
+    // -----------------------------------------
 
     useEffect(() => {
         if (user) {
@@ -26,137 +33,200 @@ function AuthProvider({ children }) {
                 JSON.stringify(user)
             );
         } else {
-            localStorage.removeItem("sneakx_user");
+            localStorage.removeItem(
+                "sneakx_user"
+            );
         }
     }, [user]);
-
-    useEffect(() => {
-        localStorage.setItem(
-            "sneakx_isAuthenticated",
-            isAuthenticated.toString()
-        );
-    }, [isAuthenticated]);
 
     // -----------------------------------------
     // LOGIN
     // -----------------------------------------
 
-    const login = (email, password) => {
+    const login = async (email, password) => {
 
         if (!email || !password) {
             return {
                 success: false,
                 message:
-                    "Email and password are required."
+                    "Email and password are required.",
             };
         }
 
-        const normalizedEmail =
-            email.trim().toLowerCase();
+        try {
 
-        const savedUsers =
-            localStorage.getItem("sneakx_users");
+            const response =
+                await loginApi(
+                    email,
+                    password
+                );
 
-        const users = savedUsers
-            ? JSON.parse(savedUsers)
-            : [];
+            if (
+                !response?.success ||
+                !response?.data
+            ) {
+                return {
+                    success: false,
+                    message:
+                        response?.message ||
+                        "Login failed.",
+                };
+            }
 
-        const existingUser = users.find(
-            (registeredUser) =>
-                registeredUser.email ===
-                normalizedEmail &&
-                registeredUser.password === password
-        );
+            const authData =
+                response.data;
 
-        if (!existingUser) {
+            const loggedInUser = {
+                id: authData.userId,
+
+                firstName:
+                    authData.firstName,
+
+                lastName:
+                    authData.lastName,
+
+                name: [
+                    authData.firstName,
+                    authData.lastName,
+                ]
+                    .filter(Boolean)
+                    .join(" "),
+
+                email:
+                    authData.email,
+
+                roles:
+                    authData.roles || [],
+
+                role:
+                    authData.roles?.[0] ||
+                    "CUSTOMER",
+            };
+
+            // Store JWT
+            localStorage.setItem(
+                "sneakx_token",
+                authData.token
+            );
+
+            setUser(
+                loggedInUser
+            );
+
+            setIsAuthenticated(
+                true
+            );
+
+            return {
+                success: true,
+                user: loggedInUser,
+            };
+
+        } catch (error) {
+
+            const message =
+                error.response?.data?.message ||
+                "Invalid email or password.";
+
             return {
                 success: false,
-                message:
-                    "Invalid email or password."
+                message,
             };
         }
-
-        const loggedInUser = {
-            id: existingUser.id,
-            name: existingUser.name,
-            email: existingUser.email,
-            role: existingUser.role
-        };
-
-        setUser(loggedInUser);
-        setIsAuthenticated(true);
-
-        return {
-            success: true,
-            user: loggedInUser
-        };
     };
 
     // -----------------------------------------
     // REGISTER
     // -----------------------------------------
 
-    const register = ({
+    const register = async ({
         name,
         email,
-        password
+        password,
+        phone,
     }) => {
 
-        if (!name || !email || !password) {
+        if (
+            !name ||
+            !email ||
+            !password
+        ) {
             return {
                 success: false,
                 message:
-                    "All fields are required."
+                    "All fields are required.",
             };
         }
 
-        const normalizedEmail =
-            email.trim().toLowerCase();
+        try {
 
-        const savedUsers =
-            localStorage.getItem("sneakx_users");
+            // Split full name into
+            // first name + last name.
+            const nameParts =
+                name
+                    .trim()
+                    .split(/\s+/);
 
-        const users = savedUsers
-            ? JSON.parse(savedUsers)
-            : [];
+            const firstName =
+                nameParts.shift();
 
-        const existingUser = users.find(
-            (registeredUser) =>
-                registeredUser.email ===
-                normalizedEmail
-        );
+            const lastName =
+                nameParts.length > 0
+                    ? nameParts.join(" ")
+                    : null;
 
-        if (existingUser) {
+            const response =
+                await registerApi({
+                    firstName,
+                    lastName,
+                    email,
+                    password,
+                    phone,
+                });
+
+            if (
+                !response?.success ||
+                !response?.data
+            ) {
+                return {
+                    success: false,
+                    message:
+                        response?.message ||
+                        "Registration failed.",
+                };
+            }
+
+            /*
+             * Registration does NOT automatically
+             * log the user in.
+             *
+             * The Register page redirects the user
+             * to Login after successful registration.
+             *
+             * Therefore:
+             * - Do not store JWT
+             * - Do not set user
+             * - Do not set isAuthenticated
+             */
+
+            return {
+                success: true,
+                message:
+                    response.message ||
+                    "Registration successful.",
+            };
+
+        } catch (error) {
+
+            const message =
+                error.response?.data?.message ||
+                "Registration failed.";
+
             return {
                 success: false,
-                message:
-                    "An account with this email already exists."
+                message,
             };
         }
-
-        const newUser = {
-            id: Date.now(),
-            name: name.trim(),
-            email: normalizedEmail,
-            password: password,
-            role: "USER"
-        };
-
-        const updatedUsers = [
-            ...users,
-            newUser
-        ];
-
-        localStorage.setItem(
-            "sneakx_users",
-            JSON.stringify(updatedUsers)
-        );
-
-        return {
-            success: true,
-            message:
-                "Registration successful."
-        };
     };
 
     // -----------------------------------------
@@ -169,47 +239,23 @@ function AuthProvider({ children }) {
             return {
                 success: false,
                 message:
-                    "No user is currently logged in."
+                    "No user is currently logged in.",
             };
         }
 
         const updatedUser = {
             ...user,
-            ...updatedData
+            ...updatedData,
         };
 
-        setUser(updatedUser);
-
-        /*
-         * Also update the registered user's
-         * information inside sneakx_users.
-         */
-        const savedUsers =
-            localStorage.getItem("sneakx_users");
-
-        const users = savedUsers
-            ? JSON.parse(savedUsers)
-            : [];
-
-        const updatedUsers = users.map(
-            (registeredUser) =>
-                registeredUser.id === user.id
-                    ? {
-                        ...registeredUser,
-                        ...updatedData
-                    }
-                    : registeredUser
-        );
-
-        localStorage.setItem(
-            "sneakx_users",
-            JSON.stringify(updatedUsers)
+        setUser(
+            updatedUser
         );
 
         return {
             success: true,
             message:
-                "Profile updated successfully."
+                "Profile updated successfully.",
         };
     };
 
@@ -220,16 +266,28 @@ function AuthProvider({ children }) {
     const logout = () => {
 
         setUser(null);
-        setIsAuthenticated(false);
+
+        setIsAuthenticated(
+            false
+        );
+
+        localStorage.removeItem(
+            "sneakx_token"
+        );
 
         localStorage.removeItem(
             "sneakx_user"
         );
 
+        // Remove legacy authentication flag
         localStorage.removeItem(
             "sneakx_isAuthenticated"
         );
     };
+
+    // -----------------------------------------
+    // CONTEXT
+    // -----------------------------------------
 
     return (
         <AuthContext.Provider
@@ -239,7 +297,7 @@ function AuthProvider({ children }) {
                 login,
                 register,
                 updateUser,
-                logout
+                logout,
             }}
         >
             {children}

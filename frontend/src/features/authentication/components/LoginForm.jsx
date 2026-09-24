@@ -31,12 +31,17 @@ function LoginForm() {
         useState(false);
 
     const [error, setError] = useState("");
+    const [isLoading, setIsLoading] = useState(false);
 
     const successMessage =
         location.state?.message;
 
-    const handleSubmit = (event) => {
+    const handleSubmit = async (event) => {
         event.preventDefault();
+
+        if (isLoading) {
+            return;
+        }
 
         setError("");
 
@@ -50,19 +55,29 @@ function LoginForm() {
             return;
         }
 
-        const result = login(
-            normalizedEmail,
-            password
-        );
+        setIsLoading(true);
 
-        if (!result.success) {
-            setError(result.message);
-            return;
+        try {
+            const result = await login(
+                normalizedEmail,
+                password
+            );
+
+            if (!result.success) {
+                setError(
+                    result.message ||
+                    "Invalid email or password."
+                );
+                return;
+            }
+
+            navigate("/", {
+                replace: true,
+            });
+
+        } finally {
+            setIsLoading(false);
         }
-
-        navigate("/", {
-            replace: true,
-        });
     };
 
     const handleEmailChange = (event) => {
@@ -226,6 +241,7 @@ function LoginForm() {
                             }
                             placeholder="Enter your email"
                             autoComplete="email"
+                            disabled={isLoading}
                             className="border-0 shadow-none"
                             style={{
                                 height: "48px",
@@ -302,6 +318,7 @@ function LoginForm() {
                             }
                             placeholder="Enter your password"
                             autoComplete="current-password"
+                            disabled={isLoading}
                             className="border-0 shadow-none"
                             style={{
                                 height: "48px",
@@ -329,6 +346,7 @@ function LoginForm() {
                                     ? "Hide password"
                                     : "Show password"
                             }
+                            disabled={isLoading}
                             style={{
                                 width: "46px",
                                 height: "48px",
@@ -363,17 +381,26 @@ function LoginForm() {
                 <motion.button
                     type="submit"
                     className="btn w-100 d-flex align-items-center justify-content-center gap-2"
-                    whileHover={{
-                        y: -1,
-                        boxShadow:
-                            "0 8px 20px rgba(0,0,0,0.14)",
-                    }}
-                    whileTap={{
-                        scale: 0.98,
-                    }}
+                    whileHover={
+                        !isLoading
+                            ? {
+                                  y: -1,
+                                  boxShadow:
+                                      "0 8px 20px rgba(0,0,0,0.14)",
+                              }
+                            : undefined
+                    }
+                    whileTap={
+                        !isLoading
+                            ? {
+                                  scale: 0.98,
+                              }
+                            : undefined
+                    }
                     transition={{
                         duration: 0.2,
                     }}
+                    disabled={isLoading}
                     style={{
                         height: "48px",
                         borderRadius: "10px",
@@ -382,13 +409,29 @@ function LoginForm() {
                         color: "#ffffff",
                         fontSize: "12px",
                         fontWeight: "600",
+                        opacity: isLoading
+                            ? 0.7
+                            : 1,
+                        cursor: isLoading
+                            ? "not-allowed"
+                            : "pointer",
                     }}
                 >
-                    <LogIn size={17} />
-
-                    Login
-
-                    <ArrowRight size={16} />
+                    {isLoading ? (
+                        <>
+                            <span
+                                className="spinner-border spinner-border-sm"
+                                aria-hidden="true"
+                            />
+                            Signing in...
+                        </>
+                    ) : (
+                        <>
+                            <LogIn size={17} />
+                            Login
+                            <ArrowRight size={16} />
+                        </>
+                    )}
                 </motion.button>
             </form>
 

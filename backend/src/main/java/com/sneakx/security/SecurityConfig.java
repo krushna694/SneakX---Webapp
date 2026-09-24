@@ -78,6 +78,9 @@ public class SecurityConfig {
                                                 .requestMatchers(
                                                                 "/api/auth/register",
                                                                 "/api/auth/login",
+                                                                "/api/auth/forgot-password",
+                                                                "/api/auth/verify-reset-otp",
+                                                                "/api/auth/reset-password",
                                                                 "/api/payments/webhook")
                                                 .permitAll()
 
