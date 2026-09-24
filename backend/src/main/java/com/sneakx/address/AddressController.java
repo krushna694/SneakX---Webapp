@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.sneakx.address.dto.AddressRequest;
 import com.sneakx.address.dto.AddressResponse;
 import com.sneakx.address.dto.UpdateAddressRequest;
+import com.sneakx.common.response.ApiResponse;
 
 import jakarta.validation.Valid;
 
@@ -25,78 +26,100 @@ import jakarta.validation.Valid;
 @RequestMapping("/api/addresses")
 public class AddressController {
 
-    private final AddressService addressService;
+        private final AddressService addressService;
 
-    public AddressController(AddressService addressService) {
-        this.addressService = addressService;
-    }
+        public AddressController(AddressService addressService) {
+                this.addressService = addressService;
+        }
 
-    @GetMapping
-    public ResponseEntity<List<AddressResponse>> getAllAddresses(
-            Authentication authentication) {
+        @GetMapping
+        public ResponseEntity<ApiResponse<List<AddressResponse>>> getAllAddresses(
+                        Authentication authentication) {
 
-        return ResponseEntity.ok(
-                addressService.getAllAddresses(
-                        authentication.getName()));
-    }
+                List<AddressResponse> addresses = addressService.getAllAddresses(
+                                authentication.getName());
 
-    @GetMapping("/{addressId}")
-    public ResponseEntity<AddressResponse> getAddress(
-            Authentication authentication,
-            @PathVariable Long addressId) {
+                return ResponseEntity.ok(
+                                ApiResponse.success(
+                                                "Addresses fetched successfully",
+                                                addresses));
+        }
 
-        return ResponseEntity.ok(
-                addressService.getAddress(
-                        authentication.getName(),
-                        addressId));
-    }
+        @GetMapping("/{addressId}")
+        public ResponseEntity<ApiResponse<AddressResponse>> getAddress(
+                        Authentication authentication,
+                        @PathVariable Long addressId) {
 
-    @PostMapping
-    public ResponseEntity<AddressResponse> createAddress(
-            Authentication authentication,
-            @Valid @RequestBody AddressRequest request) {
-
-        return ResponseEntity
-                .status(HttpStatus.CREATED)
-                .body(
-                        addressService.createAddress(
+                AddressResponse address = addressService.getAddress(
                                 authentication.getName(),
-                                request));
-    }
+                                addressId);
 
-    @PutMapping("/{addressId}")
-    public ResponseEntity<AddressResponse> updateAddress(
-            Authentication authentication,
-            @PathVariable Long addressId,
-            @Valid @RequestBody UpdateAddressRequest request) {
+                return ResponseEntity.ok(
+                                ApiResponse.success(
+                                                "Address fetched successfully",
+                                                address));
+        }
 
-        return ResponseEntity.ok(
-                addressService.updateAddress(
-                        authentication.getName(),
-                        addressId,
-                        request));
-    }
+        @PostMapping
+        public ResponseEntity<ApiResponse<AddressResponse>> createAddress(
+                        Authentication authentication,
+                        @Valid @RequestBody AddressRequest request) {
 
-    @DeleteMapping("/{addressId}")
-    public ResponseEntity<Void> deleteAddress(
-            Authentication authentication,
-            @PathVariable Long addressId) {
+                AddressResponse address = addressService.createAddress(
+                                authentication.getName(),
+                                request);
 
-        addressService.deleteAddress(
-                authentication.getName(),
-                addressId);
+                return ResponseEntity
+                                .status(HttpStatus.CREATED)
+                                .body(
+                                                ApiResponse.success(
+                                                                "Address created successfully",
+                                                                address));
+        }
 
-        return ResponseEntity.noContent().build();
-    }
+        @PutMapping("/{addressId}")
+        public ResponseEntity<ApiResponse<AddressResponse>> updateAddress(
+                        Authentication authentication,
+                        @PathVariable Long addressId,
+                        @Valid @RequestBody UpdateAddressRequest request) {
 
-    @PatchMapping("/{addressId}/default")
-    public ResponseEntity<AddressResponse> setDefaultAddress(
-            Authentication authentication,
-            @PathVariable Long addressId) {
+                AddressResponse address = addressService.updateAddress(
+                                authentication.getName(),
+                                addressId,
+                                request);
 
-        return ResponseEntity.ok(
-                addressService.setDefaultAddress(
-                        authentication.getName(),
-                        addressId));
-    }
+                return ResponseEntity.ok(
+                                ApiResponse.success(
+                                                "Address updated successfully",
+                                                address));
+        }
+
+        @DeleteMapping("/{addressId}")
+        public ResponseEntity<ApiResponse<Void>> deleteAddress(
+                        Authentication authentication,
+                        @PathVariable Long addressId) {
+
+                addressService.deleteAddress(
+                                authentication.getName(),
+                                addressId);
+
+                return ResponseEntity.ok(
+                                ApiResponse.success(
+                                                "Address deleted successfully"));
+        }
+
+        @PatchMapping("/{addressId}/default")
+        public ResponseEntity<ApiResponse<AddressResponse>> setDefaultAddress(
+                        Authentication authentication,
+                        @PathVariable Long addressId) {
+
+                AddressResponse address = addressService.setDefaultAddress(
+                                authentication.getName(),
+                                addressId);
+
+                return ResponseEntity.ok(
+                                ApiResponse.success(
+                                                "Default address updated successfully",
+                                                address));
+        }
 }

@@ -9,55 +9,72 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.sneakx.common.response.ApiResponse;
 import com.sneakx.wishlist.dto.WishlistResponse;
 
 @RestController
 @RequestMapping("/api/wishlist")
 public class WishlistController {
 
-    private final WishlistService wishlistService;
+        private final WishlistService wishlistService;
 
-    public WishlistController(WishlistService wishlistService) {
-        this.wishlistService = wishlistService;
-    }
+        public WishlistController(WishlistService wishlistService) {
+                this.wishlistService = wishlistService;
+        }
 
-    @GetMapping
-    public ResponseEntity<WishlistResponse> getWishlist(
-            Authentication authentication) {
+        @GetMapping
+        public ResponseEntity<ApiResponse<WishlistResponse>> getWishlist(
+                        Authentication authentication) {
 
-        return ResponseEntity.ok(
-                wishlistService.getWishlist(
-                        authentication.getName()));
-    }
+                WishlistResponse wishlist = wishlistService.getWishlist(
+                                authentication.getName());
 
-    @PostMapping("/items/{productId}")
-    public ResponseEntity<WishlistResponse> addItem(
-            Authentication authentication,
-            @PathVariable Long productId) {
+                return ResponseEntity.ok(
+                                ApiResponse.success(
+                                                "Wishlist fetched successfully",
+                                                wishlist));
+        }
 
-        return ResponseEntity.ok(
-                wishlistService.addItem(
-                        authentication.getName(),
-                        productId));
-    }
+        @PostMapping("/items/{productId}")
+        public ResponseEntity<ApiResponse<WishlistResponse>> addItem(
+                        Authentication authentication,
+                        @PathVariable Long productId) {
 
-    @DeleteMapping("/items/{productId}")
-    public ResponseEntity<WishlistResponse> removeItem(
-            Authentication authentication,
-            @PathVariable Long productId) {
+                WishlistResponse wishlist = wishlistService.addItem(
+                                authentication.getName(),
+                                productId);
 
-        return ResponseEntity.ok(
-                wishlistService.removeItem(
-                        authentication.getName(),
-                        productId));
-    }
+                return ResponseEntity.ok(
+                                ApiResponse.success(
+                                                "Product added to wishlist successfully",
+                                                wishlist));
+        }
 
-    @DeleteMapping
-    public ResponseEntity<WishlistResponse> clearWishlist(
-            Authentication authentication) {
+        @DeleteMapping("/items/{productId}")
+        public ResponseEntity<ApiResponse<WishlistResponse>> removeItem(
+                        Authentication authentication,
+                        @PathVariable Long productId) {
 
-        return ResponseEntity.ok(
-                wishlistService.clearWishlist(
-                        authentication.getName()));
-    }
+                WishlistResponse wishlist = wishlistService.removeItem(
+                                authentication.getName(),
+                                productId);
+
+                return ResponseEntity.ok(
+                                ApiResponse.success(
+                                                "Product removed from wishlist successfully",
+                                                wishlist));
+        }
+
+        @DeleteMapping
+        public ResponseEntity<ApiResponse<WishlistResponse>> clearWishlist(
+                        Authentication authentication) {
+
+                WishlistResponse wishlist = wishlistService.clearWishlist(
+                                authentication.getName());
+
+                return ResponseEntity.ok(
+                                ApiResponse.success(
+                                                "Wishlist cleared successfully",
+                                                wishlist));
+        }
 }

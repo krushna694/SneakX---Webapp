@@ -9,6 +9,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.sneakx.common.response.ApiResponse;
+
 import jakarta.validation.Valid;
 
 @RestController
@@ -27,12 +29,15 @@ public class InventoryController {
 
     @GetMapping("/variant/{variantId}")
     @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'STAFF')")
-    public ResponseEntity<InventoryResponse> getInventory(
+    public ResponseEntity<ApiResponse<InventoryResponse>> getInventory(
             @PathVariable Long variantId) {
 
-        InventoryResponse response = inventoryService.getInventory(variantId);
+        InventoryResponse inventory = inventoryService.getInventory(variantId);
 
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(
+                ApiResponse.success(
+                        "Inventory fetched successfully",
+                        inventory));
     }
 
     // --------------------------------------------------
@@ -41,14 +46,17 @@ public class InventoryController {
 
     @PostMapping("/variant/{variantId}/add-stock")
     @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'STAFF')")
-    public ResponseEntity<InventoryResponse> addStock(
+    public ResponseEntity<ApiResponse<InventoryResponse>> addStock(
             @PathVariable Long variantId,
             @Valid @RequestBody InventoryAdminRequest request) {
 
-        InventoryResponse response = inventoryService.addStock(
+        InventoryResponse inventory = inventoryService.addStock(
                 variantId,
                 request.quantity());
 
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(
+                ApiResponse.success(
+                        "Stock added successfully",
+                        inventory));
     }
 }

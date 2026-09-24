@@ -1,21 +1,24 @@
 package com.sneakx.product;
 
-import java.util.List;
 import java.util.Optional;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface ProductRepository extends JpaRepository<Product, Long> {
 
-    Optional<Product> findBySlug(String slug);
+        Optional<Product> findBySlug(String slug);
 
-    boolean existsBySlug(String slug);
+        boolean existsBySlug(String slug);
 
-    List<Product> findByActiveTrueOrderByCreatedAtDesc();
+        Page<Product> findByActiveTrue(Pageable pageable);
 
-    List<Product> findByCategoryIdAndActiveTrueOrderByCreatedAtDesc(
-            Long categoryId);
+        Page<Product> findByCategoryIdAndActiveTrue(
+                        Long categoryId,
+                        Pageable pageable);
 
-    List<Product> findByBrandIgnoreCaseAndActiveTrueOrderByCreatedAtDesc(
-            String brand);
+        Page<Product> findByBrandIgnoreCaseAndActiveTrue(
+                        String brand,
+                        Pageable pageable);
 }

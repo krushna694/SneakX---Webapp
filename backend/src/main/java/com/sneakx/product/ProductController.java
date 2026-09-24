@@ -1,7 +1,8 @@
 package com.sneakx.product;
 
-import java.util.List;
-
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -13,91 +14,122 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.sneakx.common.response.ApiResponse;
+import com.sneakx.common.response.PageResponse;
+
 import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/products")
 public class ProductController {
 
-    private final ProductService productService;
+        private final ProductService productService;
 
-    public ProductController(ProductService productService) {
-        this.productService = productService;
-    }
+        public ProductController(ProductService productService) {
+                this.productService = productService;
+        }
 
-    // ==========================================
-    // PUBLIC PRODUCT APIs
-    // ==========================================
+        @GetMapping
+        public ResponseEntity<ApiResponse<PageResponse<ProductResponse>>> getAllProducts(
+                        @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
 
-    @GetMapping
-    public ResponseEntity<List<ProductResponse>> getAllProducts() {
+                PageResponse<ProductResponse> products = productService.getAllActiveProducts(pageable);
 
-        return ResponseEntity.ok(
-                productService.getAllActiveProducts());
-    }
+                return ResponseEntity.ok(
+                                ApiResponse.success(
+                                                "Products fetched successfully",
+                                                products));
+        }
 
-    @GetMapping("/{id}")
-    public ResponseEntity<ProductResponse> getProductById(
-            @PathVariable Long id) {
+        @GetMapping("/{id}")
+        public ResponseEntity<ApiResponse<ProductResponse>> getProductById(
+                        @PathVariable Long id) {
 
-        return ResponseEntity.ok(
-                productService.getProductById(id));
-    }
+                ProductResponse product = productService.getProductById(id);
 
-    @GetMapping("/slug/{slug}")
-    public ResponseEntity<ProductResponse> getProductBySlug(
-            @PathVariable String slug) {
+                return ResponseEntity.ok(
+                                ApiResponse.success(
+                                                "Product fetched successfully",
+                                                product));
+        }
 
-        return ResponseEntity.ok(
-                productService.getProductBySlug(slug));
-    }
+        @GetMapping("/slug/{slug}")
+        public ResponseEntity<ApiResponse<ProductResponse>> getProductBySlug(
+                        @PathVariable String slug) {
 
-    @GetMapping("/category/{categoryId}")
-    public ResponseEntity<List<ProductResponse>> getProductsByCategory(
-            @PathVariable Long categoryId) {
+                ProductResponse product = productService.getProductBySlug(slug);
 
-        return ResponseEntity.ok(
-                productService.getProductsByCategory(categoryId));
-    }
+                return ResponseEntity.ok(
+                                ApiResponse.success(
+                                                "Product fetched successfully",
+                                                product));
+        }
 
-    @GetMapping("/brand/{brand}")
-    public ResponseEntity<List<ProductResponse>> getProductsByBrand(
-            @PathVariable String brand) {
+        @GetMapping("/category/{categoryId}")
+        public ResponseEntity<ApiResponse<PageResponse<ProductResponse>>> getProductsByCategory(
+                        @PathVariable Long categoryId,
+                        @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
 
-        return ResponseEntity.ok(
-                productService.getProductsByBrand(brand));
-    }
+                PageResponse<ProductResponse> products = productService.getProductsByCategory(
+                                categoryId,
+                                pageable);
 
-    // ==========================================
-    // ADMIN / MANAGEMENT APIs
-    // ==========================================
+                return ResponseEntity.ok(
+                                ApiResponse.success(
+                                                "Category products fetched successfully",
+                                                products));
+        }
 
-    @PostMapping
-    public ResponseEntity<ProductResponse> createProduct(
-            @Valid @RequestBody ProductRequest request) {
+        @GetMapping("/brand/{brand}")
+        public ResponseEntity<ApiResponse<PageResponse<ProductResponse>>> getProductsByBrand(
+                        @PathVariable String brand,
+                        @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
 
-        ProductResponse product = productService.createProduct(request);
+                PageResponse<ProductResponse> products = productService.getProductsByBrand(
+                                brand,
+                                pageable);
 
-        return ResponseEntity
-                .status(HttpStatus.CREATED)
-                .body(product);
-    }
+                return ResponseEntity.ok(
+                                ApiResponse.success(
+                                                "Brand products fetched successfully",
+                                                products));
+        }
 
-    @PutMapping("/{id}")
-    public ResponseEntity<ProductResponse> updateProduct(
-            @PathVariable Long id,
-            @Valid @RequestBody ProductRequest request) {
+        @PostMapping
+        public ResponseEntity<ApiResponse<ProductResponse>> createProduct(
+                        @Valid @RequestBody ProductRequest request) {
 
-        return ResponseEntity.ok(
-                productService.updateProduct(id, request));
-    }
+                ProductResponse product = productService.createProduct(request);
 
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteProduct(
-            @PathVariable Long id) {
+                return ResponseEntity
+                                .status(HttpStatus.CREATED)
+                                .body(
+                                                ApiResponse.success(
+                                                                "Product created successfully",
+                                                                product));
+        }
 
-        productService.deleteProduct(id);
+        @PutMapping("/{id}")
+        public ResponseEntity<ApiResponse<ProductResponse>> updateProduct(
+                        @PathVariable Long id,
+                        @Valid @RequestBody ProductRequest request) {
 
-        return ResponseEntity.noContent().build();
-    }
+                ProductResponse product = productService.updateProduct(id, request);
+
+                return ResponseEntity.ok(
+                                ApiResponse.success(
+                                                "Product updated successfully",
+                                                product));
+        }
+
+        @DeleteMapping("/{id}")
+        public ResponseEntity<ApiResponse<Void>> deleteProduct(
+                        @PathVariable Long id) {
+
+                productService.deleteProduct(id);
+
+                return ResponseEntity.ok(
+                                ApiResponse.success(
+                                                "Product deleted successfully"));
+        }
 }

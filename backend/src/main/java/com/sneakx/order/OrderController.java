@@ -12,48 +12,61 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.sneakx.common.response.ApiResponse;
+
 import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/orders")
 public class OrderController {
 
-    private final OrderService orderService;
+        private final OrderService orderService;
 
-    public OrderController(OrderService orderService) {
-        this.orderService = orderService;
-    }
+        public OrderController(OrderService orderService) {
+                this.orderService = orderService;
+        }
 
-    @PostMapping
-    public ResponseEntity<OrderResponse> createOrder(
-            @Valid @RequestBody OrderRequest request,
-            Authentication authentication) {
+        @PostMapping
+        public ResponseEntity<ApiResponse<OrderResponse>> createOrder(
+                        @Valid @RequestBody OrderRequest request,
+                        Authentication authentication) {
 
-        OrderResponse response = orderService.createOrder(
-                request,
-                authentication);
+                OrderResponse order = orderService.createOrder(
+                                request,
+                                authentication);
 
-        return ResponseEntity
-                .status(HttpStatus.CREATED)
-                .body(response);
-    }
+                return ResponseEntity
+                                .status(HttpStatus.CREATED)
+                                .body(
+                                                ApiResponse.success(
+                                                                "Order created successfully",
+                                                                order));
+        }
 
-    @GetMapping
-    public ResponseEntity<List<OrderResponse>> getMyOrders(
-            Authentication authentication) {
+        @GetMapping
+        public ResponseEntity<ApiResponse<List<OrderResponse>>> getMyOrders(
+                        Authentication authentication) {
 
-        return ResponseEntity.ok(
-                orderService.getMyOrders(authentication));
-    }
+                List<OrderResponse> orders = orderService.getMyOrders(authentication);
 
-    @GetMapping("/{orderId}")
-    public ResponseEntity<OrderResponse> getMyOrder(
-            @PathVariable Long orderId,
-            Authentication authentication) {
+                return ResponseEntity.ok(
+                                ApiResponse.success(
+                                                "Orders fetched successfully",
+                                                orders));
+        }
 
-        return ResponseEntity.ok(
-                orderService.getMyOrder(
-                        orderId,
-                        authentication));
-    }
+        @GetMapping("/{orderId}")
+        public ResponseEntity<ApiResponse<OrderResponse>> getMyOrder(
+                        @PathVariable Long orderId,
+                        Authentication authentication) {
+
+                OrderResponse order = orderService.getMyOrder(
+                                orderId,
+                                authentication);
+
+                return ResponseEntity.ok(
+                                ApiResponse.success(
+                                                "Order fetched successfully",
+                                                order));
+        }
 }

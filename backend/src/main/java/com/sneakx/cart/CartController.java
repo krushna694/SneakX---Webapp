@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.sneakx.cart.dto.AddCartItemRequest;
 import com.sneakx.cart.dto.CartResponse;
 import com.sneakx.cart.dto.UpdateCartItemRequest;
+import com.sneakx.common.response.ApiResponse;
 
 import jakarta.validation.Valid;
 
@@ -21,61 +22,81 @@ import jakarta.validation.Valid;
 @RequestMapping("/api/cart")
 public class CartController {
 
-    private final CartService cartService;
+        private final CartService cartService;
 
-    public CartController(CartService cartService) {
-        this.cartService = cartService;
-    }
+        public CartController(CartService cartService) {
+                this.cartService = cartService;
+        }
 
-    @GetMapping
-    public ResponseEntity<CartResponse> getCart(
-            Authentication authentication) {
+        @GetMapping
+        public ResponseEntity<ApiResponse<CartResponse>> getCart(
+                        Authentication authentication) {
 
-        return ResponseEntity.ok(
-                cartService.getCart(authentication.getName()));
-    }
+                CartResponse cart = cartService.getCart(authentication.getName());
 
-    @PostMapping("/items")
-    public ResponseEntity<CartResponse> addItem(
-            Authentication authentication,
-            @Valid @RequestBody AddCartItemRequest request) {
+                return ResponseEntity.ok(
+                                ApiResponse.success(
+                                                "Cart fetched successfully",
+                                                cart));
+        }
 
-        return ResponseEntity.ok(
-                cartService.addItem(
-                        authentication.getName(),
-                        request));
-    }
+        @PostMapping("/items")
+        public ResponseEntity<ApiResponse<CartResponse>> addItem(
+                        Authentication authentication,
+                        @Valid @RequestBody AddCartItemRequest request) {
 
-    @PutMapping("/items/{variantId}")
-    public ResponseEntity<CartResponse> updateItem(
-            Authentication authentication,
-            @PathVariable Long variantId,
-            @Valid @RequestBody UpdateCartItemRequest request) {
+                CartResponse cart = cartService.addItem(
+                                authentication.getName(),
+                                request);
 
-        return ResponseEntity.ok(
-                cartService.updateItem(
-                        authentication.getName(),
-                        variantId,
-                        request));
-    }
+                return ResponseEntity.ok(
+                                ApiResponse.success(
+                                                "Item added to cart successfully",
+                                                cart));
+        }
 
-    @DeleteMapping("/items/{variantId}")
-    public ResponseEntity<CartResponse> removeItem(
-            Authentication authentication,
-            @PathVariable Long variantId) {
+        @PutMapping("/items/{variantId}")
+        public ResponseEntity<ApiResponse<CartResponse>> updateItem(
+                        Authentication authentication,
+                        @PathVariable Long variantId,
+                        @Valid @RequestBody UpdateCartItemRequest request) {
 
-        return ResponseEntity.ok(
-                cartService.removeItem(
-                        authentication.getName(),
-                        variantId));
-    }
+                CartResponse cart = cartService.updateItem(
+                                authentication.getName(),
+                                variantId,
+                                request);
 
-    @DeleteMapping
-    public ResponseEntity<CartResponse> clearCart(
-            Authentication authentication) {
+                return ResponseEntity.ok(
+                                ApiResponse.success(
+                                                "Cart item updated successfully",
+                                                cart));
+        }
 
-        return ResponseEntity.ok(
-                cartService.clearCart(
-                        authentication.getName()));
-    }
+        @DeleteMapping("/items/{variantId}")
+        public ResponseEntity<ApiResponse<CartResponse>> removeItem(
+                        Authentication authentication,
+                        @PathVariable Long variantId) {
+
+                CartResponse cart = cartService.removeItem(
+                                authentication.getName(),
+                                variantId);
+
+                return ResponseEntity.ok(
+                                ApiResponse.success(
+                                                "Item removed from cart successfully",
+                                                cart));
+        }
+
+        @DeleteMapping
+        public ResponseEntity<ApiResponse<CartResponse>> clearCart(
+                        Authentication authentication) {
+
+                CartResponse cart = cartService.clearCart(
+                                authentication.getName());
+
+                return ResponseEntity.ok(
+                                ApiResponse.success(
+                                                "Cart cleared successfully",
+                                                cart));
+        }
 }

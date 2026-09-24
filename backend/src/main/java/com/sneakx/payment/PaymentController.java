@@ -12,6 +12,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.sneakx.common.response.ApiResponse;
+
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
@@ -38,7 +40,7 @@ public class PaymentController {
         // --------------------------------------------------
 
         @PostMapping("/orders/{orderId}")
-        public ResponseEntity<PaymentResponse> createPayment(
+        public ResponseEntity<ApiResponse<PaymentResponse>> createPayment(
                         @PathVariable Long orderId,
 
                         @RequestParam @NotNull PaymentMethod paymentMethod,
@@ -47,13 +49,16 @@ public class PaymentController {
 
                         Authentication authentication) {
 
-                PaymentResponse response = paymentService.createPayment(
+                PaymentResponse payment = paymentService.createPayment(
                                 orderId,
                                 paymentMethod,
                                 idempotencyKey,
                                 authentication);
 
-                return ResponseEntity.ok(response);
+                return ResponseEntity.ok(
+                                ApiResponse.success(
+                                                "Payment created successfully",
+                                                payment));
         }
 
         // --------------------------------------------------
@@ -61,16 +66,34 @@ public class PaymentController {
         // --------------------------------------------------
 
         @GetMapping("/orders/{orderId}")
-        public ResponseEntity<PaymentResponse> getPayment(
+        public ResponseEntity<ApiResponse<PaymentResponse>> getPayment(
                         @PathVariable Long orderId,
                         Authentication authentication) {
 
-                PaymentResponse response = paymentService.getPayment(
+                PaymentResponse payment = paymentService.getPayment(
                                 orderId,
                                 authentication);
 
-                return ResponseEntity.ok(response);
+                return ResponseEntity.ok(
+                                ApiResponse.success(
+                                                "Payment fetched successfully",
+                                                payment));
         }
+
+        // --------------------------------------------------
+        // VERIFY RAZORPAY PAYMENT
+        // --------------------------------------------------
+
+        /*
+         * NOTE:
+         *
+         * If your existing PaymentController does not currently
+         * expose a verification endpoint, we will add it later
+         * when React/Razorpay frontend integration begins.
+         *
+         * We are intentionally not changing PaymentService logic
+         * in this step.
+         */
 
         // --------------------------------------------------
         // RAZORPAY WEBHOOK
@@ -120,10 +143,10 @@ public class PaymentController {
                  * Do not parse and re-serialize the JSON before
                  * performing this verification.
                  */
-                boolean validSignature = razorpayWebhookSignatureService
-                                .verifySignature(
-                                                payload,
-                                                signature);
+
+                boolean validSignature = razorpayWebhookSignatureService.verifySignature(
+                                payload,
+                                signature);
 
                 if (!validSignature) {
 

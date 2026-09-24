@@ -13,6 +13,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.sneakx.common.response.ApiResponse;
+
 import jakarta.validation.Valid;
 
 @RestController
@@ -26,54 +28,75 @@ public class CategoryController {
     }
 
     @GetMapping
-    public ResponseEntity<List<Category>> getAllCategories() {
+    public ResponseEntity<ApiResponse<List<Category>>> getAllCategories() {
+
+        List<Category> categories = categoryService.getAllActiveCategories();
+
         return ResponseEntity.ok(
-                categoryService.getAllActiveCategories());
+                ApiResponse.success(
+                        "Categories fetched successfully",
+                        categories));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Category> getCategoryById(
+    public ResponseEntity<ApiResponse<Category>> getCategoryById(
             @PathVariable Long id) {
 
+        Category category = categoryService.getCategoryById(id);
+
         return ResponseEntity.ok(
-                categoryService.getCategoryById(id));
+                ApiResponse.success(
+                        "Category fetched successfully",
+                        category));
     }
 
     @GetMapping("/slug/{slug}")
-    public ResponseEntity<Category> getCategoryBySlug(
+    public ResponseEntity<ApiResponse<Category>> getCategoryBySlug(
             @PathVariable String slug) {
 
+        Category category = categoryService.getCategoryBySlug(slug);
+
         return ResponseEntity.ok(
-                categoryService.getCategoryBySlug(slug));
+                ApiResponse.success(
+                        "Category fetched successfully",
+                        category));
     }
 
     @PostMapping
-    public ResponseEntity<Category> createCategory(
+    public ResponseEntity<ApiResponse<Category>> createCategory(
             @Valid @RequestBody CategoryRequest request) {
 
         Category category = categoryService.createCategory(request);
 
         return ResponseEntity
                 .status(HttpStatus.CREATED)
-                .body(category);
+                .body(
+                        ApiResponse.success(
+                                "Category created successfully",
+                                category));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Category> updateCategory(
+    public ResponseEntity<ApiResponse<Category>> updateCategory(
             @PathVariable Long id,
             @Valid @RequestBody CategoryRequest request) {
 
         Category category = categoryService.updateCategory(id, request);
 
-        return ResponseEntity.ok(category);
+        return ResponseEntity.ok(
+                ApiResponse.success(
+                        "Category updated successfully",
+                        category));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteCategory(
+    public ResponseEntity<ApiResponse<Void>> deleteCategory(
             @PathVariable Long id) {
 
         categoryService.deleteCategory(id);
 
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.ok(
+                ApiResponse.success(
+                        "Category deleted successfully"));
     }
 }
