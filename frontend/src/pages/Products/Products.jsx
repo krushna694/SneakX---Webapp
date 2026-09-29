@@ -1,4 +1,8 @@
-import { useMemo, useState } from "react";
+import {
+    useEffect,
+    useMemo,
+    useState,
+} from "react";
 import { useSearchParams } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import {
@@ -8,58 +12,9 @@ import {
     SlidersHorizontal,
     X,
 } from "lucide-react";
-import ProductGrid from "../../components/product/ProductGrid";
 
-const products = [
-    {
-        id: 1,
-        name: "Air Runner",
-        price: 4999,
-        category: "Running",
-    },
-    {
-        id: 2,
-        name: "Street Force",
-        price: 5999,
-        category: "Lifestyle",
-    },
-    {
-        id: 3,
-        name: "Urban Classic",
-        price: 4499,
-        category: "Lifestyle",
-    },
-    {
-        id: 4,
-        name: "Sport Max",
-        price: 6999,
-        category: "Sports",
-    },
-    {
-        id: 5,
-        name: "Velocity X",
-        price: 5499,
-        category: "Running",
-    },
-    {
-        id: 6,
-        name: "Street Runner",
-        price: 4799,
-        category: "Lifestyle",
-    },
-    {
-        id: 7,
-        name: "Air Motion",
-        price: 6299,
-        category: "Sports",
-    },
-    {
-        id: 8,
-        name: "Classic Low",
-        price: 3999,
-        category: "Lifestyle",
-    },
-];
+import ProductGrid from "../../components/product/ProductGrid";
+import { getProductsApi } from "../../api/productApi";
 
 const categories = [
     "All",
@@ -89,110 +44,230 @@ const sortOptions = [
 ];
 
 function Products() {
-    const [searchParams, setSearchParams] = useSearchParams();
+    const [searchParams, setSearchParams] =
+        useSearchParams();
 
-    const categoryFromUrl = searchParams.get("category");
+    const categoryFromUrl =
+        searchParams.get("category");
 
-    const initialCategory = categories.includes(categoryFromUrl)
+    const initialCategory = categories.includes(
+        categoryFromUrl
+    )
         ? categoryFromUrl
         : "All";
 
     const selectedCategory = initialCategory;
 
-    const [searchTerm, setSearchTerm] = useState("");
+    const [products, setProducts] = useState([]);
 
-    const [sortBy, setSortBy] = useState("featured");
+    const [isLoading, setIsLoading] =
+        useState(true);
 
-    const [showFilters, setShowFilters] = useState(false);
+    const [error, setError] =
+        useState("");
 
-    const [showSort, setShowSort] = useState(false);
+    const [searchTerm, setSearchTerm] =
+        useState("");
 
-    const [minPrice, setMinPrice] = useState("");
+    const [sortBy, setSortBy] =
+        useState("featured");
 
-    const [maxPrice, setMaxPrice] = useState("");
+    const [showFilters, setShowFilters] =
+        useState(false);
 
-    /*
-     * Keep selected category synchronized
-     * with the URL.
-     *
-     * Example:
-     * /products?category=Running
-     *        ↓
-     * selectedCategory = "Running"
-     */
-    const handleCategoryChange = (category) => {
-        const newParams = new URLSearchParams(searchParams);
+    const [showSort, setShowSort] =
+        useState(false);
+
+    const [minPrice, setMinPrice] =
+        useState("");
+
+    const [maxPrice, setMaxPrice] =
+        useState("");
+
+    // ==========================================
+    // LOAD PRODUCTS FROM BACKEND
+    // ==========================================
+
+    useEffect(() => {
+        let isMounted = true;
+
+        const loadProducts = async () => {
+            try {
+                setIsLoading(true);
+                setError("");
+
+                const response =
+                    await getProductsApi({
+                        page: 0,
+                        size: 50,
+                        sort: "createdAt,desc",
+                    });
+
+                if (!response?.success) {
+                    throw new Error(
+                        response?.message ||
+                        "Failed to load products."
+                    );
+                }
+
+                const backendProducts =
+                    response.data?.content || [];
+
+                /*
+                 * Normalize backend product data
+                 * to the structure expected by
+                 * the existing ProductCard.
+                 */
+                const normalizedProducts =
+                    backendProducts.map((product) => ({
+                        ...product,
+
+                        id: product.id,
+
+                        name: product.name,
+
+                        category:
+                            product.categoryName,
+
+                        price: Number(
+                            product.discountedPrice ??
+                            product.price ??
+                            0
+                        ),
+
+                        originalPrice: Number(
+                            product.price ?? 0
+                        ),
+                    }));
+
+                if (isMounted) {
+                    setProducts(
+                        normalizedProducts
+                    );
+                }
+            } catch (error) {
+                if (isMounted) {
+                    setError(
+                        error.response?.data?.message ||
+                        error.message ||
+                        "Unable to load products."
+                    );
+
+                    setProducts([]);
+                }
+            } finally {
+                if (isMounted) {
+                    setIsLoading(false);
+                }
+            }
+        };
+
+        loadProducts();
+
+        return () => {
+            isMounted = false;
+        };
+    }, []);
+
+    // ==========================================
+    // CATEGORY
+    // ==========================================
+
+    const handleCategoryChange = (
+        category
+    ) => {
+        const newParams =
+            new URLSearchParams(
+                searchParams
+            );
 
         if (category === "All") {
             newParams.delete("category");
         } else {
-            newParams.set("category", category);
+            newParams.set(
+                "category",
+                category
+            );
         }
 
         setSearchParams(newParams);
     };
 
-
-    /*
-     * Update category and URL together.
-     */
+    // ==========================================
+    // FILTER + SEARCH + SORT
+    // ==========================================
 
     const filteredProducts = useMemo(() => {
         let result = [...products];
 
-        /* Category */
+        // Category
         if (selectedCategory !== "All") {
             result = result.filter(
                 (product) =>
-                    product.category === selectedCategory
+                    product.category ===
+                    selectedCategory
             );
         }
 
-        /* Search */
+        // Search
         if (searchTerm.trim()) {
             const search =
-                searchTerm.trim().toLowerCase();
+                searchTerm
+                    .trim()
+                    .toLowerCase();
 
-            result = result.filter((product) =>
-                product.name
-                    .toLowerCase()
-                    .includes(search)
+            result = result.filter(
+                (product) =>
+                    product.name
+                        ?.toLowerCase()
+                        .includes(search) ||
+                    product.brand
+                        ?.toLowerCase()
+                        .includes(search)
             );
         }
 
-        /* Minimum price */
+        // Minimum price
         if (minPrice !== "") {
             result = result.filter(
                 (product) =>
-                    product.price >= Number(minPrice)
+                    Number(product.price) >=
+                    Number(minPrice)
             );
         }
 
-        /* Maximum price */
+        // Maximum price
         if (maxPrice !== "") {
             result = result.filter(
                 (product) =>
-                    product.price <= Number(maxPrice)
+                    Number(product.price) <=
+                    Number(maxPrice)
             );
         }
 
-        /* Sorting */
+        // Sorting
         switch (sortBy) {
             case "price-low":
                 result.sort(
-                    (a, b) => a.price - b.price
+                    (a, b) =>
+                        Number(a.price) -
+                        Number(b.price)
                 );
                 break;
 
             case "price-high":
                 result.sort(
-                    (a, b) => b.price - a.price
+                    (a, b) =>
+                        Number(b.price) -
+                        Number(a.price)
                 );
                 break;
 
             case "name":
                 result.sort((a, b) =>
-                    a.name.localeCompare(b.name)
+                    a.name.localeCompare(
+                        b.name
+                    )
                 );
                 break;
 
@@ -202,6 +277,7 @@ function Products() {
 
         return result;
     }, [
+        products,
         selectedCategory,
         searchTerm,
         sortBy,
@@ -209,13 +285,21 @@ function Products() {
         maxPrice,
     ]);
 
+    // ==========================================
+    // CLEAR FILTERS
+    // ==========================================
+
     const clearFilters = () => {
         setSearchTerm("");
         setSortBy("featured");
         setMinPrice("");
         setMaxPrice("");
 
-        const newParams = new URLSearchParams(searchParams);
+        const newParams =
+            new URLSearchParams(
+                searchParams
+            );
+
         newParams.delete("category");
 
         setSearchParams(newParams);
@@ -230,8 +314,13 @@ function Products() {
 
     const selectedSortLabel =
         sortOptions.find(
-            (option) => option.value === sortBy
+            (option) =>
+                option.value === sortBy
         )?.label || "Featured";
+
+    // ==========================================
+    // RENDER
+    // ==========================================
 
     return (
         <main className="bg-white">
@@ -293,8 +382,10 @@ function Products() {
                                 color: "#ff5a1f",
                                 fontSize: "0.75rem",
                                 fontWeight: 800,
-                                letterSpacing: "0.13em",
-                                textTransform: "uppercase",
+                                letterSpacing:
+                                    "0.13em",
+                                textTransform:
+                                    "uppercase",
                             }}
                         >
 
@@ -317,10 +408,12 @@ function Products() {
                                 fontSize:
                                     "clamp(3rem, 7vw, 5.5rem)",
                                 lineHeight: 0.95,
-                                letterSpacing: "-0.06em",
+                                letterSpacing:
+                                    "-0.06em",
                             }}
                         >
-                            {selectedCategory === "All"
+                            {selectedCategory ===
+                                "All"
                                 ? "All Sneakers"
                                 : selectedCategory}
 
@@ -343,15 +436,16 @@ function Products() {
                                 lineHeight: 1.7,
                             }}
                         >
-                            Explore our collection and
-                            find the pair that fits your
-                            movement, style and
-                            personality.
+                            Explore our collection
+                            and find the pair that
+                            fits your movement,
+                            style and personality.
                         </p>
 
                     </motion.div>
 
                 </div>
+
             </section>
 
             {/* =========================================
@@ -388,14 +482,16 @@ function Products() {
                                 value={searchTerm}
                                 onChange={(event) =>
                                     setSearchTerm(
-                                        event.target.value
+                                        event.target
+                                            .value
                                     )
                                 }
                                 placeholder="Search sneakers..."
                                 className="border-0 shadow-none flex-grow-1"
                                 style={{
                                     outline: "none",
-                                    fontSize: "0.9rem",
+                                    fontSize:
+                                        "0.9rem",
                                 }}
                                 aria-label="Search sneakers"
                             />
@@ -405,7 +501,9 @@ function Products() {
                                     type="button"
                                     className="btn p-0 d-flex"
                                     onClick={() =>
-                                        setSearchTerm("")
+                                        setSearchTerm(
+                                            ""
+                                        )
                                     }
                                     whileTap={{
                                         scale: 0.8,
@@ -446,7 +544,8 @@ function Products() {
                                         showFilters
                                             ? "1px solid #111"
                                             : "1px solid #e3e3e1",
-                                    borderRadius: "14px",
+                                    borderRadius:
+                                        "14px",
                                     background:
                                         showFilters
                                             ? "#111"
@@ -513,15 +612,19 @@ function Products() {
                                             showSort
                                                 ? "1px solid #111"
                                                 : "1px solid #e3e3e1",
-                                        borderRadius: "14px",
-                                        background: "#fff",
+                                        borderRadius:
+                                            "14px",
+                                        background:
+                                            "#fff",
                                         color: "#222",
                                         fontWeight: 700,
                                     }}
                                 >
 
                                     <span className="text-truncate">
-                                        {selectedSortLabel}
+                                        {
+                                            selectedSortLabel
+                                        }
                                     </span>
 
                                     <motion.span
@@ -568,14 +671,17 @@ function Products() {
                                                     "1px solid #e5e5e3",
                                                 borderRadius:
                                                     "14px",
-                                                padding: "7px",
+                                                padding:
+                                                    "7px",
                                                 boxShadow:
                                                     "0 18px 45px rgba(0,0,0,0.13)",
                                             }}
                                         >
 
                                             {sortOptions.map(
-                                                (option) => (
+                                                (
+                                                    option
+                                                ) => (
                                                     <motion.button
                                                         key={
                                                             option.value
@@ -585,6 +691,7 @@ function Products() {
                                                             setSortBy(
                                                                 option.value
                                                             );
+
                                                             setShowSort(
                                                                 false
                                                             );
@@ -616,7 +723,9 @@ function Products() {
                                                                 "left",
                                                         }}
                                                     >
-                                                        {option.label}
+                                                        {
+                                                            option.label
+                                                        }
 
                                                         {sortBy ===
                                                             option.value && (
@@ -678,8 +787,10 @@ function Products() {
                                 style={{
                                     border:
                                         "1px solid #e5e5e3",
-                                    borderRadius: "18px",
-                                    background: "#fafaf8",
+                                    borderRadius:
+                                        "18px",
+                                    background:
+                                        "#fafaf8",
                                 }}
                             >
 
@@ -708,7 +819,9 @@ function Products() {
                                         <div className="d-flex flex-wrap gap-2">
 
                                             {categories.map(
-                                                (category) => (
+                                                (
+                                                    category
+                                                ) => (
                                                     <motion.button
                                                         key={
                                                             category
@@ -752,7 +865,9 @@ function Products() {
                                                                 700,
                                                         }}
                                                     >
-                                                        {category}
+                                                        {
+                                                            category
+                                                        }
                                                     </motion.button>
                                                 )
                                             )}
@@ -960,54 +1075,61 @@ function Products() {
 
                     <div className="d-flex flex-wrap gap-2">
 
-                        {categories.map((category) => (
-                            <motion.button
-                                key={category}
-                                type="button"
-                                onClick={() =>
-                                    handleCategoryChange(
-                                        category
-                                    )
-                                }
-                                whileHover={{
-                                    y: -2,
-                                }}
-                                whileTap={{
-                                    scale: 0.96,
-                                }}
-                                className="btn"
-                                style={{
-                                    borderRadius: "100px",
-                                    padding: "9px 18px",
-                                    border:
-                                        selectedCategory ===
+                        {categories.map(
+                            (category) => (
+                                <motion.button
+                                    key={category}
+                                    type="button"
+                                    onClick={() =>
+                                        handleCategoryChange(
                                             category
-                                            ? "1px solid #111"
-                                            : "1px solid #dededc",
-                                    background:
-                                        selectedCategory ===
-                                            category
-                                            ? "#111"
-                                            : "#fff",
-                                    color:
-                                        selectedCategory ===
-                                            category
-                                            ? "#fff"
-                                            : "#555",
-                                    fontSize: "0.8rem",
-                                    fontWeight: 700,
-                                }}
-                            >
-                                {category}
-                            </motion.button>
-                        ))}
+                                        )
+                                    }
+                                    whileHover={{
+                                        y: -2,
+                                    }}
+                                    whileTap={{
+                                        scale: 0.96,
+                                    }}
+                                    className="btn"
+                                    style={{
+                                        borderRadius:
+                                            "100px",
+                                        padding:
+                                            "9px 18px",
+                                        border:
+                                            selectedCategory ===
+                                                category
+                                                ? "1px solid #111"
+                                                : "1px solid #dededc",
+                                        background:
+                                            selectedCategory ===
+                                                category
+                                                ? "#111"
+                                                : "#fff",
+                                        color:
+                                            selectedCategory ===
+                                                category
+                                                ? "#fff"
+                                                : "#555",
+                                        fontSize:
+                                            "0.8rem",
+                                        fontWeight: 700,
+                                    }}
+                                >
+                                    {category}
+                                </motion.button>
+                            )
+                        )}
 
                     </div>
 
                     {hasActiveFilters && (
                         <motion.button
                             type="button"
-                            onClick={clearFilters}
+                            onClick={
+                                clearFilters
+                            }
                             initial={{
                                 opacity: 0,
                                 x: 10,
@@ -1048,7 +1170,8 @@ function Products() {
                                     "-0.03em",
                             }}
                         >
-                            {selectedCategory === "All"
+                            {selectedCategory ===
+                                "All"
                                 ? "All Sneakers"
                                 : selectedCategory}
                         </h2>
@@ -1060,11 +1183,13 @@ function Products() {
                                 fontSize: "0.82rem",
                             }}
                         >
-                            {filteredProducts.length}{" "}
-                            {filteredProducts.length === 1
-                                ? "product"
-                                : "products"}{" "}
-                            found
+                            {isLoading
+                                ? "Loading products..."
+                                : `${filteredProducts.length} ${filteredProducts.length ===
+                                    1
+                                    ? "product"
+                                    : "products"
+                                } found`}
                         </p>
 
                     </div>
@@ -1072,104 +1197,252 @@ function Products() {
                 </div>
 
                 {/* =====================================
+                    ERROR
+                ====================================== */}
+
+                {error && !isLoading && (
+                    <motion.div
+                        initial={{
+                            opacity: 0,
+                            y: 10,
+                        }}
+                        animate={{
+                            opacity: 1,
+                            y: 0,
+                        }}
+                        className="text-center py-5"
+                    >
+
+                        <div
+                            className="mx-auto mb-3 d-flex align-items-center justify-content-center"
+                            style={{
+                                width: "64px",
+                                height: "64px",
+                                borderRadius: "18px",
+                                background:
+                                    "#fff1eb",
+                                color:
+                                    "#ff5a1f",
+                                fontWeight: 800,
+                                fontSize:
+                                    "1.4rem",
+                            }}
+                        >
+                            !
+                        </div>
+
+                        <h3
+                            className="fw-bold"
+                            style={{
+                                fontSize:
+                                    "1.25rem",
+                            }}
+                        >
+                            Unable to load sneakers
+                        </h3>
+
+                        <p
+                            className="text-muted mb-4"
+                            style={{
+                                fontSize:
+                                    "0.9rem",
+                            }}
+                        >
+                            {error}
+                        </p>
+
+                        <motion.button
+                            type="button"
+                            onClick={() =>
+                                window.location.reload()
+                            }
+                            whileHover={{
+                                y: -2,
+                            }}
+                            whileTap={{
+                                scale: 0.97,
+                            }}
+                            className="btn btn-dark px-4"
+                        >
+                            Try Again
+                        </motion.button>
+
+                    </motion.div>
+                )}
+
+                {/* =====================================
+                    LOADING
+                ====================================== */}
+
+                {isLoading && (
+                    <div className="row g-4">
+
+                        {Array.from({
+                            length: 8,
+                        }).map(
+                            (_, index) => (
+                                <div
+                                    className="col-12 col-sm-6 col-lg-4 col-xl-3"
+                                    key={index}
+                                >
+                                    <div
+                                        style={{
+                                            height:
+                                                "500px",
+                                            borderRadius:
+                                                "20px",
+                                            background:
+                                                "#f3f3f1",
+                                            border:
+                                                "1px solid #e9e9e7",
+                                            animation:
+                                                "sxProductSkeleton 1.4s ease-in-out infinite",
+                                        }}
+                                    />
+                                </div>
+                            )
+                        )}
+
+                    </div>
+                )}
+
+                {/* =====================================
                     PRODUCT GRID
                 ====================================== */}
 
-                <AnimatePresence mode="wait">
+                {!isLoading &&
+                    !error && (
+                        <AnimatePresence mode="wait">
 
-                    {filteredProducts.length > 0 ? (
-                        <motion.div
-                            key={`${selectedCategory}-${searchTerm}-${sortBy}-${minPrice}-${maxPrice}`}
-                            initial={{
-                                opacity: 0,
-                                y: 15,
-                            }}
-                            animate={{
-                                opacity: 1,
-                                y: 0,
-                            }}
-                            exit={{
-                                opacity: 0,
-                                y: -10,
-                            }}
-                            transition={{
-                                duration: 0.3,
-                            }}
-                        >
-                            <ProductGrid
-                                products={filteredProducts}
-                            />
-                        </motion.div>
-                    ) : (
-                        <motion.div
-                            initial={{
-                                opacity: 0,
-                                scale: 0.98,
-                            }}
-                            animate={{
-                                opacity: 1,
-                                scale: 1,
-                            }}
-                            className="text-center py-5"
-                        >
+                            {filteredProducts.length >
+                                0 ? (
+                                <motion.div
+                                    key={`${selectedCategory}-${searchTerm}-${sortBy}-${minPrice}-${maxPrice}`}
+                                    initial={{
+                                        opacity: 0,
+                                        y: 15,
+                                    }}
+                                    animate={{
+                                        opacity: 1,
+                                        y: 0,
+                                    }}
+                                    exit={{
+                                        opacity: 0,
+                                        y: -10,
+                                    }}
+                                    transition={{
+                                        duration: 0.3,
+                                    }}
+                                >
+                                    <ProductGrid
+                                        products={
+                                            filteredProducts
+                                        }
+                                    />
+                                </motion.div>
+                            ) : (
+                                <motion.div
+                                    initial={{
+                                        opacity: 0,
+                                        scale: 0.98,
+                                    }}
+                                    animate={{
+                                        opacity: 1,
+                                        scale: 1,
+                                    }}
+                                    className="text-center py-5"
+                                >
 
-                            <div
-                                className="mx-auto mb-3 d-flex align-items-center justify-content-center"
-                                style={{
-                                    width: "64px",
-                                    height: "64px",
-                                    borderRadius: "18px",
-                                    background:
-                                        "#f1f1ef",
-                                }}
-                            >
-                                <Search
-                                    size={25}
-                                    color="#777"
-                                />
-                            </div>
+                                    <div
+                                        className="mx-auto mb-3 d-flex align-items-center justify-content-center"
+                                        style={{
+                                            width: "64px",
+                                            height: "64px",
+                                            borderRadius:
+                                                "18px",
+                                            background:
+                                                "#f1f1ef",
+                                        }}
+                                    >
+                                        <Search
+                                            size={25}
+                                            color="#777"
+                                        />
+                                    </div>
 
-                            <h3
-                                className="fw-bold"
-                                style={{
-                                    fontSize: "1.25rem",
-                                }}
-                            >
-                                No sneakers found
-                            </h3>
+                                    <h3
+                                        className="fw-bold"
+                                        style={{
+                                            fontSize:
+                                                "1.25rem",
+                                        }}
+                                    >
+                                        No sneakers found
+                                    </h3>
 
-                            <p
-                                className="text-muted mb-4"
-                                style={{
-                                    fontSize: "0.9rem",
-                                }}
-                            >
-                                Try adjusting your search
-                                or filters.
-                            </p>
+                                    <p
+                                        className="text-muted mb-4"
+                                        style={{
+                                            fontSize:
+                                                "0.9rem",
+                                        }}
+                                    >
+                                        Try adjusting
+                                        your search
+                                        or filters.
+                                    </p>
 
-                            <motion.button
-                                type="button"
-                                onClick={clearFilters}
-                                whileHover={{
-                                    y: -2,
-                                }}
-                                whileTap={{
-                                    scale: 0.97,
-                                }}
-                                className="btn btn-dark px-4"
-                            >
-                                Clear Filters
-                            </motion.button>
+                                    <motion.button
+                                        type="button"
+                                        onClick={
+                                            clearFilters
+                                        }
+                                        whileHover={{
+                                            y: -2,
+                                        }}
+                                        whileTap={{
+                                            scale: 0.97,
+                                        }}
+                                        className="btn btn-dark px-4"
+                                    >
+                                        Clear Filters
+                                    </motion.button>
 
-                        </motion.div>
+                                </motion.div>
+                            )}
+
+                        </AnimatePresence>
                     )}
 
-                </AnimatePresence>
-
-                <div style={{ height: "100px" }} />
+                <div
+                    style={{
+                        height: "100px",
+                    }}
+                />
 
             </section>
+
+            {/* =========================================
+                PRODUCT SKELETON ANIMATION
+            ========================================== */}
+
+            <style>
+                {`
+                    @keyframes sxProductSkeleton {
+                        0% {
+                            opacity: 0.55;
+                        }
+
+                        50% {
+                            opacity: 1;
+                        }
+
+                        100% {
+                            opacity: 0.55;
+                        }
+                    }
+                `}
+            </style>
 
         </main>
     );
