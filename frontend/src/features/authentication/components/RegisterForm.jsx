@@ -21,6 +21,7 @@ function RegisterForm() {
     const [formData, setFormData] = useState({
         name: "",
         email: "",
+        phone: "",
         password: "",
         confirmPassword: "",
     });
@@ -57,6 +58,7 @@ function RegisterForm() {
         const name = formData.name.trim();
         const email =
             formData.email.trim().toLowerCase();
+        const phone = formData.phone.trim();
         const password = formData.password;
         const confirmPassword =
             formData.confirmPassword;
@@ -64,6 +66,7 @@ function RegisterForm() {
         if (
             !name ||
             !email ||
+            !phone ||
             !password ||
             !confirmPassword
         ) {
@@ -75,6 +78,11 @@ function RegisterForm() {
             setError(
                 "Please enter a valid full name."
             );
+            return;
+        }
+
+        if (!/^[6-9]\d{9}$/.test(phone)) {
+            setError("Please enter a valid 10-digit mobile number.");
             return;
         }
 
@@ -96,6 +104,7 @@ function RegisterForm() {
             const result = await register({
                 name,
                 email,
+                phone,
                 password,
             });
 
@@ -300,7 +309,86 @@ function RegisterForm() {
                         />
                     </div>
                 </div>
+                {/* MOBILE NUMBER */}
+                <div className="mb-4">
+                    <label
+                        htmlFor="registerPhone"
+                        className="form-label fw-semibold mb-2"
+                        style={{
+                            fontSize: "11px",
+                            color: "#333333",
+                        }}
+                    >
+                        Mobile Number
+                    </label>
 
+                    <div
+                        className="d-flex align-items-center"
+                        style={{
+                            border: "1px solid #e5e5e5",
+                            borderRadius: "10px",
+                            background: "#ffffff",
+                            overflow: "hidden",
+                        }}
+                    >
+                        <div
+                            className="d-flex align-items-center justify-content-center flex-shrink-0"
+                            style={{
+                                width: "46px",
+                                color: "#999999",
+                                fontSize: "12px",
+                                fontWeight: "600",
+                            }}
+                        >
+                            +91
+                        </div>
+
+                        <input
+                            id="registerPhone"
+                            name="phone"
+                            type="tel"
+                            value={formData.phone}
+                            onChange={(event) => {
+                                const value = event.target.value
+                                    .replace(/\D/g, "")
+                                    .slice(0, 10);
+
+                                setFormData((current) => ({
+                                    ...current,
+                                    phone: value,
+                                }));
+
+                                setError("");
+                            }}
+                            placeholder="Enter your 10-digit mobile number"
+                            autoComplete="tel"
+                            inputMode="numeric"
+                            maxLength={10}
+                            disabled={isLoading}
+                            className="border-0 shadow-none"
+                            style={{
+                                height: "48px",
+                                flex: 1,
+                                minWidth: 0,
+                                padding: "0 14px 0 0",
+                                fontSize: "12px",
+                                color: "#222222",
+                                outline: "none",
+                            }}
+                        />
+                    </div>
+
+                    <div
+                        className="d-flex align-items-center gap-1 mt-2"
+                        style={{
+                            fontSize: "10px",
+                            color: "#999999",
+                        }}
+                    >
+                        <Check size={12} />
+                        Enter a valid 10-digit Indian mobile number
+                    </div>
+                </div>
                 {/* PASSWORD */}
                 <div className="mb-4">
                     <label
@@ -505,17 +593,17 @@ function RegisterForm() {
                     whileHover={
                         !isLoading
                             ? {
-                                  y: -1,
-                                  boxShadow:
-                                      "0 8px 20px rgba(0,0,0,0.14)",
-                              }
+                                y: -1,
+                                boxShadow:
+                                    "0 8px 20px rgba(0,0,0,0.14)",
+                            }
                             : undefined
                     }
                     whileTap={
                         !isLoading
                             ? {
-                                  scale: 0.98,
-                              }
+                                scale: 0.98,
+                            }
                             : undefined
                     }
                     transition={{

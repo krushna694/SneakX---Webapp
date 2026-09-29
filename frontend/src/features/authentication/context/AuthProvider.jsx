@@ -142,13 +142,14 @@ function AuthProvider({ children }) {
     const register = async ({
         name,
         email,
-        password,
         phone,
+        password,
     }) => {
 
         if (
             !name ||
             !email ||
+            !phone ||
             !password
         ) {
             return {

@@ -90,7 +90,8 @@ public class PasswordResetToken {
         return otpExpiresAt;
     }
 
-    public void setOtpExpiresAt(LocalDateTime otpExpiresAt) {
+    public void setOtpExpiresAt(
+            LocalDateTime otpExpiresAt) {
         this.otpExpiresAt = otpExpiresAt;
     }
 
@@ -98,7 +99,8 @@ public class PasswordResetToken {
         return resetTokenExpiresAt;
     }
 
-    public void setResetTokenExpiresAt(LocalDateTime resetTokenExpiresAt) {
+    public void setResetTokenExpiresAt(
+            LocalDateTime resetTokenExpiresAt) {
         this.resetTokenExpiresAt = resetTokenExpiresAt;
     }
 
@@ -106,7 +108,8 @@ public class PasswordResetToken {
         return otpVerified;
     }
 
-    public void setOtpVerified(boolean otpVerified) {
+    public void setOtpVerified(
+            boolean otpVerified) {
         this.otpVerified = otpVerified;
     }
 
@@ -140,7 +143,9 @@ public class PasswordResetToken {
 
     @PrePersist
     protected void onCreate() {
+
         LocalDateTime now = LocalDateTime.now();
+
         createdAt = now;
         updatedAt = now;
     }

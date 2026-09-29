@@ -1,8 +1,12 @@
 package com.sneakx.auth;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
-import java.util.Base64;
+import java.util.HexFormat;
+import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -15,221 +19,339 @@ import com.sneakx.user.UserRepository;
 @Service
 public class PasswordResetService {
 
-    private static final int OTP_LENGTH = 6;
-    private static final int MAX_OTP_ATTEMPTS = 5;
+        private static final int OTP_LENGTH = 6;
 
-    private final UserRepository userRepository;
-    private final PasswordResetTokenRepository resetTokenRepository;
-    private final PasswordEncoder passwordEncoder;
+        private static final int MAX_OTP_ATTEMPTS = 5;
 
-    private final SecureRandom secureRandom = new SecureRandom();
+        private final UserRepository userRepository;
 
-    @Value("${otp.log.console:false}")
-    private boolean otpLogConsole;
+        private final PasswordResetTokenRepository passwordResetTokenRepository;
 
-    @Value("${otp.expiration-minutes:10}")
-    private long otpExpirationMinutes;
+        private final PasswordEncoder passwordEncoder;
 
-    @Value("${password-reset.token-expiration-minutes:10}")
-    private long resetTokenExpirationMinutes;
+        private final SecureRandom secureRandom = new SecureRandom();
 
-    public PasswordResetService(
-            UserRepository userRepository,
-            PasswordResetTokenRepository resetTokenRepository,
-            PasswordEncoder passwordEncoder) {
+        @Value("${otp.log-console:false}")
+        private boolean otpLogConsole;
 
-        this.userRepository = userRepository;
-        this.resetTokenRepository = resetTokenRepository;
-        this.passwordEncoder = passwordEncoder;
-    }
+        @Value("${otp.expiration-minutes:10}")
+        private long otpExpirationMinutes;
 
-    @Transactional
-    public void requestPasswordReset(String email) {
+        @Value("${password-reset.token-expiration-minutes:10}")
+        private long resetTokenExpirationMinutes;
 
-        String normalizedEmail = normalizeEmail(email);
+        public PasswordResetService(
+                        UserRepository userRepository,
+                        PasswordResetTokenRepository passwordResetTokenRepository,
+                        PasswordEncoder passwordEncoder) {
+                this.userRepository = userRepository;
 
-        /*
-         * Always return successfully from the controller.
-         * This prevents account enumeration through the forgot-password API.
-         */
-        User user = userRepository.findByEmail(normalizedEmail)
-                .orElse(null);
+                this.passwordResetTokenRepository = passwordResetTokenRepository;
 
-        if (user == null || !user.isActive()) {
-            return;
+                this.passwordEncoder = passwordEncoder;
         }
 
-        // Remove previous reset requests for this user.
-        resetTokenRepository.deleteByUserId(user.getId());
-
-        String otp = generateOtp();
-
-        PasswordResetToken resetToken = new PasswordResetToken();
-
-        resetToken.setUser(user);
-        resetToken.setOtpHash(passwordEncoder.encode(otp));
-        resetToken.setOtpExpiresAt(
-                LocalDateTime.now().plusMinutes(otpExpirationMinutes));
-
-        resetTokenRepository.save(resetToken);
-
-        /*
-         * Development-only OTP output.
+        /**
+         * Requests a password reset OTP.
          *
-         * Production should use an email provider.
+         * Security note:
+         * The method intentionally returns the same
+         * response whether or not the email exists.
          */
-        if (otpLogConsole) {
-            System.out.println(
-                    "[SNEAKX DEV OTP] Password reset OTP for "
-                            + normalizedEmail
-                            + " = "
-                            + otp);
-        }
-    }
+        @Transactional
+        public void requestPasswordReset(
+                        String email) {
 
-    @Transactional
-    public String verifyOtp(
-            String email,
-            String otp) {
+                String normalizedEmail = normalizeEmail(email);
 
-        String normalizedEmail = normalizeEmail(email);
+                User user = userRepository
+                                .findByEmail(normalizedEmail)
+                                .orElse(null);
 
-        User user = userRepository.findByEmail(normalizedEmail)
-                .orElseThrow(() -> new IllegalArgumentException(
-                        "Invalid or expired OTP"));
+                if (user == null || !user.isActive()) {
+                        return;
+                }
 
-        PasswordResetToken resetToken = resetTokenRepository
-                .findTopByUserIdAndUsedFalseOrderByCreatedAtDesc(
-                        user.getId())
-                .orElseThrow(() -> new IllegalArgumentException(
-                        "Invalid or expired OTP"));
+                /*
+                 * Invalidate all previous reset sessions
+                 * before creating a new one.
+                 */
+                passwordResetTokenRepository
+                                .invalidateActiveTokens(user.getId());
 
-        if (resetToken.isOtpVerified()) {
-            throw new IllegalArgumentException(
-                    "OTP has already been verified");
-        }
+                String otp = generateOtp();
 
-        if (resetToken.getOtpExpiresAt()
-                .isBefore(LocalDateTime.now())) {
+                PasswordResetToken resetToken = new PasswordResetToken();
 
-            throw new IllegalArgumentException(
-                    "OTP has expired");
-        }
+                resetToken.setUser(user);
 
-        if (resetToken.getAttempts() >= MAX_OTP_ATTEMPTS) {
-            throw new IllegalArgumentException(
-                    "Too many invalid OTP attempts");
-        }
+                /*
+                 * Store only the BCrypt hash of the OTP.
+                 */
+                resetToken.setOtpHash(
+                                passwordEncoder.encode(otp));
 
-        if (!passwordEncoder.matches(
-                otp,
-                resetToken.getOtpHash())) {
+                resetToken.setOtpExpiresAt(
+                                LocalDateTime.now()
+                                                .plusMinutes(
+                                                                otpExpirationMinutes));
 
-            resetToken.incrementAttempts();
-            resetTokenRepository.save(resetToken);
+                resetToken.setOtpVerified(false);
 
-            throw new IllegalArgumentException(
-                    "Invalid or expired OTP");
-        }
+                resetToken.setUsed(false);
 
-        String resetTokenValue = generateResetToken();
+                resetToken.setAttempts(0);
 
-        resetToken.setOtpVerified(true);
+                passwordResetTokenRepository.save(
+                                resetToken);
 
-        resetToken.setResetTokenHash(
-                passwordEncoder.encode(resetTokenValue));
+                /*
+                 * Development-only OTP logging.
+                 *
+                 * Never enable this in production.
+                 */
+                if (otpLogConsole) {
+                        System.out.println(
+                                        "================================================");
 
-        resetToken.setResetTokenExpiresAt(
-                LocalDateTime.now()
-                        .plusMinutes(resetTokenExpirationMinutes));
+                        System.out.println(
+                                        "SneakX PASSWORD RESET OTP");
 
-        resetTokenRepository.save(resetToken);
+                        System.out.println(
+                                        "Email: " + normalizedEmail);
 
-        return resetTokenValue;
-    }
+                        System.out.println(
+                                        "OTP: " + otp);
 
-    @Transactional
-    public void resetPassword(
-            String resetTokenValue,
-            String newPassword) {
+                        System.out.println(
+                                        "Expires in: "
+                                                        + otpExpirationMinutes
+                                                        + " minutes");
 
-        if (resetTokenValue == null
-                || resetTokenValue.isBlank()) {
-
-            throw new IllegalArgumentException(
-                    "Reset token is required");
+                        System.out.println(
+                                        "================================================");
+                }
         }
 
-        /*
-         * Reset tokens are stored hashed, so we cannot directly
-         * query by the raw token.
-         *
-         * We therefore inspect active reset records and verify
-         * the token using BCrypt.
+        /**
+         * Verifies the OTP and returns a temporary
+         * password-reset token.
          */
-        PasswordResetToken matchingToken = resetTokenRepository
-                .findAll()
-                .stream()
-                .filter(token -> !token.isUsed()
-                        && token.isOtpVerified()
-                        && token.getResetTokenHash() != null
-                        && token.getResetTokenExpiresAt() != null
-                        && token.getResetTokenExpiresAt()
-                                .isAfter(LocalDateTime.now())
-                        && passwordEncoder.matches(
-                                resetTokenValue,
-                                token.getResetTokenHash()))
-                .findFirst()
-                .orElseThrow(() -> new IllegalArgumentException(
-                        "Invalid or expired reset token"));
+        @Transactional
+        public String verifyResetOtp(
+                        String email,
+                        String otp) {
 
-        User user = matchingToken.getUser();
+                String normalizedEmail = normalizeEmail(email);
 
-        if (!user.isActive()) {
-            throw new IllegalArgumentException(
-                    "Account is not active");
+                User user = userRepository
+                                .findByEmail(normalizedEmail)
+                                .orElseThrow(
+                                                () -> new IllegalArgumentException(
+                                                                "Invalid or expired OTP"));
+
+                PasswordResetToken resetToken = passwordResetTokenRepository
+                                .findTopByUserIdAndUsedFalseOrderByCreatedAtDesc(
+                                                user.getId())
+                                .orElseThrow(
+                                                () -> new IllegalArgumentException(
+                                                                "Invalid or expired OTP"));
+
+                LocalDateTime now = LocalDateTime.now();
+
+                if (resetToken.isUsed()
+                                || resetToken.isOtpVerified()
+                                || resetToken
+                                                .getOtpExpiresAt()
+                                                .isBefore(now)) {
+                        throw new IllegalArgumentException(
+                                        "Invalid or expired OTP");
+                }
+
+                if (resetToken.getAttempts() >= MAX_OTP_ATTEMPTS) {
+                        throw new IllegalArgumentException(
+                                        "Too many OTP attempts. Please request a new OTP.");
+                }
+
+                boolean validOtp = passwordEncoder.matches(
+                                otp,
+                                resetToken.getOtpHash());
+
+                if (!validOtp) {
+
+                        resetToken.incrementAttempts();
+
+                        passwordResetTokenRepository.save(
+                                        resetToken);
+
+                        int remainingAttempts = MAX_OTP_ATTEMPTS
+                                        - resetToken.getAttempts();
+
+                        if (remainingAttempts <= 0) {
+                                throw new IllegalArgumentException(
+                                                "Too many OTP attempts. Please request a new OTP.");
+                        }
+
+                        throw new IllegalArgumentException(
+                                        "Invalid OTP. "
+                                                        + remainingAttempts
+                                                        + " attempts remaining.");
+                }
+
+                /*
+                 * Generate a cryptographically random
+                 * temporary reset token.
+                 */
+                String rawResetToken = generateResetToken();
+
+                /*
+                 * Store only a SHA-256 hash in MySQL.
+                 */
+                resetToken.setResetTokenHash(
+                                hashToken(rawResetToken));
+
+                resetToken.setResetTokenExpiresAt(
+                                LocalDateTime.now()
+                                                .plusMinutes(
+                                                                resetTokenExpirationMinutes));
+
+                resetToken.setOtpVerified(true);
+
+                passwordResetTokenRepository.save(
+                                resetToken);
+
+                /*
+                 * Return the raw token only once.
+                 * The frontend stores it temporarily in
+                 * sessionStorage.
+                 */
+                return rawResetToken;
         }
 
-        user.setPassword(
-                passwordEncoder.encode(newPassword));
+        /**
+         * Resets the user's password.
+         */
+        @Transactional
+        public void resetPassword(
+                        String rawResetToken,
+                        String newPassword) {
 
-        userRepository.save(user);
+                if (rawResetToken == null
+                                || rawResetToken.isBlank()) {
+                        throw new IllegalArgumentException(
+                                        "Reset token is required");
+                }
 
-        matchingToken.setUsed(true);
-        matchingToken.setResetTokenHash(null);
+                String resetTokenHash = hashToken(rawResetToken);
 
-        resetTokenRepository.save(matchingToken);
-    }
+                PasswordResetToken resetToken = passwordResetTokenRepository
+                                .findTopByResetTokenHashAndUsedFalse(
+                                                resetTokenHash)
+                                .orElseThrow(
+                                                () -> new IllegalArgumentException(
+                                                                "Invalid or expired reset token"));
 
-    private String normalizeEmail(String email) {
+                LocalDateTime now = LocalDateTime.now();
 
-        if (email == null || email.isBlank()) {
-            throw new IllegalArgumentException(
-                    "Email is required");
+                if (!resetToken.isOtpVerified()
+                                || resetToken.isUsed()
+                                || resetToken
+                                                .getResetTokenExpiresAt() == null
+                                || resetToken
+                                                .getResetTokenExpiresAt()
+                                                .isBefore(now)) {
+                        throw new IllegalArgumentException(
+                                        "Invalid or expired reset token");
+                }
+
+                User user = resetToken.getUser();
+
+                if (user == null || !user.isActive()) {
+                        throw new IllegalArgumentException(
+                                        "Invalid or expired reset token");
+                }
+
+                /*
+                 * BCrypt hash the new password.
+                 */
+                user.setPassword(
+                                passwordEncoder.encode(newPassword));
+
+                userRepository.save(user);
+
+                /*
+                 * Make the reset token single-use.
+                 */
+                resetToken.setUsed(true);
+
+                passwordResetTokenRepository.save(
+                                resetToken);
         }
 
-        return email.trim().toLowerCase();
-    }
+        /**
+         * Generates a cryptographically secure
+         * six-digit OTP.
+         */
+        private String generateOtp() {
 
-    private String generateOtp() {
+                int minimum = 100000;
 
-        int minimum = (int) Math.pow(10, OTP_LENGTH - 1);
-        int maximum = (int) Math.pow(10, OTP_LENGTH) - 1;
+                int maximum = 1000000;
 
-        int otp = secureRandom.nextInt(
-                maximum - minimum + 1) + minimum;
+                int otp = secureRandom.nextInt(
+                                maximum - minimum) + minimum;
 
-        return String.valueOf(otp);
-    }
+                return String.valueOf(otp);
+        }
 
-    private String generateResetToken() {
+        /**
+         * Generates a strong temporary reset token.
+         */
+        private String generateResetToken() {
 
-        byte[] bytes = new byte[48];
+                return UUID.randomUUID()
+                                .toString()
+                                + "-"
+                                + UUID.randomUUID()
+                                                .toString();
+        }
 
-        secureRandom.nextBytes(bytes);
+        /**
+         * SHA-256 hash used for reset-token lookup.
+         */
+        private String hashToken(String token) {
 
-        return Base64.getUrlEncoder()
-                .withoutPadding()
-                .encodeToString(bytes);
-    }
+                try {
+
+                        MessageDigest digest = MessageDigest.getInstance(
+                                        "SHA-256");
+
+                        byte[] hash = digest.digest(
+                                        token.getBytes(
+                                                        StandardCharsets.UTF_8));
+
+                        return HexFormat.of()
+                                        .formatHex(hash);
+
+                } catch (NoSuchAlgorithmException exception) {
+
+                        throw new IllegalStateException(
+                                        "SHA-256 algorithm is not available",
+                                        exception);
+                }
+        }
+
+        private String normalizeEmail(
+                        String email) {
+
+                if (email == null
+                                || email.isBlank()) {
+                        throw new IllegalArgumentException(
+                                        "Email is required");
+                }
+
+                return email
+                                .trim()
+                                .toLowerCase();
+        }
 }

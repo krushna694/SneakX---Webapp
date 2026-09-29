@@ -2,6 +2,7 @@ package com.sneakx.auth;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 public class RegisterRequest {
@@ -22,7 +23,8 @@ public class RegisterRequest {
     @Size(min = 8, max = 100, message = "Password must be between 8 and 100 characters")
     private String password;
 
-    @Size(max = 20, message = "Phone number must not exceed 20 characters")
+    @NotBlank(message = "Phone number is required")
+    @Pattern(regexp = "^[6-9][0-9]{9}$", message = "Please provide a valid 10-digit Indian mobile number")
     private String phone;
 
     public RegisterRequest() {
