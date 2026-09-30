@@ -8,25 +8,42 @@ import {
 import { useCart } from "../../hooks/useCart";
 
 function CartItem({ item }) {
+
     const {
         updateQuantity,
         removeFromCart,
     } = useCart();
 
-    const { product, quantity, size } = item;
+    const {
+        id: cartItemId,
+        product,
+        quantity,
+        size,
+        unitPrice,
+        lineTotal,
+    } = item;
 
     const handleDecrease = () => {
+
         if (quantity > 1) {
-            updateQuantity(product.id, size, quantity - 1);
+            updateQuantity(
+                cartItemId,
+                quantity - 1
+            );
         }
     };
 
     const handleIncrease = () => {
-        updateQuantity(product.id, size, quantity + 1);
+
+        updateQuantity(
+            cartItemId,
+            quantity + 1
+        );
     };
 
     const handleRemove = () => {
-        removeFromCart(product.id, size);
+
+        removeFromCart(cartItemId);
     };
 
     return (
@@ -35,7 +52,8 @@ function CartItem({ item }) {
             style={{
                 borderRadius: "18px",
                 background: "#ffffff",
-                boxShadow: "0 6px 24px rgba(0, 0, 0, 0.06)",
+                boxShadow:
+                    "0 6px 24px rgba(0, 0, 0, 0.06)",
             }}
             initial={{
                 opacity: 0,
@@ -47,7 +65,8 @@ function CartItem({ item }) {
             }}
             whileHover={{
                 y: -3,
-                boxShadow: "0 14px 35px rgba(0, 0, 0, 0.09)",
+                boxShadow:
+                    "0 14px 35px rgba(0, 0, 0, 0.09)",
             }}
             transition={{
                 duration: 0.35,
@@ -92,7 +111,8 @@ function CartItem({ item }) {
                                         background: "#ff5a1f",
                                         top: "11px",
                                         left: "19px",
-                                        transform: "rotate(-18deg)",
+                                        transform:
+                                            "rotate(-18deg)",
                                     }}
                                 />
 
@@ -128,6 +148,7 @@ function CartItem({ item }) {
                     {/* Product Information */}
                     <div className="col-8 col-sm-9 col-md-4">
                         <div className="d-flex flex-column h-100">
+
                             <div className="d-flex align-items-start justify-content-between gap-2">
                                 <div>
                                     <p
@@ -153,13 +174,13 @@ function CartItem({ item }) {
                             </div>
 
                             <div className="d-flex align-items-center gap-2 mb-2">
+
                                 <span
                                     className="badge rounded-pill"
                                     style={{
                                         background: "#f4f4f4",
                                         color: "#222222",
-                                        padding:
-                                            "7px 11px",
+                                        padding: "7px 11px",
                                         fontSize: "11px",
                                         fontWeight: "600",
                                     }}
@@ -174,14 +195,16 @@ function CartItem({ item }) {
                                     }}
                                 >
                                     ₹
-                                    {product.price.toLocaleString(
-                                        "en-IN"
-                                    )}{" "}
+                                    {Number(
+                                        unitPrice ?? product.price ?? 0
+                                    ).toLocaleString("en-IN")}{" "}
                                     / pair
                                 </span>
+
                             </div>
 
                             <div className="d-flex align-items-center gap-2 mt-1">
+
                                 <ShoppingBag
                                     size={14}
                                     color="#ff5a1f"
@@ -195,12 +218,15 @@ function CartItem({ item }) {
                                 >
                                     Ready to ship
                                 </span>
+
                             </div>
+
                         </div>
                     </div>
 
                     {/* Quantity */}
                     <div className="col-7 col-sm-6 col-md-3">
+
                         <p
                             className="mb-2 text-uppercase fw-semibold"
                             style={{
@@ -220,6 +246,7 @@ function CartItem({ item }) {
                                 overflow: "hidden",
                             }}
                         >
+
                             <motion.button
                                 type="button"
                                 onClick={handleDecrease}
@@ -267,12 +294,15 @@ function CartItem({ item }) {
                             >
                                 <Plus size={15} />
                             </motion.button>
+
                         </div>
                     </div>
 
                     {/* Total + Remove */}
                     <div className="col-5 col-sm-6 col-md-3">
+
                         <div className="text-md-end">
+
                             <p
                                 className="mb-1 text-uppercase fw-semibold"
                                 style={{
@@ -291,9 +321,10 @@ function CartItem({ item }) {
                                 }}
                             >
                                 ₹
-                                {(
-                                    product.price *
-                                    quantity
+                                {Number(
+                                    lineTotal ??
+                                    Number(unitPrice ?? product.price ?? 0) *
+                                        Number(quantity)
                                 ).toLocaleString("en-IN")}
                             </p>
 
@@ -313,8 +344,7 @@ function CartItem({ item }) {
                                         "1px solid #eeeeee",
                                     background: "#ffffff",
                                     color: "#666666",
-                                    padding:
-                                        "7px 11px",
+                                    padding: "7px 11px",
                                     fontSize: "11px",
                                     fontWeight: "600",
                                 }}
@@ -322,7 +352,9 @@ function CartItem({ item }) {
                                 <Trash2 size={14} />
                                 Remove
                             </motion.button>
+
                         </div>
+
                     </div>
 
                 </div>

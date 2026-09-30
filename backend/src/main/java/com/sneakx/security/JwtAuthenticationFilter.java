@@ -44,7 +44,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 String authHeader = request.getHeader("Authorization");
 
                 /*
-                 * No Authorization header:
+                 * No Authorization header.
                  *
                  * Continue normally.
                  * Public endpoints can proceed, while protected
@@ -63,8 +63,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                         return;
                 }
 
-                String token = authHeader.substring(
-                                BEARER_PREFIX.length()).trim();
+                String token = authHeader
+                                .substring(BEARER_PREFIX.length())
+                                .trim();
 
                 /*
                  * Empty Bearer token is invalid.
@@ -87,6 +88,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                                 return;
                         }
 
+                        /*
+                         * Extract the email from the JWT subject.
+                         */
                         String email = jwtService.extractEmail(token);
 
                         if (email == null || email.isBlank()) {
@@ -97,8 +101,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                         /*
                          * Load the current user from the database.
                          *
-                         * This means account deactivation and role changes
-                         * take effect without waiting for JWT expiration.
+                         * This allows account deactivation and role changes
+                         * to take effect without waiting for JWT expiration.
                          */
                         User user = userRepository.findByEmail(email)
                                         .orElse(null);
@@ -109,21 +113,39 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                         }
 
                         /*
-                         * Verify signature, subject and expiration.
+                         * Verify JWT signature, subject and expiration.
                          */
                         if (!jwtService.isTokenValid(token, email)) {
                                 filterChain.doFilter(request, response);
                                 return;
                         }
 
+                        /*
+                         * Build authorities from the current database roles.
+                         */
                         Set<SimpleGrantedAuthority> authorities = user.getRoles()
                                         .stream()
                                         .map(role -> new SimpleGrantedAuthority(
                                                         "ROLE_" + role.getName()))
                                         .collect(Collectors.toSet());
 
+                        /*
+                         * IMPORTANT:
+                         *
+                         * Use email as the authentication principal.
+                         *
+                         * This makes:
+                         *
+                         * authentication.getName()
+                         *
+                         * return the user's email.
+                         *
+                         * CartService and other services can therefore
+                         * safely use authentication.getName() with
+                         * UserRepository.findByEmail(...).
+                         */
                         UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
-                                        user,
+                                        email,
                                         null,
                                         authorities);
 
@@ -136,9 +158,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                         /*
                          * Never expose JWT parsing/signature details.
                          *
-                         * The request continues without authentication.
-                         * Spring Security will return the appropriate 401/403
-                         * response for protected resources.
+                         * Continue without authentication.
+                         * Spring Security will handle protected endpoints.
                          */
                 }
 

@@ -1,12 +1,23 @@
 import { motion } from "framer-motion";
 import { Check } from "lucide-react";
 
-const sizes = [6, 7, 8, 9, 10, 11];
-
 function SizeSelector({
     selectedSize,
     onSizeChange,
+    variants = [],
 }) {
+    const availableVariants = variants
+        .filter(
+            (variant) =>
+                variant.active &&
+                Number(variant.stockQuantity) > 0
+        )
+        .sort(
+            (a, b) =>
+                Number(a.size) -
+                Number(b.size)
+        );
+
     return (
         <div className="mt-4">
 
@@ -19,7 +30,8 @@ function SizeSelector({
                             fontSize: "0.78rem",
                             fontWeight: 800,
                             letterSpacing: "0.05em",
-                            textTransform: "uppercase",
+                            textTransform:
+                                "uppercase",
                         }}
                     >
                         Select Size
@@ -63,70 +75,85 @@ function SizeSelector({
 
             <div className="d-flex flex-wrap gap-2">
 
-                {sizes.map((size) => {
-                    const isSelected =
-                        selectedSize === size;
+                {availableVariants.map(
+                    (variant) => {
+                        const size = Number(
+                            variant.size
+                        );
 
-                    return (
-                        <motion.button
-                            key={size}
-                            type="button"
-                            onClick={() =>
-                                onSizeChange(size)
-                            }
-                            whileHover={{
-                                y: -3,
-                            }}
-                            whileTap={{
-                                scale: 0.94,
-                            }}
-                            className="position-relative d-flex align-items-center justify-content-center border"
-                            style={{
-                                width: "58px",
-                                height: "48px",
-                                borderRadius: "11px",
-                                borderColor:
-                                    isSelected
-                                        ? "#111111"
-                                        : "#dededb",
-                                background:
-                                    isSelected
-                                        ? "#111111"
-                                        : "#ffffff",
-                                color:
-                                    isSelected
-                                        ? "#ffffff"
-                                        : "#333333",
-                                fontSize: "0.82rem",
-                                fontWeight: 800,
-                                transition:
-                                    "all 180ms ease",
-                            }}
-                        >
-                            {size}
+                        const isSelected =
+                            Number(
+                                selectedSize
+                            ) === size;
 
-                            {isSelected && (
-                                <motion.span
-                                    layoutId="selected-size"
-                                    className="position-absolute"
-                                    style={{
-                                        width: "5px",
-                                        height: "5px",
-                                        borderRadius:
-                                            "50%",
-                                        background:
-                                            "var(--sx-accent)",
-                                        bottom: "6px",
-                                    }}
-                                />
-                            )}
-                        </motion.button>
-                    );
-                })}
+                        return (
+                            <motion.button
+                                key={variant.id}
+                                type="button"
+                                onClick={() =>
+                                    onSizeChange(
+                                        size
+                                    )
+                                }
+                                whileHover={{
+                                    y: -3,
+                                }}
+                                whileTap={{
+                                    scale: 0.94,
+                                }}
+                                className="position-relative d-flex align-items-center justify-content-center border"
+                                style={{
+                                    width: "58px",
+                                    height: "48px",
+                                    borderRadius:
+                                        "11px",
+                                    borderColor:
+                                        isSelected
+                                            ? "#111111"
+                                            : "#dededb",
+                                    background:
+                                        isSelected
+                                            ? "#111111"
+                                            : "#ffffff",
+                                    color:
+                                        isSelected
+                                            ? "#ffffff"
+                                            : "#333333",
+                                    fontSize:
+                                        "0.82rem",
+                                    fontWeight: 800,
+                                    transition:
+                                        "all 180ms ease",
+                                }}
+                            >
+                                {size}
+
+                                {isSelected && (
+                                    <motion.span
+                                        layoutId="selected-size"
+                                        className="position-absolute"
+                                        style={{
+                                            width:
+                                                "5px",
+                                            height:
+                                                "5px",
+                                            borderRadius:
+                                                "50%",
+                                            background:
+                                                "var(--sx-accent)",
+                                            bottom:
+                                                "6px",
+                                        }}
+                                    />
+                                )}
+                            </motion.button>
+                        );
+                    }
+                )}
 
             </div>
 
-            {!selectedSize && (
+            {availableVariants.length === 0 && (
                 <motion.p
                     initial={{
                         opacity: 0,
@@ -136,13 +163,34 @@ function SizeSelector({
                     }}
                     className="mt-3 mb-0"
                     style={{
-                        color: "#999",
+                        color: "#d64545",
                         fontSize: "0.72rem",
+                        fontWeight: 600,
                     }}
                 >
-                    Select a size to continue.
+                    This product is currently
+                    unavailable.
                 </motion.p>
             )}
+
+            {availableVariants.length > 0 &&
+                !selectedSize && (
+                    <motion.p
+                        initial={{
+                            opacity: 0,
+                        }}
+                        animate={{
+                            opacity: 1,
+                        }}
+                        className="mt-3 mb-0"
+                        style={{
+                            color: "#999",
+                            fontSize: "0.72rem",
+                        }}
+                    >
+                        Select a size to continue.
+                    </motion.p>
+                )}
 
         </div>
     );

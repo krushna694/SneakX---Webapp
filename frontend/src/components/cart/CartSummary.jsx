@@ -8,10 +8,14 @@ import {
 import { useNavigate } from "react-router-dom";
 
 function CartSummary({ subtotal }) {
+
     const navigate = useNavigate();
 
-    const shipping = subtotal > 0 ? 100 : 0;
-    const total = subtotal + shipping;
+    const safeSubtotal = Number(subtotal || 0);
+
+    const shipping = safeSubtotal > 0 ? 100 : 0;
+
+    const total = safeSubtotal + shipping;
 
     const handleCheckout = () => {
         navigate("/checkout");
@@ -23,10 +27,17 @@ function CartSummary({ subtotal }) {
             style={{
                 borderRadius: "20px",
                 background: "#ffffff",
-                boxShadow: "0 10px 35px rgba(0, 0, 0, 0.08)",
+                boxShadow:
+                    "0 10px 35px rgba(0, 0, 0, 0.08)",
             }}
-            initial={{ opacity: 0, x: 25 }}
-            animate={{ opacity: 1, x: 0 }}
+            initial={{
+                opacity: 0,
+                x: 25,
+            }}
+            animate={{
+                opacity: 1,
+                x: 0,
+            }}
             transition={{
                 duration: 0.5,
                 ease: [0.22, 1, 0.36, 1],
@@ -36,6 +47,7 @@ function CartSummary({ subtotal }) {
 
                 {/* Header */}
                 <div className="d-flex align-items-center gap-3 mb-4">
+
                     <div
                         className="d-flex align-items-center justify-content-center"
                         style={{
@@ -50,6 +62,7 @@ function CartSummary({ subtotal }) {
                     </div>
 
                     <div>
+
                         <p
                             className="text-uppercase fw-semibold mb-1"
                             style={{
@@ -69,7 +82,9 @@ function CartSummary({ subtotal }) {
                         >
                             Cart Summary
                         </h4>
+
                     </div>
+
                 </div>
 
                 {/* Price Details */}
@@ -80,7 +95,9 @@ function CartSummary({ subtotal }) {
                         background: "#f8f8f8",
                     }}
                 >
+
                     <div className="d-flex justify-content-between mb-3">
+
                         <span
                             style={{
                                 fontSize: "13px",
@@ -96,11 +113,16 @@ function CartSummary({ subtotal }) {
                                 fontSize: "13px",
                             }}
                         >
-                            ₹{subtotal.toLocaleString("en-IN")}
+                            ₹
+                            {safeSubtotal.toLocaleString(
+                                "en-IN"
+                            )}
                         </span>
+
                     </div>
 
                     <div className="d-flex justify-content-between">
+
                         <span
                             style={{
                                 fontSize: "13px",
@@ -116,9 +138,14 @@ function CartSummary({ subtotal }) {
                                 fontSize: "13px",
                             }}
                         >
-                            ₹{shipping.toLocaleString("en-IN")}
+                            ₹
+                            {shipping.toLocaleString(
+                                "en-IN"
+                            )}
                         </span>
+
                     </div>
+
                 </div>
 
                 {/* Shipping Note */}
@@ -129,6 +156,7 @@ function CartSummary({ subtotal }) {
                         color: "#666666",
                     }}
                 >
+
                     <Check
                         size={15}
                         color="#ff5a1f"
@@ -138,6 +166,7 @@ function CartSummary({ subtotal }) {
                     <span>
                         Fast and reliable delivery
                     </span>
+
                 </div>
 
                 <hr
@@ -149,7 +178,9 @@ function CartSummary({ subtotal }) {
 
                 {/* Total */}
                 <div className="d-flex justify-content-between align-items-end my-4">
+
                     <div>
+
                         <p
                             className="text-uppercase fw-semibold mb-1"
                             style={{
@@ -169,6 +200,7 @@ function CartSummary({ subtotal }) {
                         >
                             Including shipping
                         </span>
+
                     </div>
 
                     <span
@@ -178,8 +210,12 @@ function CartSummary({ subtotal }) {
                             letterSpacing: "-0.5px",
                         }}
                     >
-                        ₹{total.toLocaleString("en-IN")}
+                        ₹
+                        {total.toLocaleString(
+                            "en-IN"
+                        )}
                     </span>
+
                 </div>
 
                 {/* Checkout Button */}
@@ -205,7 +241,9 @@ function CartSummary({ subtotal }) {
                     }}
                 >
                     Proceed to Checkout
+
                     <ArrowRight size={17} />
+
                 </motion.button>
 
                 {/* Security */}
@@ -216,11 +254,13 @@ function CartSummary({ subtotal }) {
                         color: "#999999",
                     }}
                 >
+
                     <LockKeyhole size={13} />
 
                     <span>
                         Secure checkout
                     </span>
+
                 </div>
 
             </div>

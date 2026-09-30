@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import {
     ArrowLeft,
@@ -10,86 +11,92 @@ import {
 
 import ProductGallery from "../../components/product/ProductGallery";
 import ProductInfo from "../../components/product/ProductInfo";
-
-const products = [
-    {
-        id: 1,
-        name: "Air Runner",
-        price: 4999,
-        category: "Running",
-        description:
-            "Comfortable running sneakers designed for everyday performance.",
-    },
-    {
-        id: 2,
-        name: "Street Force",
-        price: 5999,
-        category: "Lifestyle",
-        description:
-            "A stylish sneaker designed for everyday streetwear.",
-    },
-    {
-        id: 3,
-        name: "Urban Classic",
-        price: 4499,
-        category: "Lifestyle",
-        description:
-            "A classic design that fits perfectly into your everyday wardrobe.",
-    },
-    {
-        id: 4,
-        name: "Sport Max",
-        price: 6999,
-        category: "Sports",
-        description:
-            "Performance-focused sneakers built for active lifestyles.",
-    },
-    {
-        id: 5,
-        name: "Velocity X",
-        price: 5499,
-        category: "Running",
-        description:
-            "Lightweight sneakers designed for speed and everyday comfort.",
-    },
-    {
-        id: 6,
-        name: "Street Runner",
-        price: 4799,
-        category: "Lifestyle",
-        description:
-            "Modern streetwear sneakers with a comfortable everyday design.",
-    },
-    {
-        id: 7,
-        name: "Air Motion",
-        price: 6299,
-        category: "Sports",
-        description:
-            "Performance sneakers designed for an active lifestyle.",
-    },
-    {
-        id: 8,
-        name: "Classic Low",
-        price: 3999,
-        category: "Lifestyle",
-        description:
-            "A clean and simple sneaker for everyday wear.",
-    },
-];
+import {
+    getProductByIdApi,
+} from "../../api/productApi";
 
 function ProductDetails() {
     const { id } = useParams();
 
-    const product = products.find(
-        (item) => item.id === Number(id)
-    );
+    const [product, setProduct] = useState(null);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState("");
 
-    /*
-     * =========================================
-     * PRODUCT NOT FOUND
-     * =========================================
-     */
+    useEffect(() => {
+        let isMounted = true;
+
+        const loadProduct = async () => {
+            try {
+                setIsLoading(true);
+                setError("");
+
+                const response =
+                    await getProductByIdApi(id);
+
+                if (!response?.success) {
+                    throw new Error(
+                        response?.message ||
+                        "Failed to load product."
+                    );
+                }
+
+                if (isMounted) {
+                    setProduct(response.data);
+                }
+            } catch (error) {
+                if (isMounted) {
+                    setError(
+                        error.response?.data?.message ||
+                        error.message ||
+                        "Unable to load product."
+                    );
+                    setProduct(null);
+                }
+            } finally {
+                if (isMounted) {
+                    setIsLoading(false);
+                }
+            }
+        };
+
+        if (id) {
+            loadProduct();
+        }
+
+        return () => {
+            isMounted = false;
+        };
+    }, [id]);
+
+    // ==========================================
+    // LOADING
+    // ==========================================
+
+    if (isLoading) {
+        return (
+            <main
+                className="min-vh-100 d-flex align-items-center justify-content-center"
+                style={{
+                    background: "#f7f7f5",
+                }}
+            >
+                <div
+                    className="text-center"
+                    style={{
+                        color: "#777",
+                        fontSize: "0.9rem",
+                        fontWeight: 600,
+                    }}
+                >
+                    Loading product...
+                </div>
+            </main>
+        );
+    }
+
+    // ==========================================
+    // PRODUCT NOT FOUND / ERROR
+    // ==========================================
 
     if (!product) {
         return (
@@ -131,7 +138,7 @@ function ProductDetails() {
                             letterSpacing: "-0.035em",
                         }}
                     >
-                        Product Not Found
+                        Unable to Load Product
                     </h2>
 
                     <p
@@ -140,8 +147,8 @@ function ProductDetails() {
                             color: "#777",
                         }}
                     >
-                        The product you are looking
-                        for does not exist.
+                        {error ||
+                            "The product you are looking for does not exist."}
                     </p>
 
                     <Link
@@ -172,7 +179,6 @@ function ProductDetails() {
             ========================================== */}
 
             <div className="container pt-4">
-
                 <motion.div
                     className="d-flex align-items-center gap-2"
                     initial={{
@@ -215,7 +221,6 @@ function ProductDetails() {
                         {product.name}
                     </span>
                 </motion.div>
-
             </div>
 
             {/* =========================================
@@ -223,27 +228,19 @@ function ProductDetails() {
             ========================================== */}
 
             <section className="container py-4 py-lg-5">
-
                 <div className="row g-4 g-xl-5 align-items-start">
 
-                    {/* =====================================
-                        PRODUCT GALLERY
-                    ====================================== */}
+                    {/* PRODUCT GALLERY */}
 
                     <div className="col-lg-7">
-
                         <ProductGallery
                             product={product}
                         />
-
                     </div>
 
-                    {/* =====================================
-                        PRODUCT INFORMATION
-                    ====================================== */}
+                    {/* PRODUCT INFORMATION */}
 
                     <div className="col-lg-5">
-
                         <motion.div
                             initial={{
                                 opacity: 0,
@@ -268,7 +265,6 @@ function ProductDetails() {
                                 top: "110px",
                             }}
                         >
-
                             {/* Category */}
 
                             <div
@@ -276,11 +272,9 @@ function ProductDetails() {
                                 style={{
                                     color:
                                         "var(--sx-accent)",
-                                    fontSize:
-                                        "0.7rem",
+                                    fontSize: "0.7rem",
                                     fontWeight: 800,
-                                    letterSpacing:
-                                        "0.1em",
+                                    letterSpacing: "0.1em",
                                     textTransform:
                                         "uppercase",
                                 }}
@@ -294,7 +288,7 @@ function ProductDetails() {
                                     }}
                                 />
 
-                                {product.category}
+                                {product.categoryName}
                             </div>
 
                             {/* Product Title */}
@@ -355,51 +349,46 @@ function ProductDetails() {
                                     }}
                                 >
                                     ₹
-                                    {product.price.toLocaleString(
+                                    {Number(
+                                        product.discountedPrice ??
+                                        product.price ??
+                                        0
+                                    ).toLocaleString(
                                         "en-IN"
                                     )}
                                 </span>
 
-                                <span
-                                    style={{
-                                        color: "#999",
-                                        fontSize: "0.72rem",
-                                        paddingBottom: "5px",
-                                    }}
-                                >
-                                    Inclusive of taxes
-                                </span>
+                                {Number(
+                                    product.discountPercentage ??
+                                    0
+                                ) > 0 && (
+                                        <span
+                                            style={{
+                                                color: "#999",
+                                                fontSize:
+                                                    "0.72rem",
+                                                paddingBottom:
+                                                    "5px",
+                                            }}
+                                        >
+                                            {product.discountPercentage}% OFF
+                                        </span>
+                                    )}
                             </div>
 
-                            {/* =====================================
-                                EXISTING PRODUCT INFO
-                                Contains:
-                                - Size
-                                - Quantity
-                                - Add to Cart
-                                - Wishlist
-                                - Delivery
-                                - Secure Checkout
-                            ====================================== */}
+                            {/* PRODUCT INFO */}
 
                             <ProductInfo
                                 product={product}
                             />
-
                         </motion.div>
-
                     </div>
-
                 </div>
-
             </section>
 
-            {/* =========================================
-                BACK TO COLLECTION
-            ========================================== */}
+            {/* BACK TO COLLECTION */}
 
             <div className="container pb-5">
-
                 <Link
                     to="/products"
                     className="d-inline-flex align-items-center gap-2 text-decoration-none"
@@ -413,9 +402,7 @@ function ProductDetails() {
 
                     Back to collection
                 </Link>
-
             </div>
-
         </main>
     );
 }

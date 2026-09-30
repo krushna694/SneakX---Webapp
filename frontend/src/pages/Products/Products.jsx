@@ -15,14 +15,8 @@ import {
 
 import ProductGrid from "../../components/product/ProductGrid";
 import { getProductsApi } from "../../api/productApi";
+import { getCategoriesApi } from "../../api/categoryApi";
 
-const categories = [
-    "All",
-    "Running",
-    "Lifestyle",
-    "Basketball",
-    "Sports",
-];
 
 const sortOptions = [
     {
@@ -47,6 +41,9 @@ function Products() {
     const [searchParams, setSearchParams] =
         useSearchParams();
 
+    const [categories, setCategories] = useState([
+        "All",
+    ]);
     const categoryFromUrl =
         searchParams.get("category");
 
@@ -169,6 +166,57 @@ function Products() {
         };
     }, []);
 
+
+    useEffect(() => {
+        let isMounted = true;
+
+        const loadCategories = async () => {
+            try {
+                const response = await getCategoriesApi();
+
+                if (!response?.success) {
+                    throw new Error(
+                        response?.message ||
+                        "Failed to load categories."
+                    );
+                }
+
+                const backendCategories =
+                    response.data || [];
+
+                const categoryNames =
+                    backendCategories
+                        .map((category) => category.name)
+                        .filter(Boolean);
+
+                if (isMounted) {
+                    setCategories([
+                        "All",
+                        ...categoryNames,
+                    ]);
+                }
+            } catch (error) {
+                console.error(
+                    "Failed to load categories:",
+                    error
+                );
+
+                /*
+                 * Keep "All" available even if the
+                 * category request fails.
+                 */
+                if (isMounted) {
+                    setCategories(["All"]);
+                }
+            }
+        };
+
+        loadCategories();
+
+        return () => {
+            isMounted = false;
+        };
+    }, []);
     // ==========================================
     // CATEGORY
     // ==========================================

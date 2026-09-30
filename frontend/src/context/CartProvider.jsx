@@ -1,97 +1,306 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { CartContext } from "./CartContext";
+
+import {
+    getCartApi,
+    addToCartApi,
+    updateCartItemApi,
+    removeCartItemApi,
+    clearCartApi,
+} from "../api/cartApi";
 
 function CartProvider({ children }) {
 
-    // Load cart from localStorage when application starts
-    const [cartItems, setCartItems] = useState(() => {
-        const savedCart = localStorage.getItem("sneakx_cart");
+    const [cartItems, setCartItems] = useState([]);
+    const [cartTotal, setCartTotal] = useState(0);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState("");
 
-        return savedCart ? JSON.parse(savedCart) : [];
-    });
+    // ==========================================
+    // NORMALIZE BACKEND CART
+    // ==========================================
 
-    // Save cart whenever cartItems changes
-    useEffect(() => {
-        localStorage.setItem("sneakx_cart", JSON.stringify(cartItems));
-    }, [cartItems]);
+    const normalizeCart = useCallback((response) => {
 
-    const addToCart = (product, quantity = 1, size = null) => {
-        setCartItems((currentItems) => {
+        if (!response?.success) {
+            throw new Error(
+                response?.message || "Unable to load cart."
+            );
+        }
 
-            const existingItem = currentItems.find(
-                (item) =>
-                    item.product.id === product.id &&
-                    item.size === size
+        const cart = response.data;
+
+        const items = cart?.items || [];
+
+        setCartItems(items);
+        setCartTotal(Number(cart?.subtotal || 0));
+
+    }, []);
+
+    // ==========================================
+    // LOAD CART
+    // ==========================================
+
+    const loadCart = useCallback(async () => {
+
+        try {
+
+            setLoading(true);
+            setError("");
+
+            const response = await getCartApi();
+
+            normalizeCart(response);
+
+        } catch (err) {
+
+            console.error("Load cart error:", err);
+
+            setError(
+                err.response?.data?.message ||
+                err.message ||
+                "Unable to load cart."
             );
 
-            if (existingItem) {
-                return currentItems.map((item) =>
-                    item.product.id === product.id &&
-                        item.size === size
-                        ? {
-                            ...item,
-                            quantity: item.quantity + quantity,
-                        }
-                        : item
-                );
-            }
+        } finally {
 
-            return [
-                ...currentItems,
-                {
-                    product,
-                    quantity,
-                    size,
-                },
-            ];
-        });
+            setLoading(false);
+        }
+
+    }, [normalizeCart]);
+
+    // ==========================================
+    // INITIAL LOAD
+    // ==========================================
+
+    useEffect(() => {
+
+        const token = localStorage.getItem("sneakx_token");
+
+        if (!token) {
+            return;
+        }
+
+        const timer = setTimeout(() => {
+            loadCart();
+        }, 0);
+
+        return () => {
+            clearTimeout(timer);
+        };
+
+    }, [loadCart]);
+
+    // ==========================================
+    // ADD TO CART
+    // ==========================================
+
+    const addToCart = async (
+        product,
+        quantity = 1,
+        size = null,
+        productVariantId = null
+    ) => {
+
+        if (!productVariantId) {
+
+            throw new Error(
+                `Product variant is required for size ${size ?? "selected size"}.`
+            );
+        }
+
+        try {
+
+            setError("");
+
+            const response = await addToCartApi({
+                productVariantId,
+                quantity,
+            });
+
+            normalizeCart(response);
+
+            return {
+                success: true,
+                message:
+                    response.message ||
+                    "Added to cart.",
+            };
+
+        } catch (err) {
+
+            console.error("Add to cart error:", err);
+
+            const message =
+                err.response?.data?.message ||
+                err.message ||
+                "Unable to add product to cart.";
+
+            setError(message);
+
+            return {
+                success: false,
+                message,
+            };
+        }
     };
 
-    const removeFromCart = (productId, size) => {
-        setCartItems((currentItems) =>
-            currentItems.filter(
-                (item) =>
-                    !(
-                        item.product.id === productId &&
-                        item.size === size
-                    )
-            )
-        );
-    };
+    // ==========================================
+    // UPDATE QUANTITY
+    // ==========================================
 
-    const updateQuantity = (productId, size, quantity) => {
+    const updateQuantity = async (
+        cartItemId,
+        quantity
+    ) => {
 
         if (quantity < 1) {
             return;
         }
 
-        setCartItems((currentItems) =>
-            currentItems.map((item) =>
-                item.product.id === productId &&
-                    item.size === size
-                    ? {
-                        ...item,
-                        quantity,
-                    }
-                    : item
-            )
-        );
+        try {
+
+            setError("");
+
+            const response =
+                await updateCartItemApi(
+                    cartItemId,
+                    quantity
+                );
+
+            normalizeCart(response);
+
+            return {
+                success: true,
+                message:
+                    response.message ||
+                    "Cart updated.",
+            };
+
+        } catch (err) {
+
+            console.error(
+                "Update cart error:",
+                err
+            );
+
+            const message =
+                err.response?.data?.message ||
+                err.message ||
+                "Unable to update cart.";
+
+            setError(message);
+
+            return {
+                success: false,
+                message,
+            };
+        }
     };
 
-    const clearCart = () => {
-        setCartItems([]);
+    // ==========================================
+    // REMOVE ITEM
+    // ==========================================
+
+    const removeFromCart = async (
+        cartItemId
+    ) => {
+
+        try {
+
+            setError("");
+
+            const response =
+                await removeCartItemApi(
+                    cartItemId
+                );
+
+            normalizeCart(response);
+
+            return {
+                success: true,
+                message:
+                    response.message ||
+                    "Item removed from cart.",
+            };
+
+        } catch (err) {
+
+            console.error(
+                "Remove cart item error:",
+                err
+            );
+
+            const message =
+                err.response?.data?.message ||
+                err.message ||
+                "Unable to remove cart item.";
+
+            setError(message);
+
+            return {
+                success: false,
+                message,
+            };
+        }
     };
+
+    // ==========================================
+    // CLEAR CART
+    // ==========================================
+
+    const clearCart = async () => {
+
+        try {
+
+            setError("");
+
+            const response =
+                await clearCartApi();
+
+            normalizeCart(response);
+
+            return {
+                success: true,
+                message:
+                    response.message ||
+                    "Cart cleared.",
+            };
+
+        } catch (err) {
+
+            console.error(
+                "Clear cart error:",
+                err
+            );
+
+            const message =
+                err.response?.data?.message ||
+                err.message ||
+                "Unable to clear cart.";
+
+            setError(message);
+
+            return {
+                success: false,
+                message,
+            };
+        }
+    };
+
+    // ==========================================
+    // CART COUNT
+    // ==========================================
 
     const cartCount = cartItems.reduce(
-        (total, item) => total + item.quantity,
+        (total, item) =>
+            total + Number(item.quantity || 0),
         0
     );
 
-    const cartTotal = cartItems.reduce(
-        (total, item) =>
-            total + item.product.price * item.quantity,
-        0
-    );
+    // ==========================================
+    // CONTEXT VALUE
+    // ==========================================
 
     return (
         <CartContext.Provider
@@ -99,6 +308,11 @@ function CartProvider({ children }) {
                 cartItems,
                 cartCount,
                 cartTotal,
+
+                loading,
+                error,
+
+                loadCart,
                 addToCart,
                 removeFromCart,
                 updateQuantity,

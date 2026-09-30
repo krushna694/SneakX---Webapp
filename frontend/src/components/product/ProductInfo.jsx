@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
     Check,
@@ -14,9 +14,14 @@ import { useCart } from "../../hooks/useCart";
 import { useWishlist } from "../../hooks/useWishlist";
 
 function ProductInfo({ product }) {
-    const [selectedSize, setSelectedSize] = useState(null);
-    const [quantity, setQuantity] = useState(1);
-    const [cartMessage, setCartMessage] = useState("");
+    const [selectedSize, setSelectedSize] =
+        useState(null);
+
+    const [quantity, setQuantity] =
+        useState(1);
+
+    const [cartMessage, setCartMessage] =
+        useState("");
 
     const { addToCart } = useCart();
 
@@ -28,24 +33,74 @@ function ProductInfo({ product }) {
 
     const inWishlist = isInWishlist(product.id);
 
+    // ==========================================
+    // ACTIVE VARIANTS
+    // ==========================================
+
+    const activeVariants = useMemo(() => {
+        return (product.variants || []).filter(
+            (variant) =>
+                variant.active &&
+                Number(variant.stockQuantity) > 0
+        );
+    }, [product.variants]);
+
+    // ==========================================
+    // SELECTED VARIANT
+    // ==========================================
+
+    const selectedVariant = useMemo(() => {
+        if (selectedSize === null) {
+            return null;
+        }
+
+        return (
+            activeVariants.find(
+                (variant) =>
+                    Number(variant.size) ===
+                    Number(selectedSize)
+            ) || null
+        );
+    }, [activeVariants, selectedSize]);
+
+    // ==========================================
+    // ADD TO CART
+    // ==========================================
+
     const handleAddToCart = () => {
         if (!selectedSize) {
-            setCartMessage("Please select a size first.");
+            setCartMessage(
+                "Please select a size first."
+            );
+            return;
+        }
+
+        if (!selectedVariant) {
+            setCartMessage(
+                "Selected size is unavailable."
+            );
             return;
         }
 
         addToCart(
             product,
             quantity,
-            selectedSize
+            selectedSize,
+            selectedVariant.id
         );
 
-        setCartMessage("Added to your cart.");
+        setCartMessage(
+            "Added to your cart."
+        );
 
         setTimeout(() => {
             setCartMessage("");
         }, 2500);
     };
+
+    // ==========================================
+    // WISHLIST
+    // ==========================================
 
     const handleWishlist = () => {
         if (inWishlist) {
@@ -55,6 +110,10 @@ function ProductInfo({ product }) {
         }
     };
 
+    // ==========================================
+    // SIZE
+    // ==========================================
+
     const handleSizeChange = (size) => {
         setSelectedSize(size);
         setCartMessage("");
@@ -63,9 +122,7 @@ function ProductInfo({ product }) {
     return (
         <div>
 
-            {/* =========================================
-                PURCHASE PANEL
-            ========================================== */}
+            {/* PURCHASE PANEL */}
 
             <motion.div
                 initial={{
@@ -87,6 +144,7 @@ function ProductInfo({ product }) {
                 <SizeSelector
                     selectedSize={selectedSize}
                     onSizeChange={handleSizeChange}
+                    variants={product.variants || []}
                 />
 
                 {/* Quantity */}
@@ -96,9 +154,7 @@ function ProductInfo({ product }) {
                     onQuantityChange={setQuantity}
                 />
 
-                {/* =====================================
-                    ACTION BUTTONS
-                ====================================== */}
+                {/* ACTION BUTTONS */}
 
                 <div className="d-flex gap-2 mt-4">
 
@@ -121,8 +177,7 @@ function ProductInfo({ product }) {
                                 "var(--sx-accent)",
                             fontSize: "0.82rem",
                             fontWeight: 800,
-                            letterSpacing:
-                                "-0.01em",
+                            letterSpacing: "-0.01em",
                             boxShadow:
                                 "0 10px 25px rgba(255,90,31,0.20)",
                         }}
@@ -178,9 +233,7 @@ function ProductInfo({ product }) {
 
                 </div>
 
-                {/* =====================================
-                    CART MESSAGE
-                ====================================== */}
+                {/* CART MESSAGE */}
 
                 <AnimatePresence>
                     {cartMessage && (
@@ -202,7 +255,10 @@ function ProductInfo({ product }) {
                                 color:
                                     cartMessage.includes(
                                         "Please"
-                                    )
+                                    ) ||
+                                        cartMessage.includes(
+                                            "unavailable"
+                                        )
                                         ? "#d64545"
                                         : "#248a52",
                                 fontSize: "0.74rem",
@@ -216,9 +272,7 @@ function ProductInfo({ product }) {
                     )}
                 </AnimatePresence>
 
-                {/* =====================================
-                    PURCHASE INFORMATION
-                ====================================== */}
+                {/* PURCHASE INFORMATION */}
 
                 <div
                     className="mt-4"
@@ -237,7 +291,6 @@ function ProductInfo({ product }) {
                                 "1px solid #e5e5e2",
                         }}
                     >
-
                         <div
                             className="d-flex align-items-center justify-content-center flex-shrink-0"
                             style={{
@@ -270,22 +323,18 @@ function ProductInfo({ product }) {
                                         "0.68rem",
                                     color:
                                         "#999999",
-                                    marginTop:
-                                        "2px",
+                                    marginTop: "2px",
                                 }}
                             >
                                 Delivered safely to your
                                 doorstep
                             </div>
                         </div>
-
                     </div>
 
                     {/* Secure checkout */}
 
-                    <div
-                        className="d-flex align-items-center gap-3 py-3"
-                    >
+                    <div className="d-flex align-items-center gap-3 py-3">
 
                         <div
                             className="d-flex align-items-center justify-content-center flex-shrink-0"
@@ -319,8 +368,7 @@ function ProductInfo({ product }) {
                                         "0.68rem",
                                     color:
                                         "#999999",
-                                    marginTop:
-                                        "2px",
+                                    marginTop: "2px",
                                 }}
                             >
                                 Your purchase is protected
@@ -328,15 +376,11 @@ function ProductInfo({ product }) {
                         </div>
 
                     </div>
-
                 </div>
 
-                {/* =====================================
-                    WISHLIST STATUS
-                ====================================== */}
+                {/* WISHLIST STATUS */}
 
                 <AnimatePresence mode="wait">
-
                     {inWishlist && (
                         <motion.div
                             key="wishlist-added"
@@ -371,7 +415,6 @@ function ProductInfo({ product }) {
                             Saved to your wishlist
                         </motion.div>
                     )}
-
                 </AnimatePresence>
 
             </motion.div>

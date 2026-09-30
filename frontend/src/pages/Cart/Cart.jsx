@@ -19,7 +19,43 @@ function Cart() {
         cartItems,
         cartTotal,
         clearCart,
+        loading,
+        error,
     } = useCart();
+
+    const totalItemQuantity = cartItems.reduce(
+        (total, item) => total + Number(item.quantity || 0),
+        0
+    );
+
+    if (loading && cartItems.length === 0) {
+        return (
+            <motion.main
+                className="container py-5"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+            >
+                <div
+                    className="d-flex justify-content-center align-items-center"
+                    style={{
+                        minHeight: "300px",
+                    }}
+                >
+                    <div
+                        className="spinner-border"
+                        role="status"
+                        style={{
+                            color: "#ff5a1f",
+                        }}
+                    >
+                        <span className="visually-hidden">
+                            Loading cart...
+                        </span>
+                    </div>
+                </div>
+            </motion.main>
+        );
+    }
 
     if (cartItems.length === 0) {
         return (
@@ -51,6 +87,7 @@ function Cart() {
                 {/* Header */}
                 <div className="mb-5">
                     <div className="d-flex align-items-center gap-3">
+
                         <motion.div
                             className="d-flex align-items-center justify-content-center"
                             style={{
@@ -61,8 +98,14 @@ function Cart() {
                                 color: "#ffffff",
                                 flexShrink: 0,
                             }}
-                            initial={{ scale: 0.8, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
+                            initial={{
+                                scale: 0.8,
+                                opacity: 0,
+                            }}
+                            animate={{
+                                scale: 1,
+                                opacity: 1,
+                            }}
                             transition={{
                                 duration: 0.45,
                                 type: "spring",
@@ -87,7 +130,8 @@ function Cart() {
                             <h1
                                 className="fw-bold mb-0"
                                 style={{
-                                    fontSize: "clamp(30px, 5vw, 46px)",
+                                    fontSize:
+                                        "clamp(30px, 5vw, 46px)",
                                     letterSpacing: "-1.5px",
                                     lineHeight: 1,
                                 }}
@@ -95,6 +139,7 @@ function Cart() {
                                 Shopping Cart
                             </h1>
                         </div>
+
                     </div>
                 </div>
 
@@ -117,8 +162,14 @@ function Cart() {
     return (
         <motion.main
             className="container py-4 py-md-5"
-            initial={{ opacity: 0, y: 18 }}
-            animate={{ opacity: 1, y: 0 }}
+            initial={{
+                opacity: 0,
+                y: 18,
+            }}
+            animate={{
+                opacity: 1,
+                y: 0,
+            }}
             transition={{
                 duration: 0.55,
                 ease: [0.22, 1, 0.36, 1],
@@ -126,6 +177,7 @@ function Cart() {
         >
             {/* Top Navigation */}
             <div className="d-flex justify-content-between align-items-center mb-4">
+
                 <Link
                     to="/products"
                     className="text-decoration-none d-inline-flex align-items-center gap-2"
@@ -137,7 +189,9 @@ function Cart() {
                 >
                     <motion.span
                         className="d-flex align-items-center justify-content-center"
-                        whileHover={{ x: -3 }}
+                        whileHover={{
+                            x: -3,
+                        }}
                     >
                         <ArrowLeft size={15} />
                     </motion.span>
@@ -148,6 +202,7 @@ function Cart() {
                 <motion.button
                     type="button"
                     onClick={clearCart}
+                    disabled={loading}
                     className="btn d-inline-flex align-items-center gap-2"
                     style={{
                         border: "1px solid #e9e9e9",
@@ -170,14 +225,31 @@ function Cart() {
                     <Trash2 size={14} />
                     Clear Cart
                 </motion.button>
+
             </div>
+
+            {/* Error */}
+            {error && (
+                <div
+                    className="alert alert-danger"
+                    role="alert"
+                    style={{
+                        borderRadius: "12px",
+                        fontSize: "13px",
+                    }}
+                >
+                    {error}
+                </div>
+            )}
 
             {/* Premium Header */}
             <div className="mb-4 mb-md-5">
                 <div className="row align-items-end g-3">
 
                     <div className="col-md-8">
+
                         <div className="d-flex align-items-center gap-3">
+
                             <motion.div
                                 className="d-flex align-items-center justify-content-center"
                                 style={{
@@ -199,6 +271,7 @@ function Cart() {
                             </motion.div>
 
                             <div>
+
                                 <p
                                     className="text-uppercase fw-semibold mb-1"
                                     style={{
@@ -221,12 +294,16 @@ function Cart() {
                                 >
                                     Shopping Cart
                                 </h1>
+
                             </div>
+
                         </div>
+
                     </div>
 
                     {/* Item Count */}
                     <div className="col-md-4 text-md-end">
+
                         <div
                             className="d-inline-flex align-items-center gap-2 px-3 py-2"
                             style={{
@@ -247,7 +324,7 @@ function Cart() {
                                     fontWeight: "700",
                                 }}
                             >
-                                {cartItems.length}
+                                {totalItemQuantity}
                             </span>
 
                             <span
@@ -257,26 +334,35 @@ function Cart() {
                                     fontWeight: "600",
                                 }}
                             >
-                                {cartItems.length === 1
+                                {totalItemQuantity === 1
                                     ? "Item"
                                     : "Items"}{" "}
                                 in your bag
                             </span>
                         </div>
+
                     </div>
+
                 </div>
             </div>
 
             {/* Trust Strip */}
             <motion.div
                 className="row g-2 g-md-3 mb-4"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
+                initial={{
+                    opacity: 0,
+                    y: 10,
+                }}
+                animate={{
+                    opacity: 1,
+                    y: 0,
+                }}
                 transition={{
                     duration: 0.45,
                     delay: 0.15,
                 }}
             >
+
                 <div className="col-12 col-md-4">
                     <div
                         className="d-flex align-items-center gap-3 h-100 px-3 py-3"
@@ -387,6 +473,7 @@ function Cart() {
                         </div>
                     </div>
                 </div>
+
             </motion.div>
 
             {/* Main Cart */}
@@ -396,7 +483,9 @@ function Cart() {
                 <div className="col-lg-8">
 
                     <div className="mb-3 d-flex justify-content-between align-items-center">
+
                         <div>
+
                             <p
                                 className="text-uppercase fw-semibold mb-1"
                                 style={{
@@ -416,24 +505,33 @@ function Cart() {
                             >
                                 Your Sneakers
                             </h5>
+
                         </div>
+
                     </div>
 
                     <CartList items={cartItems} />
+
                 </div>
 
                 {/* Summary */}
                 <div className="col-lg-4">
+
                     <div
                         style={{
                             position: "sticky",
                             top: "95px",
                         }}
                     >
-                        <CartSummary subtotal={cartTotal} />
+                        <CartSummary
+                            subtotal={cartTotal}
+                        />
                     </div>
+
                 </div>
+
             </div>
+
         </motion.main>
     );
 }

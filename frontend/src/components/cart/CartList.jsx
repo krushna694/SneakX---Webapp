@@ -5,7 +5,7 @@ function CartList({ items }) {
         <div>
             {items.map((item) => (
                 <CartItem
-                    key={`${item.product.id}-${item.size}`}
+                    key={item.id}
                     item={item}
                 />
             ))}
