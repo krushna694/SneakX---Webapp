@@ -1,5 +1,10 @@
 import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+
+import {
+    motion,
+    AnimatePresence,
+} from "framer-motion";
+
 import {
     ArrowUpRight,
     Check,
@@ -7,30 +12,154 @@ import {
     ShoppingBag,
     Trash2,
 } from "lucide-react";
+
 import { Link } from "react-router-dom";
+
+import { getProductByIdApi } from "../../api/productApi";
 
 import { useCart } from "../../hooks/useCart";
 import { useWishlist } from "../../hooks/useWishlist";
 
 function WishlistItem({ product }) {
-    const { removeFromWishlist } = useWishlist();
+    const { removeFromWishlist } =
+        useWishlist();
+
     const { addToCart } = useCart();
 
-    const [message, setMessage] = useState("");
+    const [message, setMessage] =
+        useState("");
 
-    const handleAddToCart = () => {
-        addToCart(product, 1, 9);
+    const [isAddingToCart, setIsAddingToCart] =
+        useState(false);
 
-        setMessage("Added to cart");
+    // ==========================================
+    // ADD TO CART
+    // ==========================================
 
-        setTimeout(() => {
+    const handleAddToCart = async () => {
+        if (!product?.id || isAddingToCart) {
+            return;
+        }
+
+        try {
+            setIsAddingToCart(true);
             setMessage("");
-        }, 1800);
+
+            /*
+             * WishlistItem only contains basic product
+             * information.
+             *
+             * Fetch the complete product so that we
+             * receive its real variants.
+             */
+            const response =
+                await getProductByIdApi(product.id);
+
+            if (!response?.success) {
+                throw new Error(
+                    response?.message ||
+                        "Unable to load product variants."
+                );
+            }
+
+            const fullProduct =
+                response.data;
+
+            const variants =
+                fullProduct?.variants || [];
+
+            /*
+             * Select the first variant that is:
+             *
+             * 1. Active
+             * 2. In stock
+             */
+            const availableVariant =
+                variants.find(
+                    (variant) =>
+                        variant?.active === true &&
+                        Number(
+                            variant?.stockQuantity ?? 0
+                        ) > 0
+                );
+
+            if (!availableVariant) {
+                setMessage(
+                    "This product is currently out of stock."
+                );
+
+                return;
+            }
+
+            /*
+             * Add the actual backend variant.
+             *
+             * CartProvider requires:
+             *
+             * product
+             * quantity
+             * size
+             * productVariantId
+             */
+            const result = await addToCart(
+                fullProduct,
+                1,
+                availableVariant.size,
+                availableVariant.id
+            );
+
+            if (result?.success === false) {
+                setMessage(
+                    result.message ||
+                        "Unable to add to cart."
+                );
+
+                return;
+            }
+
+            setMessage("Added to cart");
+
+            setTimeout(() => {
+                setMessage("");
+            }, 1800);
+        } catch (error) {
+            console.error(
+                "Failed to add wishlist product to cart:",
+                error
+            );
+
+            setMessage(
+                error?.response?.data?.message ||
+                    error?.message ||
+                    "Unable to add to cart."
+            );
+        } finally {
+            setIsAddingToCart(false);
+        }
     };
 
-    const handleRemove = () => {
-        removeFromWishlist(product.id);
+    // ==========================================
+    // REMOVE FROM WISHLIST
+    // ==========================================
+
+    const handleRemove = async () => {
+        if (!product?.id) {
+            return;
+        }
+
+        try {
+            await removeFromWishlist(product.id);
+        } catch (error) {
+            console.error(
+                "Failed to remove wishlist item:",
+                error
+            );
+        }
     };
+
+    // ==========================================
+    // RENDER
+    // ==========================================
 
     return (
         <motion.article
@@ -38,7 +167,8 @@ function WishlistItem({ product }) {
             style={{
                 borderRadius: "20px",
                 background: "#ffffff",
-                boxShadow: "0 7px 25px rgba(0, 0, 0, 0.06)",
+                boxShadow:
+                    "0 7px 25px rgba(0, 0, 0, 0.06)",
             }}
             initial={{
                 opacity: 0,
@@ -63,6 +193,7 @@ function WishlistItem({ product }) {
             }}
         >
             {/* Product Visual */}
+
             <div
                 className="position-relative overflow-hidden"
                 style={{
@@ -72,6 +203,7 @@ function WishlistItem({ product }) {
                 }}
             >
                 {/* Wishlist Badge */}
+
                 <div
                     className="position-absolute d-flex align-items-center justify-content-center"
                     style={{
@@ -95,6 +227,7 @@ function WishlistItem({ product }) {
                 </div>
 
                 {/* Product Number */}
+
                 <span
                     className="position-absolute"
                     style={{
@@ -110,6 +243,7 @@ function WishlistItem({ product }) {
                 </span>
 
                 {/* Sneaker Visual */}
+
                 <motion.div
                     className="position-absolute"
                     style={{
@@ -138,7 +272,8 @@ function WishlistItem({ product }) {
                             background: "#ff5a1f",
                             top: "19px",
                             left: "34px",
-                            transform: "rotate(-12deg)",
+                            transform:
+                                "rotate(-12deg)",
                         }}
                     />
 
@@ -168,6 +303,7 @@ function WishlistItem({ product }) {
                 </motion.div>
 
                 {/* View Product */}
+
                 <Link
                     to={`/products/${product.id}`}
                     className="position-absolute bottom-0 end-0 m-3 d-flex align-items-center justify-content-center text-decoration-none"
@@ -185,8 +321,8 @@ function WishlistItem({ product }) {
             </div>
 
             {/* Product Information */}
-            <div className="card-body p-3 p-md-4 d-flex flex-column">
 
+            <div className="card-body p-3 p-md-4 d-flex flex-column">
                 <p
                     className="text-uppercase fw-semibold mb-1"
                     style={{
@@ -195,7 +331,8 @@ function WishlistItem({ product }) {
                         color: "#999999",
                     }}
                 >
-                    {product.category}
+                    {product.category ||
+                        "SNEAKX"}
                 </p>
 
                 <div className="d-flex justify-content-between align-items-start gap-2">
@@ -220,55 +357,95 @@ function WishlistItem({ product }) {
                                 fontSize: "17px",
                             }}
                         >
-                            ₹{product.price.toLocaleString("en-IN")}
+                            ₹
+                            {Number(
+                                product.discountedPrice ??
+                                    product.price ??
+                                    0
+                            ).toLocaleString(
+                                "en-IN"
+                            )}
                         </p>
                     </div>
                 </div>
 
                 {/* Actions */}
+
                 <div className="mt-4">
                     <div className="d-flex gap-2">
-
                         <motion.button
                             type="button"
-                            onClick={handleAddToCart}
+                            onClick={
+                                handleAddToCart
+                            }
+                            disabled={
+                                isAddingToCart
+                            }
                             className="btn flex-grow-1 d-flex align-items-center justify-content-center gap-2 border-0 text-white"
                             style={{
-                                background: "#111111",
+                                background:
+                                    isAddingToCart
+                                        ? "#555555"
+                                        : "#111111",
                                 borderRadius: "10px",
-                                padding: "10px 12px",
+                                padding:
+                                    "10px 12px",
                                 fontSize: "11px",
                                 fontWeight: "600",
+                                cursor:
+                                    isAddingToCart
+                                        ? "wait"
+                                        : "pointer",
                             }}
-                            whileHover={{
-                                scale: 1.02,
-                                backgroundColor: "#ff5a1f",
-                            }}
-                            whileTap={{
-                                scale: 0.96,
-                            }}
+                            whileHover={
+                                !isAddingToCart
+                                    ? {
+                                          scale: 1.02,
+                                          backgroundColor:
+                                              "#ff5a1f",
+                                      }
+                                    : {}
+                            }
+                            whileTap={
+                                !isAddingToCart
+                                    ? {
+                                          scale: 0.96,
+                                      }
+                                    : {}
+                            }
                         >
-                            <ShoppingBag size={15} />
-                            Add to Cart
+                            <ShoppingBag
+                                size={15}
+                            />
+
+                            {isAddingToCart
+                                ? "Adding..."
+                                : "Add to Cart"}
                         </motion.button>
 
                         <motion.button
                             type="button"
-                            onClick={handleRemove}
+                            onClick={
+                                handleRemove
+                            }
                             className="btn d-flex align-items-center justify-content-center"
                             style={{
                                 width: "43px",
                                 height: "40px",
                                 borderRadius: "10px",
-                                border: "1px solid #eeeeee",
-                                background: "#ffffff",
+                                border:
+                                    "1px solid #eeeeee",
+                                background:
+                                    "#ffffff",
                                 color: "#777777",
                             }}
                             title="Remove from wishlist"
                             whileHover={{
                                 color: "#dc3545",
-                                borderColor: "#f0cccc",
-                                background: "#fffafa",
+                                borderColor:
+                                    "#f0cccc",
+                                background:
+                                    "#fffafa",
                             }}
                             whileTap={{
                                 scale: 0.94,
@@ -276,10 +453,10 @@ function WishlistItem({ product }) {
                         >
                             <Trash2 size={15} />
                         </motion.button>
-
                     </div>
 
                     {/* Feedback */}
+
                     <AnimatePresence>
                         {message && (
                             <motion.div
@@ -297,18 +474,35 @@ function WishlistItem({ product }) {
                                     height: 0,
                                 }}
                                 style={{
-                                    color: "#198754",
+                                    color:
+                                        message.includes(
+                                            "Unable"
+                                        ) ||
+                                        message.includes(
+                                            "out of stock"
+                                        )
+                                            ? "#dc3545"
+                                            : "#198754",
                                     fontSize: "11px",
                                     fontWeight: "600",
                                     overflow: "hidden",
                                 }}
                             >
-                                <Check size={14} />
+                                {!message.includes(
+                                    "Unable"
+                                ) &&
+                                    !message.includes(
+                                        "out of stock"
+                                    ) && (
+                                        <Check
+                                            size={14}
+                                        />
+                                    )}
+
                                 {message}
                             </motion.div>
                         )}
                     </AnimatePresence>
-
                 </div>
             </div>
         </motion.article>

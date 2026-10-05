@@ -26,32 +26,73 @@ function WishlistProvider({ children }) {
     // ==========================================
 
     const normalizeWishlist = useCallback((response) => {
+        let items = [];
+
         /*
-         * Backend response is expected to contain
-         * the wishlist items.
-         *
-         * We keep the frontend state as an array
-         * of product objects so existing UI components
-         * continue to work.
+         * ApiResponse
+         *     ↓
+         * data
+         *     ↓
+         * WishlistResponse
+         *     ↓
+         * items
          */
 
         if (Array.isArray(response)) {
-            return response;
+            items = response;
+        } else if (Array.isArray(response?.data?.items)) {
+            items = response.data.items;
+        } else if (Array.isArray(response?.items)) {
+            items = response.items;
         }
 
-        if (Array.isArray(response?.data)) {
-            return response.data;
-        }
+        /*
+         * Convert WishlistItemResponse into the
+         * product shape expected by the existing
+         * Wishlist UI.
+         *
+         * Backend:
+         *
+         * id            = wishlist item ID
+         * productId     = actual product ID
+         * productName   = product name
+         *
+         * Frontend:
+         *
+         * id            = actual product ID
+         * name          = product name
+         */
 
-        if (Array.isArray(response?.data?.items)) {
-            return response.data.items;
-        }
+        return items.map((item) => ({
+            id: item.productId,
+            wishlistItemId: item.id,
 
-        if (Array.isArray(response?.items)) {
-            return response.items;
-        }
+            name: item.productName,
+            brand: item.brand,
+            slug: item.slug,
 
-        return [];
+            imageUrl: item.imageUrl,
+
+            price: Number(item.price ?? 0),
+            discountPercentage: Number(
+                item.discount ?? 0
+            ),
+            discountedPrice: Number(
+                item.discountedPrice ??
+                item.price ??
+                0
+            ),
+
+            /*
+             * Wishlist response does not currently
+             * contain category or variants.
+             *
+             * These will be populated separately
+             * when required by the UI.
+             */
+            category: item.category ?? null,
+            variants: item.variants ?? [],
+        }));
     }, []);
 
     // ==========================================
@@ -59,7 +100,8 @@ function WishlistProvider({ children }) {
     // ==========================================
 
     const loadWishlist = useCallback(async () => {
-        const token = localStorage.getItem("sneakx_token");
+        const token =
+            localStorage.getItem("sneakx_token");
 
         if (!token) {
             resetWishlistState();
@@ -72,8 +114,10 @@ function WishlistProvider({ children }) {
 
             const response = await getWishlistApi();
 
-            // Make sure the user did not logout
-            // while the request was running.
+            /*
+             * Make sure the user did not logout
+             * while the request was running.
+             */
             const currentToken =
                 localStorage.getItem("sneakx_token");
 
@@ -99,7 +143,10 @@ function WishlistProvider({ children }) {
         } finally {
             setWishlistLoading(false);
         }
-    }, [normalizeWishlist, resetWishlistState]);
+    }, [
+        normalizeWishlist,
+        resetWishlistState,
+    ]);
 
     // ==========================================
     // INITIAL LOAD
@@ -117,7 +164,9 @@ function WishlistProvider({ children }) {
             loadWishlist();
         }, 0);
 
-        return () => clearTimeout(timer);
+        return () => {
+            clearTimeout(timer);
+        };
     }, [loadWishlist]);
 
     // ==========================================
@@ -126,13 +175,24 @@ function WishlistProvider({ children }) {
 
     useEffect(() => {
         const handleAuthChange = (event) => {
-            const action = event?.detail?.action;
+            const action =
+                event?.detail?.action;
+
+            // ----------------------------------
+            // USER LOGGED IN
+            // ----------------------------------
 
             if (action === "login") {
                 setTimeout(() => {
                     loadWishlist();
                 }, 0);
+
+                return;
             }
+
+            // ----------------------------------
+            // USER LOGGED OUT
+            // ----------------------------------
 
             if (action === "logout") {
                 resetWishlistState();
@@ -150,7 +210,10 @@ function WishlistProvider({ children }) {
                 handleAuthChange
             );
         };
-    }, [loadWishlist, resetWishlistState]);
+    }, [
+        loadWishlist,
+        resetWishlistState,
+    ]);
 
     // ==========================================
     // ADD TO WISHLIST
@@ -161,6 +224,7 @@ function WishlistProvider({ children }) {
             console.error(
                 "Cannot add product without an ID"
             );
+
             return;
         }
 
@@ -170,10 +234,10 @@ function WishlistProvider({ children }) {
             const response =
                 await addToWishlistApi(product.id);
 
-            const updatedWishlist =
+            const normalizedWishlist =
                 normalizeWishlist(response);
 
-            setWishlistItems(updatedWishlist);
+            setWishlistItems(normalizedWishlist);
 
             return response;
         } catch (error) {
@@ -195,7 +259,9 @@ function WishlistProvider({ children }) {
     // REMOVE FROM WISHLIST
     // ==========================================
 
-    const removeFromWishlist = async (productId) => {
+    const removeFromWishlist = async (
+        productId
+    ) => {
         if (!productId) {
             return;
         }
@@ -204,12 +270,14 @@ function WishlistProvider({ children }) {
             setWishlistError(null);
 
             const response =
-                await removeFromWishlistApi(productId);
+                await removeFromWishlistApi(
+                    productId
+                );
 
-            const updatedWishlist =
+            const normalizedWishlist =
                 normalizeWishlist(response);
 
-            setWishlistItems(updatedWishlist);
+            setWishlistItems(normalizedWishlist);
 
             return response;
         } catch (error) {
