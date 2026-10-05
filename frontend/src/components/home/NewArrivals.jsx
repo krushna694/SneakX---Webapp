@@ -1,36 +1,99 @@
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { ArrowUpRight, Sparkles } from "lucide-react";
+
 import ProductCard from "../product/ProductCard";
+import { getProductsApi } from "../../api/productApi";
 import "../../pages/Home/Home.css";
 
-const products = [
-    {
-        id: 5,
-        name: "Velocity X",
-        price: 5499,
-    },
-    {
-        id: 6,
-        name: "Street Runner",
-        price: 4799,
-    },
-    {
-        id: 7,
-        name: "Air Motion",
-        price: 6299,
-    },
-    {
-        id: 8,
-        name: "Classic Low",
-        price: 3999,
-    },
-];
-
 function NewArrivals() {
+    const [products, setProducts] = useState([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState("");
+
+    useEffect(() => {
+        let isMounted = true;
+
+        const loadNewArrivals = async () => {
+            try {
+                setIsLoading(true);
+                setError("");
+
+                const response = await getProductsApi({
+                    page: 0,
+                    size: 4,
+                    sort: "createdAt,desc",
+                });
+
+                if (!response?.success) {
+                    throw new Error(
+                        response?.message ||
+                        "Failed to load new arrivals."
+                    );
+                }
+
+                const backendProducts =
+                    response.data?.content || [];
+
+                const normalizedProducts =
+                    backendProducts.map((product) => ({
+                        ...product,
+
+                        id: product.id,
+
+                        name: product.name,
+
+                        category:
+                            product.categoryName,
+
+                        price: Number(
+                            product.discountedPrice ??
+                            product.price ??
+                            0
+                        ),
+
+                        originalPrice: Number(
+                            product.price ?? 0
+                        ),
+                    }));
+
+                if (isMounted) {
+                    setProducts(normalizedProducts);
+                }
+            } catch (error) {
+                console.error(
+                    "Failed to load new arrivals:",
+                    error
+                );
+
+                if (isMounted) {
+                    setError(
+                        error.response?.data?.message ||
+                        error.message ||
+                        "Unable to load new arrivals."
+                    );
+
+                    setProducts([]);
+                }
+            } finally {
+                if (isMounted) {
+                    setIsLoading(false);
+                }
+            }
+        };
+
+        loadNewArrivals();
+
+        return () => {
+            isMounted = false;
+        };
+    }, []);
+
     return (
         <section className="sx-home-section sx-product-section">
             <div className="container">
 
+                {/* Section Heading */}
                 <motion.div
                     className="sx-section-heading"
                     initial={{
@@ -77,6 +140,10 @@ function NewArrivals() {
                         whileTap={{
                             scale: 0.97,
                         }}
+                        onClick={() => {
+                            window.location.href =
+                                "/products";
+                        }}
                     >
                         Explore Collection
                         <ArrowUpRight size={15} />
@@ -84,37 +151,99 @@ function NewArrivals() {
 
                 </motion.div>
 
-                <div className="row g-4">
-
-                    {products.map((product, index) => (
-                        <div
-                            className="col-6 col-md-3"
-                            key={product.id}
-                        >
-                            <motion.div
-                                initial={{
-                                    opacity: 0,
-                                    y: 35,
-                                }}
-                                whileInView={{
-                                    opacity: 1,
-                                    y: 0,
-                                }}
-                                viewport={{
-                                    once: true,
-                                    amount: 0.15,
-                                }}
-                                transition={{
-                                    duration: 0.55,
-                                    delay: index * 0.08,
-                                }}
+                {/* Loading */}
+                {isLoading && (
+                    <div className="row g-4">
+                        {[1, 2, 3, 4].map((item) => (
+                            <div
+                                className="col-6 col-md-3"
+                                key={item}
                             >
-                                <ProductCard product={product} />
-                            </motion.div>
-                        </div>
-                    ))}
+                                <div
+                                    style={{
+                                        minHeight: "420px",
+                                        borderRadius: "20px",
+                                        background:
+                                            "#f5f5f3",
+                                        border:
+                                            "1px solid #e9e9e7",
+                                    }}
+                                />
+                            </div>
+                        ))}
+                    </div>
+                )}
 
-                </div>
+                {/* Error */}
+                {!isLoading && error && (
+                    <div
+                        className="text-center py-5"
+                        style={{
+                            color: "#777",
+                        }}
+                    >
+                        Unable to load new arrivals.
+                    </div>
+                )}
+
+                {/* Products */}
+                {!isLoading &&
+                    !error &&
+                    products.length > 0 && (
+                        <div className="row g-4">
+
+                            {products.map(
+                                (product, index) => (
+                                    <div
+                                        className="col-6 col-md-3"
+                                        key={product.id}
+                                    >
+                                        <motion.div
+                                            initial={{
+                                                opacity: 0,
+                                                y: 35,
+                                            }}
+                                            whileInView={{
+                                                opacity: 1,
+                                                y: 0,
+                                            }}
+                                            viewport={{
+                                                once: true,
+                                                amount: 0.15,
+                                            }}
+                                            transition={{
+                                                duration: 0.55,
+                                                delay:
+                                                    index *
+                                                    0.08,
+                                            }}
+                                        >
+                                            <ProductCard
+                                                product={
+                                                    product
+                                                }
+                                            />
+                                        </motion.div>
+                                    </div>
+                                )
+                            )}
+
+                        </div>
+                    )}
+
+                {/* Empty */}
+                {!isLoading &&
+                    !error &&
+                    products.length === 0 && (
+                        <div
+                            className="text-center py-5"
+                            style={{
+                                color: "#777",
+                            }}
+                        >
+                            No new arrivals available.
+                        </div>
+                    )}
 
                 {/* Premium CTA */}
                 <motion.div
@@ -160,6 +289,10 @@ function NewArrivals() {
                             }}
                             whileTap={{
                                 scale: 0.97,
+                            }}
+                            onClick={() => {
+                                window.location.href =
+                                    "/products";
                             }}
                         >
                             Shop Sneakers

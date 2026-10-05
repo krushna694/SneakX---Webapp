@@ -167,6 +167,28 @@ function ProductDetails() {
         );
     }
 
+    // ==========================================
+    // PRICE CALCULATION
+    // ==========================================
+
+    const currentPrice = Number(
+        product.discountedPrice ??
+        product.price ??
+        0
+    );
+
+    const originalPrice = Number(
+        product.price ?? 0
+    );
+
+    const discountPercentage = Number(
+        product.discountPercentage ?? 0
+    );
+
+    const hasDiscount =
+        discountPercentage > 0 &&
+        originalPrice > currentPrice;
+
     return (
         <main
             style={{
@@ -339,6 +361,8 @@ function ProductDetails() {
                                         "1px solid #e5e5e2",
                                 }}
                             >
+                                {/* Current / Discounted Price */}
+
                                 <span
                                     style={{
                                         color: "#111113",
@@ -349,31 +373,58 @@ function ProductDetails() {
                                     }}
                                 >
                                     ₹
-                                    {Number(
-                                        product.discountedPrice ??
-                                        product.price ??
-                                        0
-                                    ).toLocaleString(
-                                        "en-IN"
+                                    {currentPrice.toLocaleString(
+                                        "en-IN",
+                                        {
+                                            minimumFractionDigits: 2,
+                                            maximumFractionDigits: 2,
+                                        }
                                     )}
                                 </span>
 
-                                {Number(
-                                    product.discountPercentage ??
-                                    0
-                                ) > 0 && (
-                                        <span
-                                            style={{
-                                                color: "#999",
-                                                fontSize:
-                                                    "0.72rem",
-                                                paddingBottom:
-                                                    "5px",
-                                            }}
-                                        >
-                                            {product.discountPercentage}% OFF
-                                        </span>
-                                    )}
+                                {/* Original Price */}
+
+                                {hasDiscount && (
+                                    <span
+                                        style={{
+                                            color: "#999999",
+                                            fontSize: "0.85rem",
+                                            fontWeight: 600,
+                                            textDecoration:
+                                                "line-through",
+                                            textDecorationThickness:
+                                                "1.5px",
+                                            paddingBottom:
+                                                "5px",
+                                        }}
+                                    >
+                                        ₹
+                                        {originalPrice.toLocaleString(
+                                            "en-IN",
+                                            {
+                                                minimumFractionDigits: 2,
+                                                maximumFractionDigits: 2,
+                                            }
+                                        )}
+                                    </span>
+                                )}
+
+                                {/* Discount */}
+
+                                {hasDiscount && (
+                                    <span
+                                        style={{
+                                            color:
+                                                "var(--sx-accent)",
+                                            fontSize: "0.72rem",
+                                            fontWeight: 800,
+                                            paddingBottom:
+                                                "5px",
+                                        }}
+                                    >
+                                        {discountPercentage}% OFF
+                                    </span>
+                                )}
                             </div>
 
                             {/* PRODUCT INFO */}

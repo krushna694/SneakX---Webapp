@@ -11,22 +11,48 @@ import { Link } from "react-router-dom";
 import { useWishlist } from "../../hooks/useWishlist";
 
 function ProductCard({ product }) {
-    const { wishlistItems, addToWishlist, removeFromWishlist } =
-        useWishlist();
 
-    const [wishlistMessage, setWishlistMessage] = useState("");
+    const currentPrice = Number(
+        product.discountedPrice ?? product.price ?? 0
+    );
+
+    const originalPrice = Number(
+        product.originalPrice ?? product.price ?? 0
+    );
+
+    const discountPercentage = Number(
+        product.discountPercentage ?? 0
+    );
+
+    const hasDiscount =
+        originalPrice > currentPrice &&
+        discountPercentage > 0;
+
+    const {
+        wishlistItems,
+        addToWishlist,
+        removeFromWishlist,
+    } = useWishlist();
+
+    const [wishlistMessage, setWishlistMessage] =
+        useState("");
 
     const isWishlisted = wishlistItems.some(
         (item) => item.id === product.id
     );
 
     const handleWishlist = () => {
+
         if (isWishlisted) {
             removeFromWishlist(product.id);
-            setWishlistMessage("Removed from wishlist");
+            setWishlistMessage(
+                "Removed from wishlist"
+            );
         } else {
             addToWishlist(product);
-            setWishlistMessage("Added to wishlist");
+            setWishlistMessage(
+                "Added to wishlist"
+            );
         }
 
         setTimeout(() => {
@@ -66,6 +92,7 @@ function ProductCard({ product }) {
                     "0 22px 50px rgba(0, 0, 0, 0.12)",
             }}
         >
+
             {/* =========================================
                 PRODUCT VISUAL
             ========================================== */}
@@ -78,6 +105,7 @@ function ProductCard({ product }) {
                         "linear-gradient(145deg, #f7f7f5 0%, #ededeb 100%)",
                 }}
             >
+
                 {/* Background glow */}
                 <motion.div
                     className="position-absolute top-50 start-50 translate-middle rounded-circle"
@@ -180,6 +208,7 @@ function ProductCard({ product }) {
                         rotate: -2,
                     }}
                 >
+
                     {/* Sneaker upper highlight */}
                     <span
                         style={{
@@ -242,6 +271,7 @@ function ProductCard({ product }) {
                                 "rgba(17,17,17,0.10)",
                         }}
                     />
+
                 </motion.div>
 
                 {/* Product Details Button */}
@@ -276,6 +306,7 @@ function ProductCard({ product }) {
                         <ArrowUpRight size={18} />
                     </Link>
                 </motion.div>
+
             </div>
 
             {/* =========================================
@@ -288,6 +319,7 @@ function ProductCard({ product }) {
                     background: "#ffffff",
                 }}
             >
+
                 {/* Product type */}
                 <div
                     className="d-flex align-items-center gap-2 mb-2"
@@ -323,20 +355,68 @@ function ProductCard({ product }) {
 
                 {/* Price + action */}
                 <div className="d-flex align-items-center justify-content-between gap-3">
+
                     <div>
-                        <span
-                            style={{
-                                color: "#111113",
-                                fontSize: "1.2rem",
-                                fontWeight: 800,
-                                letterSpacing: "-0.02em",
-                            }}
-                        >
-                            ₹
-                            {product.price.toLocaleString(
-                                "en-IN"
+
+                        <div className="d-flex align-items-center gap-2 flex-wrap">
+
+                            {/* Current / Discounted Price */}
+                            <span
+                                style={{
+                                    color: "#111113",
+                                    fontSize: "1.2rem",
+                                    fontWeight: 800,
+                                    letterSpacing: "-0.02em",
+                                }}
+                            >
+                                ₹
+                                {currentPrice.toLocaleString(
+                                    "en-IN",
+                                    {
+                                        minimumFractionDigits: 2,
+                                        maximumFractionDigits: 2,
+                                    }
+                                )}
+                            </span>
+
+                            {/* Original Price */}
+                            {hasDiscount && (
+                                <span
+                                    style={{
+                                        color: "#999",
+                                        fontSize: "0.85rem",
+                                        fontWeight: 600,
+                                        textDecoration:
+                                            "line-through",
+                                    }}
+                                >
+                                    ₹
+                                    {originalPrice.toLocaleString(
+                                        "en-IN",
+                                        {
+                                            minimumFractionDigits: 2,
+                                            maximumFractionDigits: 2,
+                                        }
+                                    )}
+                                </span>
                             )}
-                        </span>
+
+                        </div>
+
+                        {/* Discount */}
+                        {hasDiscount && (
+                            <div
+                                className="mt-1"
+                                style={{
+                                    color: "#ff5a1f",
+                                    fontSize: "0.68rem",
+                                    fontWeight: 800,
+                                }}
+                            >
+                                {discountPercentage}% OFF
+                            </div>
+                        )}
+
                     </div>
 
                     {/* Product action */}
@@ -373,6 +453,7 @@ function ProductCard({ product }) {
                             <ArrowUpRight size={19} />
                         </Link>
                     </motion.div>
+
                 </div>
 
                 {/* Bottom navigation */}
@@ -383,6 +464,7 @@ function ProductCard({ product }) {
                             "1px solid #eeeeec",
                     }}
                 >
+
                     <Link
                         to={`/products/${product.id}`}
                         className="d-inline-flex align-items-center gap-2 text-decoration-none"
@@ -403,7 +485,7 @@ function ProductCard({ product }) {
                         </motion.span>
                     </Link>
 
-                    {/* Wishlist Button */}
+                    {/* Wishlist */}
                     <motion.button
                         type="button"
                         onClick={handleWishlist}
@@ -458,6 +540,7 @@ function ProductCard({ product }) {
                             />
                         </motion.div>
                     </motion.button>
+
                 </div>
 
                 {/* Wishlist Feedback */}
@@ -494,7 +577,9 @@ function ProductCard({ product }) {
                         </motion.div>
                     )}
                 </AnimatePresence>
+
             </div>
+
         </motion.article>
     );
 }

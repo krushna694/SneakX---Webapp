@@ -11,16 +11,32 @@ function AuthProvider({ children }) {
         const savedUser =
             localStorage.getItem("sneakx_user");
 
-        return savedUser
-            ? JSON.parse(savedUser)
-            : null;
+        if (!savedUser) {
+            return null;
+        }
+
+        try {
+            return JSON.parse(savedUser);
+        } catch (error) {
+            console.error(
+                "Failed to restore saved user:",
+                error
+            );
+
+            localStorage.removeItem(
+                "sneakx_user"
+            );
+
+            return null;
+        }
     });
 
-    const [isAuthenticated, setIsAuthenticated] = useState(() => {
-        return Boolean(
-            localStorage.getItem("sneakx_token")
-        );
-    });
+    const [isAuthenticated, setIsAuthenticated] =
+        useState(() => {
+            return Boolean(
+                localStorage.getItem("sneakx_token")
+            );
+        });
 
     // -----------------------------------------
     // PERSIST USER
@@ -40,10 +56,168 @@ function AuthProvider({ children }) {
     }, [user]);
 
     // -----------------------------------------
+    // AUTH STATE SYNCHRONIZATION
+    // -----------------------------------------
+
+    useEffect(() => {
+
+        const handleAuthChange = (event) => {
+
+            const action =
+                event?.detail?.action;
+
+            if (action === "login") {
+
+                const savedUser =
+                    localStorage.getItem(
+                        "sneakx_user"
+                    );
+
+                setIsAuthenticated(
+                    Boolean(
+                        localStorage.getItem(
+                            "sneakx_token"
+                        )
+                    )
+                );
+
+                if (savedUser) {
+                    try {
+                        setUser(
+                            JSON.parse(savedUser)
+                        );
+                    } catch (error) {
+                        console.error(
+                            "Failed to synchronize user:",
+                            error
+                        );
+
+                        setUser(null);
+                    }
+                }
+
+                return;
+            }
+
+            if (action === "logout") {
+
+                setUser(null);
+                setIsAuthenticated(false);
+            }
+        };
+
+        window.addEventListener(
+            "sneakx_auth_changed",
+            handleAuthChange
+        );
+
+        return () => {
+            window.removeEventListener(
+                "sneakx_auth_changed",
+                handleAuthChange
+            );
+        };
+
+    }, []);
+
+    // -----------------------------------------
+    // CROSS-TAB AUTH SYNCHRONIZATION
+    // -----------------------------------------
+
+    useEffect(() => {
+
+        const handleStorageChange = (event) => {
+
+            if (
+                event.key ===
+                "sneakx_token"
+            ) {
+                const token =
+                    localStorage.getItem(
+                        "sneakx_token"
+                    );
+
+                const savedUser =
+                    localStorage.getItem(
+                        "sneakx_user"
+                    );
+
+                setIsAuthenticated(
+                    Boolean(token)
+                );
+
+                if (!token) {
+                    setUser(null);
+                    return;
+                }
+
+                if (savedUser) {
+                    try {
+                        setUser(
+                            JSON.parse(savedUser)
+                        );
+                    } catch (error) {
+                        console.error(
+                            "Failed to restore synchronized user:",
+                            error
+                        );
+
+                        setUser(null);
+                    }
+                }
+            }
+
+            if (
+                event.key ===
+                "sneakx_user"
+            ) {
+                const savedUser =
+                    localStorage.getItem(
+                        "sneakx_user"
+                    );
+
+                if (!savedUser) {
+                    setUser(null);
+                    return;
+                }
+
+                try {
+                    setUser(
+                        JSON.parse(savedUser)
+                    );
+                } catch (error) {
+                    console.error(
+                        "Failed to synchronize user:",
+                        error
+                    );
+
+                    setUser(null);
+                }
+            }
+        };
+
+        window.addEventListener(
+            "storage",
+            handleStorageChange
+        );
+
+        return () => {
+            window.removeEventListener(
+                "storage",
+                handleStorageChange
+            );
+        };
+
+    }, []);
+
+    // -----------------------------------------
     // LOGIN
     // -----------------------------------------
 
-    const login = async (email, password) => {
+    const login = async (
+        email,
+        password
+    ) => {
 
         if (!email || !password) {
             return {
@@ -103,11 +277,18 @@ function AuthProvider({ children }) {
                     "CUSTOMER",
             };
 
-            // Store JWT
+            // ---------------------------------
+            // STORE JWT
+            // ---------------------------------
+
             localStorage.setItem(
                 "sneakx_token",
                 authData.token
             );
+
+            // ---------------------------------
+            // UPDATE AUTH STATE
+            // ---------------------------------
 
             setUser(
                 loggedInUser
@@ -115,6 +296,21 @@ function AuthProvider({ children }) {
 
             setIsAuthenticated(
                 true
+            );
+
+            // ---------------------------------
+            // NOTIFY OTHER APP PROVIDERS
+            // ---------------------------------
+
+            window.dispatchEvent(
+                new CustomEvent(
+                    "sneakx_auth_changed",
+                    {
+                        detail: {
+                            action: "login",
+                        },
+                    }
+                )
             );
 
             return {
@@ -266,11 +462,19 @@ function AuthProvider({ children }) {
 
     const logout = () => {
 
+        // ---------------------------------
+        // CLEAR REACT AUTH STATE
+        // ---------------------------------
+
         setUser(null);
 
         setIsAuthenticated(
             false
         );
+
+        // ---------------------------------
+        // CLEAR PERSISTED AUTH DATA
+        // ---------------------------------
 
         localStorage.removeItem(
             "sneakx_token"
@@ -283,6 +487,21 @@ function AuthProvider({ children }) {
         // Remove legacy authentication flag
         localStorage.removeItem(
             "sneakx_isAuthenticated"
+        );
+
+        // ---------------------------------
+        // NOTIFY OTHER APP PROVIDERS
+        // ---------------------------------
+
+        window.dispatchEvent(
+            new CustomEvent(
+                "sneakx_auth_changed",
+                {
+                    detail: {
+                        action: "logout",
+                    },
+                }
+            )
         );
     };
 

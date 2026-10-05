@@ -1,4 +1,9 @@
-import { useCallback, useEffect, useState } from "react";
+import {
+    useCallback,
+    useEffect,
+    useState,
+} from "react";
+
 import { CartContext } from "./CartContext";
 
 import {
@@ -24,7 +29,8 @@ function CartProvider({ children }) {
 
         if (!response?.success) {
             throw new Error(
-                response?.message || "Unable to load cart."
+                response?.message ||
+                "Unable to load cart."
             );
         }
 
@@ -33,7 +39,24 @@ function CartProvider({ children }) {
         const items = cart?.items || [];
 
         setCartItems(items);
-        setCartTotal(Number(cart?.subtotal || 0));
+
+        setCartTotal(
+            Number(cart?.subtotal || 0)
+        );
+
+    }, []);
+
+    // ==========================================
+    // RESET CART STATE
+    // ==========================================
+
+    const resetCartState = useCallback(() => {
+
+        setCartItems([]);
+
+        setCartTotal(0);
+
+        setError("");
 
     }, []);
 
@@ -43,18 +66,58 @@ function CartProvider({ children }) {
 
     const loadCart = useCallback(async () => {
 
+        const token =
+            localStorage.getItem(
+                "sneakx_token"
+            );
+
+        if (!token) {
+            resetCartState();
+            return;
+        }
+
         try {
 
             setLoading(true);
             setError("");
 
-            const response = await getCartApi();
+            const response =
+                await getCartApi();
+
+            /*
+             * Check again because the user could
+             * have logged out while the request
+             * was in progress.
+             */
+
+            const currentToken =
+                localStorage.getItem(
+                    "sneakx_token"
+                );
+
+            if (!currentToken) {
+                resetCartState();
+                return;
+            }
 
             normalizeCart(response);
 
         } catch (err) {
 
-            console.error("Load cart error:", err);
+            console.error(
+                "Load cart error:",
+                err
+            );
+
+            const tokenAfterError =
+                localStorage.getItem(
+                    "sneakx_token"
+                );
+
+            if (!tokenAfterError) {
+                resetCartState();
+                return;
+            }
 
             setError(
                 err.response?.data?.message ||
@@ -67,7 +130,10 @@ function CartProvider({ children }) {
             setLoading(false);
         }
 
-    }, [normalizeCart]);
+    }, [
+        normalizeCart,
+        resetCartState,
+    ]);
 
     // ==========================================
     // INITIAL LOAD
@@ -75,7 +141,16 @@ function CartProvider({ children }) {
 
     useEffect(() => {
 
-        const token = localStorage.getItem("sneakx_token");
+        const token =
+            localStorage.getItem(
+                "sneakx_token"
+            );
+
+        /*
+         * Initial cart state is already empty.
+         * Nothing needs to be reset when the
+         * user is not authenticated.
+         */
 
         if (!token) {
             return;
@@ -89,7 +164,67 @@ function CartProvider({ children }) {
             clearTimeout(timer);
         };
 
-    }, [loadCart]);
+    }, [
+        loadCart,
+    ]);
+
+    // ==========================================
+    // AUTHENTICATION STATE SYNCHRONIZATION
+    // ==========================================
+
+    useEffect(() => {
+
+        const handleAuthChange = (event) => {
+
+            const action =
+                event?.detail?.action;
+
+            // ----------------------------------
+            // USER LOGGED IN
+            // ----------------------------------
+
+            if (action === "login") {
+
+                /*
+                 * AuthProvider has already stored
+                 * the JWT before dispatching this
+                 * event.
+                 */
+
+                setTimeout(() => {
+                    loadCart();
+                }, 0);
+
+                return;
+            }
+
+            // ----------------------------------
+            // USER LOGGED OUT
+            // ----------------------------------
+
+            if (action === "logout") {
+
+                resetCartState();
+            }
+        };
+
+        window.addEventListener(
+            "sneakx_auth_changed",
+            handleAuthChange
+        );
+
+        return () => {
+
+            window.removeEventListener(
+                "sneakx_auth_changed",
+                handleAuthChange
+            );
+        };
+
+    }, [
+        loadCart,
+        resetCartState,
+    ]);
 
     // ==========================================
     // ADD TO CART
@@ -105,7 +240,8 @@ function CartProvider({ children }) {
         if (!productVariantId) {
 
             throw new Error(
-                `Product variant is required for size ${size ?? "selected size"}.`
+                `Product variant is required for size ${size ?? "selected size"
+                }.`
             );
         }
 
@@ -113,10 +249,11 @@ function CartProvider({ children }) {
 
             setError("");
 
-            const response = await addToCartApi({
-                productVariantId,
-                quantity,
-            });
+            const response =
+                await addToCartApi({
+                    productVariantId,
+                    quantity,
+                });
 
             normalizeCart(response);
 
@@ -129,7 +266,10 @@ function CartProvider({ children }) {
 
         } catch (err) {
 
-            console.error("Add to cart error:", err);
+            console.error(
+                "Add to cart error:",
+                err
+            );
 
             const message =
                 err.response?.data?.message ||
@@ -294,7 +434,8 @@ function CartProvider({ children }) {
 
     const cartCount = cartItems.reduce(
         (total, item) =>
-            total + Number(item.quantity || 0),
+            total +
+            Number(item.quantity || 0),
         0
     );
 

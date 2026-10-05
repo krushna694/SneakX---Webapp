@@ -1,36 +1,99 @@
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { ArrowRight, Flame } from "lucide-react";
+
 import ProductCard from "../product/ProductCard";
+import { getProductsApi } from "../../api/productApi";
 import "../../pages/Home/Home.css";
 
-const products = [
-    {
-        id: 1,
-        name: "Air Runner",
-        price: 4999,
-    },
-    {
-        id: 2,
-        name: "Street Force",
-        price: 5999,
-    },
-    {
-        id: 3,
-        name: "Urban Classic",
-        price: 4499,
-    },
-    {
-        id: 4,
-        name: "Sport Max",
-        price: 6999,
-    },
-];
-
 function FeaturedProducts() {
+    const [products, setProducts] = useState([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState("");
+
+    useEffect(() => {
+        let isMounted = true;
+
+        const loadFeaturedProducts = async () => {
+            try {
+                setIsLoading(true);
+                setError("");
+
+                const response = await getProductsApi({
+                    page: 0,
+                    size: 4,
+                    sort: "createdAt,desc",
+                });
+
+                if (!response?.success) {
+                    throw new Error(
+                        response?.message ||
+                        "Failed to load featured products."
+                    );
+                }
+
+                const backendProducts =
+                    response.data?.content || [];
+
+                const normalizedProducts =
+                    backendProducts.map((product) => ({
+                        ...product,
+
+                        id: product.id,
+
+                        name: product.name,
+
+                        category:
+                            product.categoryName,
+
+                        price: Number(
+                            product.discountedPrice ??
+                            product.price ??
+                            0
+                        ),
+
+                        originalPrice: Number(
+                            product.price ?? 0
+                        ),
+                    }));
+
+                if (isMounted) {
+                    setProducts(normalizedProducts);
+                }
+            } catch (error) {
+                console.error(
+                    "Failed to load featured products:",
+                    error
+                );
+
+                if (isMounted) {
+                    setError(
+                        error.response?.data?.message ||
+                        error.message ||
+                        "Unable to load featured products."
+                    );
+
+                    setProducts([]);
+                }
+            } finally {
+                if (isMounted) {
+                    setIsLoading(false);
+                }
+            }
+        };
+
+        loadFeaturedProducts();
+
+        return () => {
+            isMounted = false;
+        };
+    }, []);
+
     return (
         <section className="sx-home-section sx-home-section-soft sx-product-section">
             <div className="container">
 
+                {/* Section Heading */}
                 <motion.div
                     className="sx-section-heading"
                     initial={{
@@ -77,6 +140,10 @@ function FeaturedProducts() {
                         whileTap={{
                             scale: 0.97,
                         }}
+                        onClick={() => {
+                            window.location.href =
+                                "/products";
+                        }}
                     >
                         View All
                         <ArrowRight size={15} />
@@ -84,37 +151,98 @@ function FeaturedProducts() {
 
                 </motion.div>
 
-                <div className="row g-4">
-
-                    {products.map((product, index) => (
-                        <div
-                            className="col-6 col-md-3"
-                            key={product.id}
-                        >
-                            <motion.div
-                                initial={{
-                                    opacity: 0,
-                                    y: 35,
-                                }}
-                                whileInView={{
-                                    opacity: 1,
-                                    y: 0,
-                                }}
-                                viewport={{
-                                    once: true,
-                                    amount: 0.15,
-                                }}
-                                transition={{
-                                    duration: 0.55,
-                                    delay: index * 0.08,
-                                }}
+                {/* Loading */}
+                {isLoading && (
+                    <div className="row g-4">
+                        {[1, 2, 3, 4].map((item) => (
+                            <div
+                                className="col-6 col-md-3"
+                                key={item}
                             >
-                                <ProductCard product={product} />
-                            </motion.div>
-                        </div>
-                    ))}
+                                <div
+                                    style={{
+                                        minHeight: "420px",
+                                        borderRadius: "20px",
+                                        background: "#f5f5f3",
+                                        border:
+                                            "1px solid #e9e9e7",
+                                    }}
+                                />
+                            </div>
+                        ))}
+                    </div>
+                )}
 
-                </div>
+                {/* Error */}
+                {!isLoading && error && (
+                    <div
+                        className="text-center py-5"
+                        style={{
+                            color: "#777",
+                        }}
+                    >
+                        Unable to load featured sneakers.
+                    </div>
+                )}
+
+                {/* Products */}
+                {!isLoading &&
+                    !error &&
+                    products.length > 0 && (
+                        <div className="row g-4">
+
+                            {products.map(
+                                (product, index) => (
+                                    <div
+                                        className="col-6 col-md-3"
+                                        key={product.id}
+                                    >
+                                        <motion.div
+                                            initial={{
+                                                opacity: 0,
+                                                y: 35,
+                                            }}
+                                            whileInView={{
+                                                opacity: 1,
+                                                y: 0,
+                                            }}
+                                            viewport={{
+                                                once: true,
+                                                amount: 0.15,
+                                            }}
+                                            transition={{
+                                                duration: 0.55,
+                                                delay:
+                                                    index *
+                                                    0.08,
+                                            }}
+                                        >
+                                            <ProductCard
+                                                product={
+                                                    product
+                                                }
+                                            />
+                                        </motion.div>
+                                    </div>
+                                )
+                            )}
+
+                        </div>
+                    )}
+
+                {/* Empty */}
+                {!isLoading &&
+                    !error &&
+                    products.length === 0 && (
+                        <div
+                            className="text-center py-5"
+                            style={{
+                                color: "#777",
+                            }}
+                        >
+                            No featured sneakers available.
+                        </div>
+                    )}
 
             </div>
         </section>

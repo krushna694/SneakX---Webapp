@@ -15,19 +15,20 @@ function CartItem({ item }) {
     } = useCart();
 
     const {
-        id: cartItemId,
-        product,
-        quantity,
+        variantId,
+        productName,
+        brand,
         size,
         unitPrice,
-        lineTotal,
+        quantity,
+        totalPrice,
     } = item;
 
     const handleDecrease = () => {
 
         if (quantity > 1) {
             updateQuantity(
-                cartItemId,
+                variantId,
                 quantity - 1
             );
         }
@@ -36,14 +37,14 @@ function CartItem({ item }) {
     const handleIncrease = () => {
 
         updateQuantity(
-            cartItemId,
+            variantId,
             quantity + 1
         );
     };
 
     const handleRemove = () => {
 
-        removeFromCart(cartItemId);
+        removeFromCart(variantId);
     };
 
     return (
@@ -73,10 +74,12 @@ function CartItem({ item }) {
             }}
         >
             <div className="card-body p-3 p-md-4">
+
                 <div className="row align-items-center g-3">
 
                     {/* Product Visual */}
                     <div className="col-4 col-sm-3 col-md-2">
+
                         <motion.div
                             className="d-flex align-items-center justify-content-center position-relative overflow-hidden"
                             style={{
@@ -89,6 +92,7 @@ function CartItem({ item }) {
                                 scale: 1.02,
                             }}
                         >
+
                             <div
                                 style={{
                                     position: "absolute",
@@ -102,6 +106,7 @@ function CartItem({ item }) {
                                         "0 14px 20px rgba(0,0,0,0.16)",
                                 }}
                             >
+
                                 <div
                                     style={{
                                         position: "absolute",
@@ -127,6 +132,7 @@ function CartItem({ item }) {
                                         left: "-3px",
                                     }}
                                 />
+
                             </div>
 
                             <span
@@ -142,15 +148,20 @@ function CartItem({ item }) {
                             >
                                 SNEAKX
                             </span>
+
                         </motion.div>
+
                     </div>
 
                     {/* Product Information */}
                     <div className="col-8 col-sm-9 col-md-4">
+
                         <div className="d-flex flex-column h-100">
 
                             <div className="d-flex align-items-start justify-content-between gap-2">
+
                                 <div>
+
                                     <p
                                         className="mb-1 text-uppercase fw-semibold"
                                         style={{
@@ -168,9 +179,23 @@ function CartItem({ item }) {
                                             fontSize: "17px",
                                         }}
                                     >
-                                        {product.name}
+                                        {productName}
                                     </h5>
+
+                                    {brand && (
+                                        <p
+                                            className="mb-2"
+                                            style={{
+                                                fontSize: "11px",
+                                                color: "#888888",
+                                            }}
+                                        >
+                                            {brand}
+                                        </p>
+                                    )}
+
                                 </div>
+
                             </div>
 
                             <div className="d-flex align-items-center gap-2 mb-2">
@@ -196,7 +221,7 @@ function CartItem({ item }) {
                                 >
                                     ₹
                                     {Number(
-                                        unitPrice ?? product.price ?? 0
+                                        unitPrice ?? 0
                                     ).toLocaleString("en-IN")}{" "}
                                     / pair
                                 </span>
@@ -222,6 +247,7 @@ function CartItem({ item }) {
                             </div>
 
                         </div>
+
                     </div>
 
                     {/* Quantity */}
@@ -296,6 +322,7 @@ function CartItem({ item }) {
                             </motion.button>
 
                         </div>
+
                     </div>
 
                     {/* Total + Remove */}
@@ -322,9 +349,7 @@ function CartItem({ item }) {
                             >
                                 ₹
                                 {Number(
-                                    lineTotal ??
-                                    Number(unitPrice ?? product.price ?? 0) *
-                                        Number(quantity)
+                                    totalPrice ?? 0
                                 ).toLocaleString("en-IN")}
                             </p>
 
@@ -358,6 +383,7 @@ function CartItem({ item }) {
                     </div>
 
                 </div>
+
             </div>
         </motion.div>
     );
