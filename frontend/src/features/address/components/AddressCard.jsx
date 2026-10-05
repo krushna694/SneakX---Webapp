@@ -1,4 +1,5 @@
 import { AnimatePresence, motion } from "framer-motion";
+
 import {
     Check,
     MapPin,
@@ -11,6 +12,7 @@ import {
 } from "lucide-react";
 
 import { useState } from "react";
+
 import { useAddress } from "../hooks/useAddress";
 
 function AddressCard({ address, onEdit }) {
@@ -19,15 +21,105 @@ function AddressCard({ address, onEdit }) {
         setDefaultAddress,
     } = useAddress();
 
-    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [showDeleteModal, setShowDeleteModal] =
+        useState(false);
 
-    const handleDelete = () => {
-        deleteAddress(address.id);
-        setShowDeleteModal(false);
+    const [isDeleting, setIsDeleting] =
+        useState(false);
+
+    const [isSettingDefault, setIsSettingDefault] =
+        useState(false);
+
+    const [actionError, setActionError] =
+        useState("");
+
+    const handleDelete = async () => {
+        if (isDeleting) {
+            return;
+        }
+
+        try {
+            setIsDeleting(true);
+            setActionError("");
+
+            const result =
+                await deleteAddress(address.id);
+
+            if (result?.success === false) {
+                setActionError(
+                    result?.message ||
+                    "Unable to delete this address."
+                );
+                return;
+            }
+
+            setShowDeleteModal(false);
+        } catch (error) {
+            console.error(
+                "Failed to delete address:",
+                error
+            );
+
+            setActionError(
+                error?.response?.data?.message ||
+                error?.message ||
+                "Unable to delete this address."
+            );
+        } finally {
+            setIsDeleting(false);
+        }
     };
 
-    const handleSetDefault = () => {
-        setDefaultAddress(address.id);
+    const handleSetDefault = async () => {
+        if (
+            isSettingDefault ||
+            address.isDefault
+        ) {
+            return;
+        }
+
+        try {
+            setIsSettingDefault(true);
+            setActionError("");
+
+            const result =
+                await setDefaultAddress(
+                    address.id
+                );
+
+            if (result?.success === false) {
+                setActionError(
+                    result?.message ||
+                    "Unable to update the default address."
+                );
+            }
+        } catch (error) {
+            console.error(
+                "Failed to set default address:",
+                error
+            );
+
+            setActionError(
+                error?.response?.data?.message ||
+                error?.message ||
+                "Unable to update the default address."
+            );
+        } finally {
+            setIsSettingDefault(false);
+        }
+    };
+
+    const getAddressTypeLabel = () => {
+        const labels = {
+            HOME: "Home",
+            WORK: "Work",
+            OTHER: "Other",
+        };
+
+        return (
+            labels[address.addressType] ||
+            "Address"
+        );
     };
 
     return (
@@ -64,7 +156,6 @@ function AddressCard({ address, onEdit }) {
                         : "0 10px 30px rgba(0, 0, 0, 0.055)",
                 }}
             >
-
                 {/* =================================================
                     DEFAULT TOP ACCENT
                 ================================================= */}
@@ -94,7 +185,6 @@ function AddressCard({ address, onEdit }) {
                 )}
 
                 <div className="p-4 p-lg-4 d-flex flex-column h-100">
-
                     {/* =================================================
                         HEADER
                     ================================================= */}
@@ -106,7 +196,6 @@ function AddressCard({ address, onEdit }) {
                         }}
                     >
                         <div className="d-flex align-items-center gap-3">
-
                             {/* Location Icon */}
 
                             <motion.div
@@ -119,25 +208,31 @@ function AddressCard({ address, onEdit }) {
                                     height: "46px",
                                     flexShrink: 0,
                                     borderRadius: "13px",
-                                    background: address.isDefault
-                                        ? "#fff1eb"
-                                        : "#f5f5f5",
-                                    color: address.isDefault
-                                        ? "#ff5a1f"
-                                        : "#6f6f6f",
+                                    background:
+                                        address.isDefault
+                                            ? "#fff1eb"
+                                            : "#f5f5f5",
+                                    color:
+                                        address.isDefault
+                                            ? "#ff5a1f"
+                                            : "#6f6f6f",
                                 }}
                             >
-                                <MapPin size={20} strokeWidth={1.9} />
+                                <MapPin
+                                    size={20}
+                                    strokeWidth={1.9}
+                                />
                             </motion.div>
 
-                            {/* Label */}
+                            {/* Address Type */}
 
                             <div>
                                 <p
                                     className="text-uppercase mb-1"
                                     style={{
                                         fontSize: "8px",
-                                        letterSpacing: "1.7px",
+                                        letterSpacing:
+                                            "1.7px",
                                         color: "#a0a0a0",
                                         fontWeight: "700",
                                     }}
@@ -153,7 +248,7 @@ function AddressCard({ address, onEdit }) {
                                         color: "#171717",
                                     }}
                                 >
-                                    {address.label || "Address"}
+                                    {getAddressTypeLabel()}
                                 </h5>
                             </div>
                         </div>
@@ -186,12 +281,15 @@ function AddressCard({ address, onEdit }) {
                                     whiteSpace: "nowrap",
                                 }}
                             >
-                                <Check size={11} strokeWidth={2.5} />
+                                <Check
+                                    size={11}
+                                    strokeWidth={2.5}
+                                />
+
                                 Default
                             </motion.span>
                         )}
                     </div>
-
 
                     {/* =================================================
                         ADDRESS INFORMATION
@@ -202,7 +300,6 @@ function AddressCard({ address, onEdit }) {
                             marginBottom: "24px",
                         }}
                     >
-
                         {/* Name */}
 
                         <h6
@@ -216,8 +313,7 @@ function AddressCard({ address, onEdit }) {
                             {address.fullName}
                         </h6>
 
-
-                        {/* Address */}
+                        {/* Address Line 1 */}
 
                         <div
                             className="d-flex align-items-start gap-2"
@@ -243,10 +339,39 @@ function AddressCard({ address, onEdit }) {
                                     lineHeight: "1.6",
                                 }}
                             >
-                                {address.addressLine}
+                                {address.addressLine1}
                             </p>
                         </div>
 
+                        {/* Address Line 2 */}
+
+                        {address.addressLine2 && (
+                            <div
+                                className="d-flex align-items-start gap-2"
+                                style={{
+                                    marginBottom: "9px",
+                                }}
+                            >
+                                <span
+                                    style={{
+                                        width: "14px",
+                                        height: "14px",
+                                        flexShrink: 0,
+                                    }}
+                                />
+
+                                <p
+                                    className="mb-0"
+                                    style={{
+                                        color: "#666666",
+                                        fontSize: "12px",
+                                        lineHeight: "1.5",
+                                    }}
+                                >
+                                    {address.addressLine2}
+                                </p>
+                            </div>
+                        )}
 
                         {/* City / State */}
 
@@ -272,10 +397,10 @@ function AddressCard({ address, onEdit }) {
                                     lineHeight: "1.5",
                                 }}
                             >
-                                {address.city}, {address.state}
+                                {address.city},{" "}
+                                {address.state}
                             </p>
                         </div>
-
 
                         {/* PIN */}
 
@@ -301,16 +426,13 @@ function AddressCard({ address, onEdit }) {
                                     fontSize: "12px",
                                 }}
                             >
-                                PIN {address.pincode}
+                                PIN {address.postalCode}
                             </p>
                         </div>
 
-
                         {/* Phone */}
 
-                        <div
-                            className="d-flex align-items-center gap-2"
-                        >
+                        <div className="d-flex align-items-center gap-2">
                             <Phone
                                 size={14}
                                 strokeWidth={1.8}
@@ -327,12 +449,47 @@ function AddressCard({ address, onEdit }) {
                                     fontSize: "12px",
                                 }}
                             >
-                                +91 {address.phone}
+                                {address.phone}
                             </p>
                         </div>
-
                     </div>
 
+                    {/* Action Error */}
+
+                    <AnimatePresence>
+                        {actionError && (
+                            <motion.div
+                                initial={{
+                                    opacity: 0,
+                                    y: 5,
+                                }}
+                                animate={{
+                                    opacity: 1,
+                                    y: 0,
+                                }}
+                                exit={{
+                                    opacity: 0,
+                                    y: -5,
+                                }}
+                                className="mb-3"
+                                style={{
+                                    padding:
+                                        "9px 11px",
+                                    borderRadius: "10px",
+                                    background:
+                                        "#fff4f4",
+                                    border:
+                                        "1px solid #f0cccc",
+                                    color: "#b54545",
+                                    fontSize: "10px",
+                                    fontWeight: "600",
+                                    lineHeight: "1.5",
+                                }}
+                            >
+                                {actionError}
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
 
                     {/* =================================================
                         DIVIDER
@@ -346,34 +503,49 @@ function AddressCard({ address, onEdit }) {
                         }}
                     />
 
-
                     {/* =================================================
                         ACTIONS
                     ================================================= */}
 
-                    <div
-                        className="d-flex flex-wrap gap-2 mt-auto"
-                    >
-
+                    <div className="d-flex flex-wrap gap-2 mt-auto">
                         {/* Set Default */}
 
                         {!address.isDefault && (
                             <motion.button
                                 type="button"
                                 className="btn d-inline-flex align-items-center justify-content-center gap-2"
-                                onClick={handleSetDefault}
-                                whileHover={{
-                                    y: -2,
-                                    color: "#ff5a1f",
-                                    borderColor: "#ffd0bf",
-                                    background: "#fffaf7",
-                                }}
-                                whileTap={{
-                                    scale: 0.96,
-                                }}
+                                onClick={
+                                    handleSetDefault
+                                }
+                                disabled={
+                                    isSettingDefault ||
+                                    isDeleting
+                                }
+                                whileHover={
+                                    !isSettingDefault &&
+                                        !isDeleting
+                                        ? {
+                                            y: -2,
+                                            color: "#ff5a1f",
+                                            borderColor:
+                                                "#ffd0bf",
+                                            background:
+                                                "#fffaf7",
+                                        }
+                                        : {}
+                                }
+                                whileTap={
+                                    !isSettingDefault &&
+                                        !isDeleting
+                                        ? {
+                                            scale: 0.96,
+                                        }
+                                        : {}
+                                }
                                 style={{
                                     minHeight: "38px",
-                                    border: "1px solid #e7e7e7",
+                                    border:
+                                        "1px solid #e7e7e7",
                                     background: "#ffffff",
                                     color: "#5f5f5f",
                                     borderRadius: "10px",
@@ -382,6 +554,15 @@ function AddressCard({ address, onEdit }) {
                                     padding: "7px 11px",
                                     transition:
                                         "all 0.2s ease",
+                                    opacity:
+                                        isSettingDefault
+                                            ? 0.65
+                                            : 1,
+                                    cursor:
+                                        isSettingDefault ||
+                                            isDeleting
+                                            ? "not-allowed"
+                                            : "pointer",
                                 }}
                             >
                                 <Star
@@ -389,27 +570,46 @@ function AddressCard({ address, onEdit }) {
                                     strokeWidth={1.8}
                                 />
 
-                                Set Default
+                                {isSettingDefault
+                                    ? "Updating..."
+                                    : "Set Default"}
                             </motion.button>
                         )}
-
 
                         {/* Edit */}
 
                         <motion.button
                             type="button"
                             className="btn d-inline-flex align-items-center justify-content-center gap-2"
-                            onClick={() => onEdit(address)}
-                            whileHover={{
-                                y: -2,
-                                background: "#f7f7f7",
-                            }}
-                            whileTap={{
-                                scale: 0.96,
-                            }}
+                            onClick={() =>
+                                onEdit(address)
+                            }
+                            disabled={
+                                isDeleting ||
+                                isSettingDefault
+                            }
+                            whileHover={
+                                !isDeleting &&
+                                    !isSettingDefault
+                                    ? {
+                                        y: -2,
+                                        background:
+                                            "#f7f7f7",
+                                    }
+                                    : {}
+                            }
+                            whileTap={
+                                !isDeleting &&
+                                    !isSettingDefault
+                                    ? {
+                                        scale: 0.96,
+                                    }
+                                    : {}
+                            }
                             style={{
                                 minHeight: "38px",
-                                border: "1px solid #e7e7e7",
+                                border:
+                                    "1px solid #e7e7e7",
                                 background: "#ffffff",
                                 color: "#5f5f5f",
                                 borderRadius: "10px",
@@ -418,6 +618,16 @@ function AddressCard({ address, onEdit }) {
                                 padding: "7px 13px",
                                 transition:
                                     "all 0.2s ease",
+                                opacity:
+                                    isDeleting ||
+                                        isSettingDefault
+                                        ? 0.6
+                                        : 1,
+                                cursor:
+                                    isDeleting ||
+                                        isSettingDefault
+                                        ? "not-allowed"
+                                        : "pointer",
                             }}
                         >
                             <Pencil
@@ -428,26 +638,45 @@ function AddressCard({ address, onEdit }) {
                             Edit
                         </motion.button>
 
-
                         {/* Delete */}
 
                         <motion.button
                             type="button"
                             className="btn d-inline-flex align-items-center justify-content-center gap-2"
-                            onClick={() =>
-                                setShowDeleteModal(true)
+                            onClick={() => {
+                                setActionError("");
+                                setShowDeleteModal(
+                                    true
+                                );
+                            }}
+                            disabled={
+                                isDeleting ||
+                                isSettingDefault
                             }
-                            whileHover={{
-                                y: -2,
-                                background: "#fff1f1",
-                                borderColor: "#e8bcbc",
-                            }}
-                            whileTap={{
-                                scale: 0.96,
-                            }}
+                            whileHover={
+                                !isDeleting &&
+                                    !isSettingDefault
+                                    ? {
+                                        y: -2,
+                                        background:
+                                            "#fff1f1",
+                                        borderColor:
+                                            "#e8bcbc",
+                                    }
+                                    : {}
+                            }
+                            whileTap={
+                                !isDeleting &&
+                                    !isSettingDefault
+                                    ? {
+                                        scale: 0.96,
+                                    }
+                                    : {}
+                            }
                             style={{
                                 minHeight: "38px",
-                                border: "1px solid #efd0d0",
+                                border:
+                                    "1px solid #efd0d0",
                                 background: "#fffafa",
                                 color: "#c94b4b",
                                 borderRadius: "10px",
@@ -456,6 +685,16 @@ function AddressCard({ address, onEdit }) {
                                 padding: "7px 12px",
                                 transition:
                                     "all 0.2s ease",
+                                opacity:
+                                    isDeleting ||
+                                        isSettingDefault
+                                        ? 0.6
+                                        : 1,
+                                cursor:
+                                    isDeleting ||
+                                        isSettingDefault
+                                        ? "not-allowed"
+                                        : "pointer",
                             }}
                         >
                             <Trash2
@@ -465,13 +704,9 @@ function AddressCard({ address, onEdit }) {
 
                             Delete
                         </motion.button>
-
                     </div>
-
                 </div>
-
             </motion.article>
-
 
             {/* =====================================================
                 DELETE CONFIRMATION MODAL
@@ -501,10 +736,12 @@ function AddressCard({ address, onEdit }) {
                             padding: "20px",
                         }}
                         onClick={() =>
-                            setShowDeleteModal(false)
+                            !isDeleting &&
+                            setShowDeleteModal(
+                                false
+                            )
                         }
                     >
-
                         <motion.div
                             role="dialog"
                             aria-modal="true"
@@ -547,28 +784,28 @@ function AddressCard({ address, onEdit }) {
                                 e.stopPropagation()
                             }
                         >
-
                             {/* Top Accent */}
 
                             <div
                                 style={{
                                     height: "4px",
-                                    background:
-                                        "#c94b4b",
+                                    background: "#c94b4b",
                                 }}
                             />
 
-
                             <div className="p-4 p-md-5">
-
                                 {/* Close */}
 
                                 <button
                                     type="button"
                                     onClick={() =>
+                                        !isDeleting &&
                                         setShowDeleteModal(
                                             false
                                         )
+                                    }
+                                    disabled={
+                                        isDeleting
                                     }
                                     className="btn position-absolute top-0 end-0 mt-3 me-3 d-flex align-items-center justify-content-center"
                                     aria-label="Close"
@@ -580,11 +817,14 @@ function AddressCard({ address, onEdit }) {
                                             "#f5f5f5",
                                         color: "#555555",
                                         border: "none",
+                                        opacity:
+                                            isDeleting
+                                                ? 0.5
+                                                : 1,
                                     }}
                                 >
                                     <X size={16} />
                                 </button>
-
 
                                 {/* Delete Icon */}
 
@@ -609,9 +849,10 @@ function AddressCard({ address, onEdit }) {
                                         color: "#c94b4b",
                                     }}
                                 >
-                                    <Trash2 size={22} />
+                                    <Trash2
+                                        size={22}
+                                    />
                                 </motion.div>
-
 
                                 {/* Eyebrow */}
 
@@ -619,14 +860,14 @@ function AddressCard({ address, onEdit }) {
                                     className="text-uppercase mb-1"
                                     style={{
                                         fontSize: "8px",
-                                        letterSpacing: "1.6px",
+                                        letterSpacing:
+                                            "1.6px",
                                         color: "#999999",
                                         fontWeight: "700",
                                     }}
                                 >
                                     Remove Address
                                 </p>
-
 
                                 {/* Title */}
 
@@ -641,7 +882,6 @@ function AddressCard({ address, onEdit }) {
                                     Delete this address?
                                 </h4>
 
-
                                 {/* Description */}
 
                                 <p
@@ -652,21 +892,21 @@ function AddressCard({ address, onEdit }) {
                                         color: "#777777",
                                     }}
                                 >
-                                    You're about to remove
-                                    your{" "}
+                                    You're about to remove{" "}
                                     <strong
                                         style={{
-                                            color: "#333333",
+                                            color:
+                                                "#333333",
                                         }}
                                     >
-                                        {address.label ||
-                                            "saved"}
+                                        {
+                                            getAddressTypeLabel()
+                                        }
                                     </strong>{" "}
                                     delivery address.
                                     This action cannot
                                     be undone.
                                 </p>
-
 
                                 {/* Address Preview */}
 
@@ -680,50 +920,108 @@ function AddressCard({ address, onEdit }) {
                                             "1px solid #eeeeee",
                                     }}
                                 >
-
                                     <MapPin
                                         size={17}
                                         style={{
                                             color: "#888888",
-                                            marginTop: "2px",
+                                            marginTop:
+                                                "2px",
                                             flexShrink: 0,
                                         }}
                                     />
 
                                     <div>
-
                                         <p
                                             className="fw-bold mb-1"
                                             style={{
-                                                fontSize: "11px",
-                                                color: "#222222",
+                                                fontSize:
+                                                    "11px",
+                                                color:
+                                                    "#222222",
                                             }}
                                         >
-                                            {address.fullName}
+                                            {
+                                                address.fullName
+                                            }
                                         </p>
 
                                         <p
                                             className="mb-0"
                                             style={{
-                                                fontSize: "10px",
-                                                lineHeight: "1.6",
-                                                color: "#777777",
+                                                fontSize:
+                                                    "10px",
+                                                lineHeight:
+                                                    "1.6",
+                                                color:
+                                                    "#777777",
                                             }}
                                         >
-                                            {address.addressLine},{" "}
-                                            {address.city},{" "}
-                                            {address.state}
+                                            {
+                                                address.addressLine1
+                                            }
+                                            {address.addressLine2
+                                                ? `, ${address.addressLine2}`
+                                                : ""}
+                                            ,{" "}
+                                            {
+                                                address.city
+                                            }
+                                            ,{" "}
+                                            {
+                                                address.state
+                                            }{" "}
+                                            {
+                                                address.postalCode
+                                            }
                                         </p>
-
                                     </div>
-
                                 </div>
 
+                                {/* Modal Action Error */}
+
+                                <AnimatePresence>
+                                    {actionError && (
+                                        <motion.div
+                                            initial={{
+                                                opacity: 0,
+                                                y: 5,
+                                            }}
+                                            animate={{
+                                                opacity: 1,
+                                                y: 0,
+                                            }}
+                                            exit={{
+                                                opacity: 0,
+                                                y: -5,
+                                            }}
+                                            className="mb-3"
+                                            style={{
+                                                padding:
+                                                    "9px 11px",
+                                                borderRadius:
+                                                    "10px",
+                                                background:
+                                                    "#fff4f4",
+                                                border:
+                                                    "1px solid #f0cccc",
+                                                color:
+                                                    "#b54545",
+                                                fontSize:
+                                                    "10px",
+                                                fontWeight:
+                                                    "600",
+                                                lineHeight:
+                                                    "1.5",
+                                            }}
+                                        >
+                                            {actionError}
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
 
                                 {/* Buttons */}
 
                                 <div className="d-flex flex-column flex-sm-row gap-2">
-
                                     {/* Keep */}
 
                                     <motion.button
@@ -734,67 +1032,108 @@ function AddressCard({ address, onEdit }) {
                                                 false
                                             )
                                         }
+                                        disabled={
+                                            isDeleting
+                                        }
                                         style={{
-                                            minHeight: "43px",
-                                            borderRadius: "10px",
+                                            minHeight:
+                                                "43px",
+                                            borderRadius:
+                                                "10px",
                                             border:
                                                 "1px solid #e5e5e5",
                                             background:
                                                 "#ffffff",
-                                            color: "#555555",
-                                            fontSize: "11px",
-                                            fontWeight: "600",
+                                            color:
+                                                "#555555",
+                                            fontSize:
+                                                "11px",
+                                            fontWeight:
+                                                "600",
+                                            opacity:
+                                                isDeleting
+                                                    ? 0.6
+                                                    : 1,
                                         }}
-                                        whileHover={{
-                                            background:
-                                                "#f7f7f7",
-                                        }}
-                                        whileTap={{
-                                            scale: 0.97,
-                                        }}
+                                        whileHover={
+                                            !isDeleting
+                                                ? {
+                                                    background:
+                                                        "#f7f7f7",
+                                                }
+                                                : {}
+                                        }
+                                        whileTap={
+                                            !isDeleting
+                                                ? {
+                                                    scale: 0.97,
+                                                }
+                                                : {}
+                                        }
                                     >
                                         <X size={15} />
 
                                         Keep Address
                                     </motion.button>
 
-
                                     {/* Delete */}
 
                                     <motion.button
                                         type="button"
                                         className="btn flex-fill d-flex align-items-center justify-content-center gap-2"
-                                        onClick={handleDelete}
+                                        onClick={
+                                            handleDelete
+                                        }
+                                        disabled={
+                                            isDeleting
+                                        }
                                         style={{
-                                            minHeight: "43px",
-                                            borderRadius: "10px",
+                                            minHeight:
+                                                "43px",
+                                            borderRadius:
+                                                "10px",
                                             border: "none",
                                             background:
                                                 "#c94b4b",
-                                            color: "#ffffff",
-                                            fontSize: "11px",
-                                            fontWeight: "700",
+                                            color:
+                                                "#ffffff",
+                                            fontSize:
+                                                "11px",
+                                            fontWeight:
+                                                "700",
+                                            opacity:
+                                                isDeleting
+                                                    ? 0.75
+                                                    : 1,
                                         }}
-                                        whileHover={{
-                                            y: -2,
-                                            boxShadow:
-                                                "0 8px 20px rgba(201,75,75,0.2)",
-                                        }}
-                                        whileTap={{
-                                            scale: 0.97,
-                                        }}
+                                        whileHover={
+                                            !isDeleting
+                                                ? {
+                                                    y: -2,
+                                                    boxShadow:
+                                                        "0 8px 20px rgba(201,75,75,0.2)",
+                                                }
+                                                : {}
+                                        }
+                                        whileTap={
+                                            !isDeleting
+                                                ? {
+                                                    scale: 0.97,
+                                                }
+                                                : {}
+                                        }
                                     >
-                                        <Trash2 size={15} />
+                                        <Trash2
+                                            size={15}
+                                        />
 
-                                        Delete Address
+                                        {isDeleting
+                                            ? "Deleting..."
+                                            : "Delete Address"}
                                     </motion.button>
-
                                 </div>
-
                             </div>
-
                         </motion.div>
-
                     </motion.div>
                 )}
             </AnimatePresence>
