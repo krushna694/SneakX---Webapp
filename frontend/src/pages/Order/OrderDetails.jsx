@@ -25,6 +25,7 @@ function OrderDetails() {
 
     const {
         getOrderById,
+        cancelOrder,
         loading: ordersLoading,
         error: ordersError,
     } = useOrder();
@@ -37,6 +38,10 @@ function OrderDetails() {
     const [order, setOrder] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [cancelling, setCancelling] = useState(false);
+    const [cancelError, setCancelError] = useState(null);
+    const [cancelMessage, setCancelMessage] = useState(null);
+    const [showCancelModal, setShowCancelModal] = useState(false);
 
     useEffect(() => {
         let mounted = true;
@@ -70,8 +75,8 @@ function OrderDetails() {
                     setOrder(null);
                     setError(
                         err?.response?.data?.message ||
-                            err?.message ||
-                            "Failed to load this order."
+                        err?.message ||
+                        "Failed to load this order."
                     );
                 }
             } finally {
@@ -87,6 +92,53 @@ function OrderDetails() {
             mounted = false;
         };
     }, [orderId, getOrderById]);
+    const handleCancelOrder = async () => {
+        if (!order || cancelling) {
+            return;
+        }
+
+        setCancelling(true);
+        setCancelError(null);
+        setCancelMessage(null);
+
+        try {
+            const success = await cancelOrder(order.id);
+
+            if (!success) {
+                setCancelError(
+                    "Unable to cancel this order. Please try again."
+                );
+                setShowCancelModal(false);
+                return;
+            }
+
+            const updatedOrder = await getOrderById(order.id);
+
+            if (updatedOrder?.status === "CANCELLED") {
+                setOrder(updatedOrder);
+                setCancelMessage(
+                    "Your order was cancelled successfully."
+                );
+            } else {
+                setCancelError(
+                    "Cancellation could not be confirmed. Please refresh the page."
+                );
+            }
+
+            setShowCancelModal(false);
+        } catch (err) {
+            setCancelError(
+                err?.response?.data?.message ||
+                err?.response?.data?.error ||
+                err?.message ||
+                "Failed to cancel the order. Please try again."
+            );
+
+            setShowCancelModal(false);
+        } finally {
+            setCancelling(false);
+        }
+    };
 
     const formatDate = (date) => {
         if (!date) return "Date unavailable";
@@ -219,6 +271,10 @@ function OrderDetails() {
 
     const paymentStatus = order.paymentStatus || "PENDING";
     const isCancelled = order.status === "CANCELLED";
+
+    const canCancelOrder =
+        ["PENDING", "CONFIRMED"].includes(order.status) &&
+        !["PAID", "SUCCESS", "PROCESSING"].includes(paymentStatus);
 
     return (
         <div className="container py-5" style={{ maxWidth: "1180px" }}>
@@ -855,6 +911,43 @@ function OrderDetails() {
                                     </div>
                                 </div>
 
+                                {canCancelOrder && (
+                                    <div className="mb-3">
+                                        <button
+                                            type="button"
+                                            className="btn btn-outline-danger w-100"
+                                            onClick={() => {
+                                                setCancelError(null);
+                                                setCancelMessage(null);
+                                                setShowCancelModal(true);
+                                            }}
+                                            disabled={cancelling}
+                                            style={{
+                                                borderRadius: "11px",
+                                                padding: "11px",
+                                                fontSize: "11px",
+                                                fontWeight: "700",
+                                            }}
+                                        >
+                                            {cancelling ? "Cancelling Order..." : "Cancel Order"}
+                                        </button>
+                                    </div>
+                                )}
+
+                                {cancelError && (
+                                    <div className="alert alert-danger py-2" role="alert"
+                                        style={{ fontSize: "12px" }}>
+                                        {cancelError}
+                                    </div>
+                                )}
+
+                                {cancelMessage && (
+                                    <div className="alert alert-success py-2" role="status"
+                                        style={{ fontSize: "12px" }}>
+                                        {cancelMessage}
+                                    </div>
+                                )}
+
                                 <motion.div
                                     whileHover={{ scale: 1.02 }}
                                     whileTap={{ scale: 0.97 }}
@@ -874,12 +967,217 @@ function OrderDetails() {
                                         <ArrowRight size={15} />
                                     </Link>
                                 </motion.div>
+
                             </div>
                         </div>
                     </motion.div>
                 </div>
             </div>
+            {/* CANCEL ORDER CONFIRMATION MODAL */}
+            {showCancelModal && (
+                <div
+                    className="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center"
+                    style={{
+                        zIndex: 2000,
+                        background: "rgba(10, 10, 10, 0.58)",
+                        backdropFilter: "blur(5px)",
+                        padding: "20px",
+                    }}
+                    onClick={(event) => {
+                        if (
+                            event.target === event.currentTarget &&
+                            !cancelling
+                        ) {
+                            setShowCancelModal(false);
+                        }
+                    }}
+                >
+                    <motion.div
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="cancel-order-title"
+                        initial={{ opacity: 0, y: 20, scale: 0.96 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        transition={{ duration: 0.2 }}
+                        className="w-100"
+                        style={{
+                            maxWidth: "430px",
+                            background: "#ffffff",
+                            borderRadius: "22px",
+                            padding: "28px",
+                            boxShadow: "0 25px 80px rgba(0,0,0,0.22)",
+                        }}
+                    >
+                        <div className="d-flex justify-content-end">
+                            <button
+                                type="button"
+                                className="btn border-0 p-1"
+                                aria-label="Close cancellation dialog"
+                                disabled={cancelling}
+                                onClick={() => setShowCancelModal(false)}
+                                style={{
+                                    color: "#777777",
+                                    background: "#f5f5f5",
+                                    borderRadius: "50%",
+                                    width: "32px",
+                                    height: "32px",
+                                }}
+                            >
+                                <XCircle size={18} />
+                            </button>
+                        </div>
+
+                        <div className="text-center px-1 pb-2">
+                            <div
+                                className="d-flex align-items-center justify-content-center mx-auto mb-4"
+                                style={{
+                                    width: "76px",
+                                    height: "76px",
+                                    borderRadius: "50%",
+                                    background: "#fff0ed",
+                                    color: "#ef4938",
+                                }}
+                            >
+                                <XCircle size={38} strokeWidth={1.7} />
+                            </div>
+
+                            <h4
+                                id="cancel-order-title"
+                                className="fw-bold mb-2"
+                                style={{
+                                    color: "#171717",
+                                    fontSize: "23px",
+                                    letterSpacing: "-0.5px",
+                                }}
+                            >
+                                Cancel your order?
+                            </h4>
+
+                            <p
+                                className="mb-4"
+                                style={{
+                                    color: "#777777",
+                                    fontSize: "13px",
+                                    lineHeight: "1.7",
+                                }}
+                            >
+                                Are you sure you want to cancel this order?
+                                This action cannot be undone.
+                            </p>
+                        </div>
+
+                        <div
+                            className="p-3 mb-3"
+                            style={{
+                                background: "#f8f8f8",
+                                border: "1px solid #eeeeee",
+                                borderRadius: "14px",
+                            }}
+                        >
+                            <div className="d-flex justify-content-between align-items-start gap-3 mb-3">
+                                <span
+                                    style={{ color: "#777777", fontSize: "12px" }}
+                                >
+                                    Order ID
+                                </span>
+
+                                <strong
+                                    className="text-end"
+                                    style={{
+                                        color: "#222222",
+                                        fontSize: "12px",
+                                        overflowWrap: "anywhere",
+                                    }}
+                                >
+                                    {order.orderNumber || order.id}
+                                </strong>
+                            </div>
+
+                            <div className="d-flex justify-content-between align-items-center gap-3">
+                                <span
+                                    style={{ color: "#777777", fontSize: "12px" }}
+                                >
+                                    Payment status
+                                </span>
+
+                                <strong
+                                    style={{
+                                        color: "#b7791f",
+                                        fontSize: "12px",
+                                    }}
+                                >
+                                    {formatStatus(order.paymentStatus || "PENDING")}
+                                </strong>
+                            </div>
+                        </div>
+
+                        <p
+                            className="mb-4"
+                            style={{
+                                color: "#888888",
+                                fontSize: "11px",
+                                lineHeight: "1.6",
+                            }}
+                        >
+                            Your reserved stock will be released if the cancellation
+                            succeeds. Any payment or refund questions may require
+                            separate handling.
+                        </p>
+
+                        <div className="d-flex flex-column gap-2">
+                            <button
+                                type="button"
+                                className="btn w-100 d-flex align-items-center justify-content-center gap-2"
+                                onClick={handleCancelOrder}
+                                disabled={cancelling}
+                                style={{
+                                    background: "#ed4938",
+                                    color: "#ffffff",
+                                    border: "1px solid #ed4938",
+                                    borderRadius: "12px",
+                                    padding: "13px",
+                                    fontSize: "13px",
+                                    fontWeight: "700",
+                                }}
+                            >
+                                {cancelling ? (
+                                    <>
+                                        <span
+                                            className="spinner-border spinner-border-sm"
+                                            role="status"
+                                            aria-hidden="true"
+                                        />
+                                        Cancelling Order...
+                                    </>
+                                ) : (
+                                    "Yes, Cancel Order"
+                                )}
+                            </button>
+
+                            <button
+                                type="button"
+                                className="btn w-100"
+                                onClick={() => setShowCancelModal(false)}
+                                disabled={cancelling}
+                                style={{
+                                    background: "#ffffff",
+                                    color: "#222222",
+                                    border: "1px solid #e5e5e5",
+                                    borderRadius: "12px",
+                                    padding: "13px",
+                                    fontSize: "13px",
+                                    fontWeight: "700",
+                                }}
+                            >
+                                No, Keep My Order
+                            </button>
+                        </div>
+                    </motion.div>
+                </div>
+            )}
         </div>
+
+
     );
 }
 

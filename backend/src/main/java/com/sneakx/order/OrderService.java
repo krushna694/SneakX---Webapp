@@ -7,9 +7,11 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.UUID;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import com.sneakx.address.Address;
 import com.sneakx.address.AddressRepository;
@@ -255,6 +257,70 @@ public class OrderService {
                                 .orElseThrow(() -> new RuntimeException("Order not found"));
 
                 return mapToResponse(order);
+        }
+
+        // --------------------------------------------------
+        // CANCEL MY ORDER
+        // --------------------------------------------------
+
+        @Transactional
+        public OrderResponse cancelMyOrder(
+                        Long orderId,
+                        Authentication authentication) {
+
+                String email = authentication.getName();
+
+                User user = userRepository.findByEmail(email)
+                                .orElseThrow(() -> new ResponseStatusException(
+                                                HttpStatus.NOT_FOUND,
+                                                "User not found"));
+
+                // Lock the order and verify ownership.
+                Order order = orderRepository
+                                .findByIdAndUserIdForUpdate(
+                                                orderId,
+                                                user.getId())
+                                .orElseThrow(() -> new ResponseStatusException(
+                                                HttpStatus.NOT_FOUND,
+                                                "Order not found"));
+
+                // Only pending or confirmed orders can be cancelled.
+                if (order.getStatus() != OrderStatus.PENDING
+                                && order.getStatus() != OrderStatus.CONFIRMED) {
+
+                        throw new ResponseStatusException(
+                                        HttpStatus.CONFLICT,
+                                        "This order can no longer be cancelled");
+                }
+
+                // Do not cancel paid or unresolved payments without
+                // a proper payment/refund workflow.
+                PaymentStatus paymentStatus = order.getPaymentStatus();
+
+                if (paymentStatus == PaymentStatus.PAID
+                                || paymentStatus == PaymentStatus.SUCCESS
+                                || paymentStatus == PaymentStatus.PROCESSING) {
+
+                        throw new ResponseStatusException(
+                                        HttpStatus.CONFLICT,
+                                        "This order cannot be cancelled while its payment is paid or processing");
+                }
+
+                // Release reserved inventory for every order item.
+                for (OrderItem item : order.getItems()) {
+
+                        inventoryService.releaseStock(
+                                        item.getVariant().getId(),
+                                        item.getQuantity());
+                }
+
+                // Update the order and payment statuses.
+                order.setStatus(OrderStatus.CANCELLED);
+                order.setPaymentStatus(PaymentStatus.CANCELLED);
+
+                Order cancelledOrder = orderRepository.save(order);
+
+                return mapToResponse(cancelledOrder);
         }
 
         // --------------------------------------------------

@@ -4,6 +4,7 @@ import {
     getOrdersApi,
     getOrderByIdApi,
     createOrderApi,
+    cancelOrderApi,
 } from "../../../api/orderApi";
 
 function normalizeOrder(order) {
@@ -246,9 +247,53 @@ function OrderProvider({ children }) {
 
     // Cancellation is not supported by the current backend API.
     // Do not pretend an order was cancelled successfully.
-    const cancelOrder = useCallback(async () => {
-        setError("Order cancellation is not currently supported.");
-        return false;
+    const cancelOrder = useCallback(async (id) => {
+        if (!id) {
+            setError("A valid order ID is required.");
+            return false;
+        }
+
+        setError(null);
+
+        try {
+            const response = await cancelOrderApi(id);
+            const data = extractResponseData(response);
+            const cancelledOrder = normalizeOrder(data);
+
+            if (!cancelledOrder) {
+                throw new Error("The server returned an invalid order response.");
+            }
+
+            // Synchronize the UI with the order returned by the backend.
+            setOrders((currentOrders) => {
+                const exists = currentOrders.some(
+                    (order) => String(order.id) === String(cancelledOrder.id)
+                );
+
+                if (exists) {
+                    return currentOrders.map((order) =>
+                        String(order.id) === String(cancelledOrder.id)
+                            ? cancelledOrder
+                            : order
+                    );
+                }
+
+                return [cancelledOrder, ...currentOrders];
+            });
+
+            return true;
+        } catch (err) {
+            console.error("Failed to cancel order:", err);
+
+            setError(
+                err?.response?.data?.message ||
+                err?.response?.data?.error ||
+                err?.message ||
+                "Failed to cancel the order. Please try again."
+            );
+
+            return false;
+        }
     }, []);
 
     const clearOrders = useCallback(() => {
