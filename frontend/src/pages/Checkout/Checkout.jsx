@@ -38,43 +38,82 @@ function Checkout() {
         createOrder,
     } = useOrder();
 
-    const defaultAddress = getDefaultAddress();
-
-    const [selectedAddressId, setSelectedAddressId] = useState(
-        defaultAddress?.id || null
-    );
+    const [selectedAddressId, setSelectedAddressId] = useState(null);
 
     const [paymentMethod, setPaymentMethod] = useState("COD");
+    const [placingOrder, setPlacingOrder] = useState(false);
+    const [checkoutError, setCheckoutError] = useState("");
+
+    // Derive the initial/default selection from loaded addresses instead of
+    // setting state inside an effect. A manually selected address takes priority.
+    const effectiveAddressId =
+        selectedAddressId ??
+        getDefaultAddress()?.id ??
+        addresses[0]?.id ??
+        null;
 
     const selectedAddress = addresses.find(
-        (address) => address.id === selectedAddressId
+        (address) => String(address.id) === String(effectiveAddressId)
     );
 
-    const deliveryCharge = cartTotal > 0 ? 100 : 0;
-
+    // Keep the checkout estimate consistent with backend pricing:
+    // delivery is free when subtotal is at least ₹2,000.
+    const deliveryCharge = cartTotal >= 2000 ? 0 : cartTotal > 0 ? 100 : 0;
     const finalTotal = cartTotal + deliveryCharge;
 
-    const handlePlaceOrder = () => {
+    const handlePlaceOrder = async () => {
+        if (placingOrder) return;
+        setCheckoutError("");
+
         if (!selectedAddress) {
+            setCheckoutError("Please select a delivery address.");
             return;
         }
 
-        const newOrder = createOrder({
-            items: cartItems,
-            address: selectedAddress,
-            paymentMethod,
-            subtotal: cartTotal,
-            shipping: deliveryCharge,
-            total: finalTotal,
-        });
+        // Keep Online visible, but don't claim payment is available before Razorpay is integrated.
+        if (paymentMethod === "ONLINE") {
+            setCheckoutError("Online payment with Razorpay is coming soon. Please choose Cash on Delivery to place your order for now.");
+            return;
+        }
 
-        clearCart();
+        if (!cartItems.length) {
+            setCheckoutError("Your cart is empty. Add products before placing an order.");
+            return;
+        }
 
-        navigate("/order-confirmation", {
-            state: {
-                order: newOrder,
-            },
-        });
+        setPlacingOrder(true);
+
+        try {
+            // The backend builds the order from the authenticated user's cart.
+            const createdOrder = await createOrder({
+                addressId: selectedAddress.id,
+            });
+
+            if (!createdOrder?.id) {
+                throw new Error("The order was created, but the server response was incomplete. Please check My Orders before trying again.");
+            }
+
+            // The backend also clears its cart during order creation. Sync frontend cart state afterwards.
+            try {
+                await clearCart();
+            } catch (cartError) {
+                console.error("Order was created, but cart refresh failed:", cartError);
+            }
+
+            navigate("/order-confirmation", {
+                replace: true,
+                state: { order: createdOrder },
+            });
+        } catch (err) {
+            console.error("Failed to place order:", err);
+            setCheckoutError(
+                err?.response?.data?.message ||
+                err?.message ||
+                "We couldn't place your order. Your cart has been kept. Please try again."
+            );
+        } finally {
+            setPlacingOrder(false);
+        }
     };
 
     /* =========================================
@@ -548,8 +587,8 @@ function Checkout() {
                                     {addresses.map(
                                         (address) => {
                                             const isSelected =
-                                                selectedAddressId ===
-                                                address.id;
+                                                String(effectiveAddressId) ===
+                                                String(address.id);
 
                                             return (
                                                 <div
@@ -1128,7 +1167,7 @@ function Checkout() {
                             <div className="mb-4">
                                 {cartItems.map((item) => (
                                     <div
-                                        key={`${item.product.id}-${item.size}`}
+                                        key={`${item.cartItemId ?? item.variantId ?? item.productId}-${item.size}`}
                                         className="d-flex gap-3 mb-3"
                                     >
                                         <div
@@ -1158,10 +1197,7 @@ function Checkout() {
                                                         "12px",
                                                 }}
                                             >
-                                                {
-                                                    item.product
-                                                        .name
-                                                }
+                                                {item.productName || item.product?.name || item.name || "Sneaker"}
                                             </p>
 
                                             <div className="d-flex align-items-center gap-2">
@@ -1214,13 +1250,10 @@ function Checkout() {
                                             }}
                                         >
                                             ₹
-                                            {(
-                                                item.product
-                                                    .price *
-                                                item.quantity
-                                            ).toLocaleString(
-                                                "en-IN"
-                                            )}
+                                            {Number(
+                                                item.totalPrice ??
+                                                (item.unitPrice ?? item.product?.price ?? item.price ?? 0) * (item.quantity ?? 1)
+                                            ).toLocaleString("en-IN", { maximumFractionDigits: 2 })}
                                         </span>
                                     </div>
                                 ))}
@@ -1341,11 +1374,11 @@ function Checkout() {
                             <motion.button
                                 type="button"
                                 className="btn w-100 border-0 text-white d-flex justify-content-center align-items-center gap-2 mt-4"
-                                disabled={!selectedAddress}
+                                disabled={!selectedAddress || placingOrder}
                                 onClick={handlePlaceOrder}
                                 style={{
                                     background:
-                                        selectedAddress
+                                        selectedAddress && !placingOrder
                                             ? "#111111"
                                             : "#dddddd",
                                     color: "#ffffff",
@@ -1363,7 +1396,7 @@ function Checkout() {
                                             : "none",
                                 }}
                                 whileHover={
-                                    selectedAddress
+                                    selectedAddress && !placingOrder
                                         ? {
                                             scale: 1.02,
                                             backgroundColor:
@@ -1372,16 +1405,41 @@ function Checkout() {
                                         : {}
                                 }
                                 whileTap={
-                                    selectedAddress
+                                    selectedAddress && !placingOrder
                                         ? {
                                             scale: 0.97,
                                         }
                                         : {}
                                 }
                             >
-                                Place Order
-                                <ArrowRight size={17} />
+                                {placingOrder ? "Placing Order..." : paymentMethod === "ONLINE" ? "Razorpay Coming Soon" : "Place Order"}
+                                {!placingOrder && <ArrowRight size={17} />}
                             </motion.button>
+
+                            {checkoutError && (
+                                <motion.div
+                                    role="alert"
+                                    className="mt-3 p-3"
+                                    initial={{ opacity: 0, y: 6 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    style={{
+                                        borderRadius: "10px",
+                                        border: "1px solid #f5c2c7",
+                                        background: "#f8d7da",
+                                        color: "#842029",
+                                        fontSize: "11px",
+                                        lineHeight: "1.6",
+                                    }}
+                                >
+                                    {checkoutError}
+                                </motion.div>
+                            )}
+
+                            {paymentMethod === "ONLINE" && !checkoutError && (
+                                <p className="mt-3 mb-0" style={{ fontSize: "10px", color: "#777777", lineHeight: "1.6" }}>
+                                    Razorpay online payments will be enabled soon. Choose Cash on Delivery to place an order now.
+                                </p>
+                            )}
 
                             {!selectedAddress && (
                                 <motion.div

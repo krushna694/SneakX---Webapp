@@ -16,7 +16,7 @@ import {
 import { useOrder } from "../../features/order/hooks/useOrder";
 
 function Orders() {
-    const { orders } = useOrder();
+    const { orders = [], loading = false, error = null, loadOrders } = useOrder();
 
     const formatDate = (date) => {
         return new Date(date).toLocaleDateString("en-IN", {
@@ -32,9 +32,18 @@ function Orders() {
 
     const getStatusConfig = (status) => {
         switch (status) {
-            case "PLACED":
+            case "PENDING":
+            case "PLACED": // Backward compatibility with older saved orders.
                 return {
-                    label: "Order Placed",
+                    label: status === "PENDING" ? "Pending" : "Order Placed",
+                    icon: Package,
+                    background: "#fff7e8",
+                    color: "#a46a00",
+                };
+
+            case "CONFIRMED":
+                return {
+                    label: "Confirmed",
                     icon: CheckCircle2,
                     background: "#eef9f1",
                     color: "#287a3f",
@@ -51,6 +60,14 @@ function Orders() {
             case "SHIPPED":
                 return {
                     label: "Shipped",
+                    icon: Truck,
+                    background: "#eef5ff",
+                    color: "#3169a8",
+                };
+
+            case "OUT_FOR_DELIVERY":
+                return {
+                    label: "Out for Delivery",
                     icon: Truck,
                     background: "#eef5ff",
                     color: "#3169a8",
@@ -81,6 +98,44 @@ function Orders() {
                 };
         }
     };
+
+    /* =========================================================
+       LOADING STATE
+    ========================================================= */
+
+    if (loading && orders.length === 0) {
+        return (
+            <main style={{ minHeight: "100vh", background: "#fafafa" }}>
+                <div className="container py-5 d-flex align-items-center justify-content-center" style={{ minHeight: "68vh" }}>
+                    <div className="text-center" role="status" aria-live="polite">
+                        <div className="spinner-border mb-3" style={{ color: "#111111" }} aria-hidden="true" />
+                        <p className="mb-0" style={{ fontSize: "12px", color: "#777777" }}>Loading your orders...</p>
+                    </div>
+                </div>
+            </main>
+        );
+    }
+
+    /* =========================================================
+       ERROR STATE
+    ========================================================= */
+
+    if (error && orders.length === 0) {
+        return (
+            <main style={{ minHeight: "100vh", background: "#fafafa" }}>
+                <div className="container py-5 d-flex align-items-center justify-content-center" style={{ minHeight: "68vh" }}>
+                    <div className="text-center" style={{ maxWidth: "420px" }} role="alert">
+                        <Package size={34} className="mb-3" />
+                        <h1 className="fw-bold mb-2" style={{ fontSize: "22px", color: "#111111" }}>Unable to load orders</h1>
+                        <p className="mb-4" style={{ fontSize: "12px", color: "#777777" }}>{error}</p>
+                        <button type="button" className="btn" onClick={() => loadOrders?.()} style={{ background: "#111111", color: "#ffffff", borderRadius: "10px", padding: "10px 18px", fontSize: "12px", fontWeight: 700 }}>
+                            Try Again
+                        </button>
+                    </div>
+                </div>
+            </main>
+        );
+    }
 
     /* =========================================================
        EMPTY STATE
@@ -446,7 +501,7 @@ function Orders() {
                                                             "#111111",
                                                     }}
                                                 >
-                                                    #{order.id}
+                                                    #{order.orderNumber || order.id}
                                                 </p>
                                             </div>
                                         </div>
@@ -582,9 +637,9 @@ function Orders() {
                                                         style={{
                                                             borderBottom:
                                                                 index <
-                                                                order
-                                                                    .items
-                                                                    .length -
+                                                                    order
+                                                                        .items
+                                                                        .length -
                                                                     1
                                                                     ? "1px solid #eeeeee"
                                                                     : "none",
@@ -667,8 +722,8 @@ function Orders() {
                                                                     .product
                                                                     ?.price ||
                                                                     0) *
-                                                                    (item.quantity ||
-                                                                        1)
+                                                                (item.quantity ||
+                                                                    1)
                                                             )}
                                                         </span>
                                                     </motion.div>
@@ -715,7 +770,7 @@ function Orders() {
                                                     </span>
                                                 </div>
 
-                                                {order.address && (
+                                                {order.address ? (
                                                     <div>
                                                         <p
                                                             className="fw-bold mb-1"
@@ -796,6 +851,12 @@ function Orders() {
                                                             }
                                                         </p>
                                                     </div>
+                                                ) : (
+                                                    <p className="mb-0" style={{ fontSize: "10px", color: "#777777", lineHeight: "1.6" }}>
+                                                        {order.addressId
+                                                            ? `Delivery address #${order.addressId}`
+                                                            : "Delivery address details are unavailable."}
+                                                    </p>
                                                 )}
                                             </div>
 
@@ -851,12 +912,12 @@ function Orders() {
                                                     >
                                                         {Number(
                                                             order.shipping ||
-                                                                0
+                                                            0
                                                         ) === 0
                                                             ? "FREE"
                                                             : `₹${formatCurrency(
-                                                                  order.shipping
-                                                              )}`}
+                                                                order.shipping
+                                                            )}`}
                                                     </span>
                                                 </div>
 
@@ -919,9 +980,9 @@ function Orders() {
                                                                     "#777777",
                                                             }}
                                                         >
-                                                            {
-                                                                order.paymentMethod
-                                                            }
+                                                            {order.paymentStatus
+                                                                ? `Payment: ${String(order.paymentStatus).replaceAll("_", " ")}`
+                                                                : order.paymentMethod || "Payment details unavailable"}
                                                         </span>
                                                     </div>
                                                 </div>

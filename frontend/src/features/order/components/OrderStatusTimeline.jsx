@@ -11,9 +11,9 @@ import {
 
 const statusSteps = [
     {
-        key: "PLACED",
-        label: "Order Placed",
-        description: "Your order has been placed successfully.",
+        key: "PENDING",
+        label: "Order Pending",
+        description: "Your order has been received and is awaiting confirmation.",
         icon: CheckCircle,
     },
     {
@@ -53,6 +53,8 @@ function OrderStatusTimeline({ currentStatus }) {
         (step) => step.key === currentStatus
     );
 
+    const isCancelled = currentStatus === "CANCELLED";
+
     return (
         <motion.div
             className="card border-0 shadow-sm mb-4"
@@ -61,136 +63,149 @@ function OrderStatusTimeline({ currentStatus }) {
             transition={{ duration: 0.4 }}
         >
             <div className="card-body p-4">
-
                 <div className="d-flex align-items-center gap-2 mb-4">
                     <Truck size={21} />
-
                     <h5 className="fw-semibold mb-0">
                         Order Tracking
                     </h5>
                 </div>
 
-                <div>
-                    {statusSteps.map((step, index) => {
-                        const Icon = step.icon;
+                {isCancelled ? (
+                    <div
+                        className="p-3 rounded"
+                        style={{
+                            backgroundColor: "#fff0f0",
+                            color: "#b44444",
+                        }}
+                    >
+                        <div className="d-flex align-items-center gap-2 mb-1">
+                            <Circle size={20} />
+                            <strong>Order Cancelled</strong>
+                        </div>
 
-                        const isCompleted =
-                            index <= currentIndex;
+                        <p className="small mb-0">
+                            This order has been cancelled. The normal
+                            delivery timeline no longer applies.
+                        </p>
+                    </div>
+                ) : currentIndex === -1 ? (
+                    <p className="text-muted small mb-0">
+                        Tracking information is currently unavailable.
+                    </p>
+                ) : (
+                    <div>
+                        {statusSteps.map((step, index) => {
+                            const Icon = step.icon;
 
-                        const isCurrent =
-                            index === currentIndex;
+                            const isCompleted =
+                                index <= currentIndex;
 
-                        const isLast =
-                            index === statusSteps.length - 1;
+                            const isCurrent =
+                                index === currentIndex;
 
-                        return (
-                            <div
-                                key={step.key}
-                                className="d-flex position-relative"
-                            >
+                            const isLast =
+                                index === statusSteps.length - 1;
 
-                                {/* Timeline line */}
-                                {!isLast && (
-                                    <div
-                                        className="position-absolute"
-                                        style={{
-                                            left: "17px",
-                                            top: "38px",
-                                            width: "2px",
-                                            height: "calc(100% - 4px)",
-                                            backgroundColor:
-                                                index < currentIndex
-                                                    ? "#212529"
-                                                    : "#dee2e6",
-                                        }}
-                                    />
-                                )}
-
-                                {/* Icon */}
-                                <motion.div
-                                    className="position-relative bg-white d-flex align-items-center justify-content-center flex-shrink-0"
-                                    style={{
-                                        width: "36px",
-                                        height: "36px",
-                                        zIndex: 1,
-                                    }}
-                                    initial={{
-                                        scale: 0.8,
-                                        opacity: 0,
-                                    }}
-                                    animate={{
-                                        scale: 1,
-                                        opacity: 1,
-                                    }}
-                                    transition={{
-                                        delay: index * 0.08,
-                                        duration: 0.3,
-                                    }}
+                            return (
+                                <div
+                                    key={step.key}
+                                    className="d-flex position-relative"
                                 >
-                                    {isCompleted ? (
-                                        <Icon
-                                            size={25}
-                                            strokeWidth={2}
-                                        />
-                                    ) : (
-                                        <Circle
-                                            size={22}
-                                            strokeWidth={1.5}
-                                            className="text-muted"
+                                    {/* Timeline connector */}
+                                    {!isLast && (
+                                        <div
+                                            className="position-absolute"
+                                            style={{
+                                                left: "17px",
+                                                top: "38px",
+                                                width: "2px",
+                                                height: "calc(100% - 4px)",
+                                                backgroundColor:
+                                                    index < currentIndex
+                                                        ? "#212529"
+                                                        : "#dee2e6",
+                                            }}
                                         />
                                     )}
-                                </motion.div>
 
-                                {/* Content */}
-                                <motion.div
-                                    className="ms-3 pb-4"
-                                    initial={{
-                                        opacity: 0,
-                                        x: 10,
-                                    }}
-                                    animate={{
-                                        opacity: 1,
-                                        x: 0,
-                                    }}
-                                    transition={{
-                                        delay: index * 0.08,
-                                        duration: 0.3,
-                                    }}
-                                >
-                                    <div className="d-flex align-items-center gap-2 flex-wrap">
-
-                                        <h6
-                                            className={`mb-1 ${isCompleted
-                                                    ? "fw-bold"
-                                                    : "fw-medium text-muted"
-                                                }`}
-                                        >
-                                            {step.label}
-                                        </h6>
-
-                                        {isCurrent && (
-                                            <span className="badge text-bg-dark">
-                                                Current
-                                            </span>
-                                        )}
-
-                                    </div>
-
-                                    <p
-                                        className={`small mb-0 ${isCompleted
-                                                ? "text-muted"
-                                                : "text-muted opacity-75"
-                                            }`}
+                                    {/* Status icon */}
+                                    <motion.div
+                                        className="position-relative bg-white d-flex align-items-center justify-content-center flex-shrink-0"
+                                        style={{
+                                            width: "36px",
+                                            height: "36px",
+                                            zIndex: 1,
+                                        }}
+                                        initial={{
+                                            scale: 0.8,
+                                            opacity: 0,
+                                        }}
+                                        animate={{
+                                            scale: 1,
+                                            opacity: 1,
+                                        }}
+                                        transition={{
+                                            delay: index * 0.08,
+                                            duration: 0.3,
+                                        }}
                                     >
-                                        {step.description}
-                                    </p>
-                                </motion.div>
+                                        {isCompleted ? (
+                                            <Icon
+                                                size={25}
+                                                strokeWidth={2}
+                                            />
+                                        ) : (
+                                            <Circle
+                                                size={22}
+                                                strokeWidth={1.5}
+                                                className="text-muted"
+                                            />
+                                        )}
+                                    </motion.div>
 
-                            </div>
-                        );
-                    })}
-                </div>
+                                    {/* Status description */}
+                                    <motion.div
+                                        className="ms-3 pb-4"
+                                        initial={{
+                                            opacity: 0,
+                                            x: 10,
+                                        }}
+                                        animate={{
+                                            opacity: 1,
+                                            x: 0,
+                                        }}
+                                        transition={{
+                                            delay: index * 0.08,
+                                            duration: 0.3,
+                                        }}
+                                    >
+                                        <div className="d-flex align-items-center gap-2 flex-wrap">
+                                            <h6
+                                                className={`mb-1 ${
+                                                    isCompleted
+                                                        ? "fw-bold"
+                                                        : "fw-medium text-muted"
+                                                }`}
+                                            >
+                                                {step.label}
+                                            </h6>
 
+                                            {isCurrent && (
+                                                <span className="badge text-bg-dark">
+                                                    Current
+                                                </span>
+                                            )}
+                                        </div>
+
+                                        <p className="small mb-0 text-muted">
+                                            {step.description}
+                                        </p>
+                                    </motion.div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                )}
             </div>
         </motion.div>
     );
