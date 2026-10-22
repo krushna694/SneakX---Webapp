@@ -1,3 +1,4 @@
+
 package com.sneakx.inventory;
 
 import java.util.Optional;
@@ -15,11 +16,18 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
 
     boolean existsByVariantId(Long variantId);
 
+    @Query("""
+            SELECT COUNT(i)
+            FROM Inventory i
+            WHERE i.availableQuantity <= :threshold
+            """)
+    long countLowStock(@Param("threshold") int threshold);
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("""
-                SELECT i
-                FROM Inventory i
-                WHERE i.variant.id = :variantId
+            SELECT i
+            FROM Inventory i
+            WHERE i.variant.id = :variantId
             """)
     Optional<Inventory> findByVariantIdForUpdate(
             @Param("variantId") Long variantId);

@@ -17,46 +17,46 @@ import jakarta.validation.Valid;
 @RequestMapping("/api/inventory")
 public class InventoryController {
 
-    private final InventoryService inventoryService;
+        private final InventoryService inventoryService;
 
-    public InventoryController(InventoryService inventoryService) {
-        this.inventoryService = inventoryService;
-    }
+        public InventoryController(InventoryService inventoryService) {
+                this.inventoryService = inventoryService;
+        }
 
-    // --------------------------------------------------
-    // GET INVENTORY
-    // --------------------------------------------------
+        // --------------------------------------------------
+        // GET INVENTORY
+        // --------------------------------------------------
 
-    @GetMapping("/variant/{variantId}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'STAFF')")
-    public ResponseEntity<ApiResponse<InventoryResponse>> getInventory(
-            @PathVariable Long variantId) {
+        @GetMapping("/variant/{variantId}")
+        @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'STAFF')")
+        public ResponseEntity<ApiResponse<InventoryResponse>> getInventory(
+                        @PathVariable Long variantId) {
 
-        InventoryResponse inventory = inventoryService.getInventory(variantId);
+                InventoryResponse inventory = inventoryService.getInventory(variantId);
 
-        return ResponseEntity.ok(
-                ApiResponse.success(
-                        "Inventory fetched successfully",
-                        inventory));
-    }
+                return ResponseEntity.ok(
+                                ApiResponse.success(
+                                                "Inventory fetched successfully",
+                                                inventory));
+        }
 
-    // --------------------------------------------------
-    // ADD STOCK
-    // --------------------------------------------------
+        // --------------------------------------------------
+        // ADD STOCK
+        // --------------------------------------------------
 
-    @PostMapping("/variant/{variantId}/add-stock")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'STAFF')")
-    public ResponseEntity<ApiResponse<InventoryResponse>> addStock(
-            @PathVariable Long variantId,
-            @Valid @RequestBody InventoryAdminRequest request) {
+        @PostMapping("/variant/{variantId}/add-stock")
+        @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+        public ResponseEntity<ApiResponse<InventoryResponse>> addStock(
+                        @PathVariable Long variantId,
+                        @Valid @RequestBody InventoryAdminRequest request) {
 
-        InventoryResponse inventory = inventoryService.addStock(
-                variantId,
-                request.quantity());
+                InventoryResponse inventory = inventoryService.addStock(
+                                variantId,
+                                request.quantity());
 
-        return ResponseEntity.ok(
-                ApiResponse.success(
-                        "Stock added successfully",
-                        inventory));
-    }
+                return ResponseEntity.ok(
+                                ApiResponse.success(
+                                                "Stock added successfully",
+                                                inventory));
+        }
 }
