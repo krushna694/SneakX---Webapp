@@ -1,5 +1,10 @@
+
 package com.sneakx.auth;
 
+import java.util.Set;
+import java.util.stream.Collectors;
+
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -45,62 +50,76 @@ public class AuthService {
                 User user = new User();
 
                 user.setFirstName(request.getFirstName().trim());
-
                 user.setLastName(
                                 request.getLastName() != null
                                                 ? request.getLastName().trim()
                                                 : null);
-
                 user.setEmail(email);
-
-                user.setPassword(
-                                passwordEncoder.encode(request.getPassword()));
-
+                user.setPassword(passwordEncoder.encode(request.getPassword()));
                 user.setPhone(
                                 request.getPhone() != null
                                                 ? request.getPhone().trim()
                                                 : null);
 
+                // Public registration always assigns CUSTOMER.
                 user.addRole(customerRole);
 
                 User savedUser = userRepository.save(user);
 
-                String token = jwtService.generateToken(savedUser.getEmail());
-
-                return new AuthResponse(
-                                token,
-                                savedUser.getId(),
-                                savedUser.getFirstName(),
-                                savedUser.getLastName(),
-                                savedUser.getEmail(),
-                                savedUser.getRoles()
-                                                .stream()
-                                                .map(Role::getName)
-                                                .collect(java.util.stream.Collectors.toSet()));
+                return createAuthResponse(savedUser);
         }
 
         public AuthResponse login(LoginRequest request) {
+                User user = authenticateCredentials(request);
+
+                return createAuthResponse(user);
+        }
+
+        /**
+         * Dedicated login for the confidential admin portal.
+         * Only active users with the ADMIN role can receive a token.
+         */
+        public AuthResponse adminLogin(LoginRequest request) {
+                User user = authenticateCredentials(request);
+
+                boolean isAdmin = user.getRoles().stream()
+                                .anyMatch(role -> "ADMIN".equals(role.getName()));
+
+                if (!isAdmin) {
+                        // Do not issue a token or disclose the account's roles.
+                        throw new BadCredentialsException("Invalid email or password");
+                }
+
+                return createAuthResponse(user);
+        }
+
+        private User authenticateCredentials(LoginRequest request) {
 
                 String email = request.getEmail().trim().toLowerCase();
 
                 User user = userRepository.findByEmail(email)
-                                .orElseThrow(() -> new IllegalArgumentException(
+                                .orElseThrow(() -> new BadCredentialsException(
                                                 "Invalid email or password"));
 
-                if (!user.isActive()) {
-                        throw new IllegalStateException(
+                if (!user.isActive()
+                                || !passwordEncoder.matches(
+                                                request.getPassword(),
+                                                user.getPassword())) {
+
+                        throw new BadCredentialsException(
                                         "Invalid email or password");
                 }
 
-                if (!passwordEncoder.matches(
-                                request.getPassword(),
-                                user.getPassword())) {
+                return user;
+        }
 
-                        throw new IllegalArgumentException(
-                                        "Invalid email or password");
-                }
+        private AuthResponse createAuthResponse(User user) {
 
                 String token = jwtService.generateToken(user.getEmail());
+
+                Set<String> roles = user.getRoles().stream()
+                                .map(Role::getName)
+                                .collect(Collectors.toSet());
 
                 return new AuthResponse(
                                 token,
@@ -108,9 +127,6 @@ public class AuthService {
                                 user.getFirstName(),
                                 user.getLastName(),
                                 user.getEmail(),
-                                user.getRoles()
-                                                .stream()
-                                                .map(Role::getName)
-                                                .collect(java.util.stream.Collectors.toSet()));
+                                roles);
         }
 }

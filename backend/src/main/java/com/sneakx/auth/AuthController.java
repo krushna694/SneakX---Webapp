@@ -15,111 +15,127 @@ import jakarta.validation.Valid;
 @RequestMapping("/api/auth")
 public class AuthController {
 
-    private final AuthService authService;
+        private final AuthService authService;
 
-    private final PasswordResetService passwordResetService;
+        private final PasswordResetService passwordResetService;
 
-    public AuthController(
-            AuthService authService,
-            PasswordResetService passwordResetService) {
-        this.authService = authService;
+        public AuthController(
+                        AuthService authService,
+                        PasswordResetService passwordResetService) {
+                this.authService = authService;
 
-        this.passwordResetService = passwordResetService;
-    }
+                this.passwordResetService = passwordResetService;
+        }
 
-    // =========================================
-    // REGISTER
-    // =========================================
+        // =========================================
+        // REGISTER
+        // =========================================
 
-    @PostMapping("/register")
-    public ResponseEntity<ApiResponse<AuthResponse>> register(
-            @Valid @RequestBody RegisterRequest request) {
+        @PostMapping("/register")
+        public ResponseEntity<ApiResponse<AuthResponse>> register(
+                        @Valid @RequestBody RegisterRequest request) {
 
-        AuthResponse response = authService.register(request);
+                AuthResponse response = authService.register(request);
 
-        return ResponseEntity
-                .status(HttpStatus.CREATED)
-                .body(
-                        ApiResponse.success(
-                                "Registration successful",
-                                response));
-    }
+                return ResponseEntity
+                                .status(HttpStatus.CREATED)
+                                .body(
+                                                ApiResponse.success(
+                                                                "Registration successful",
+                                                                response));
+        }
 
-    // =========================================
-    // LOGIN
-    // =========================================
+        // =========================================
+        // LOGIN
+        // =========================================
 
-    @PostMapping("/login")
-    public ResponseEntity<ApiResponse<AuthResponse>> login(
-            @Valid @RequestBody LoginRequest request) {
+        @PostMapping("/login")
+        public ResponseEntity<ApiResponse<AuthResponse>> login(
+                        @Valid @RequestBody LoginRequest request) {
 
-        AuthResponse response = authService.login(request);
+                AuthResponse response = authService.login(request);
 
-        return ResponseEntity.ok(
-                ApiResponse.success(
-                        "Login successful",
-                        response));
-    }
+                return ResponseEntity.ok(
+                                ApiResponse.success(
+                                                "Login successful",
+                                                response));
+        }
 
-    // =========================================
-    // FORGOT PASSWORD
-    // =========================================
+        // =========================================
+        // ADMIN LOGIN
+        // =========================================
 
-    @PostMapping("/forgot-password")
-    public ResponseEntity<ApiResponse<Void>> forgotPassword(
-            @Valid @RequestBody ForgotPasswordRequest request) {
+        @PostMapping("/admin/login")
+        public ResponseEntity<ApiResponse<AuthResponse>> adminLogin(
+                        @Valid @RequestBody LoginRequest request) {
 
-        passwordResetService
-                .requestPasswordReset(
-                        request.getEmail());
+                AuthResponse response = authService.adminLogin(request);
 
-        /*
-         * Intentionally generic.
-         *
-         * This prevents revealing whether
-         * an email belongs to an account.
-         */
-        return ResponseEntity.ok(
-                ApiResponse.success(
-                        "If an account exists for this email, a password reset OTP has been sent.",
-                        null));
-    }
+                return ResponseEntity.ok(
+                                ApiResponse.success(
+                                                "Admin login successful",
+                                                response));
+        }
 
-    // =========================================
-    // VERIFY RESET OTP
-    // =========================================
+        // =========================================
+        // FORGOT PASSWORD
+        // =========================================
 
-    @PostMapping("/verify-reset-otp")
-    public ResponseEntity<ApiResponse<String>> verifyResetOtp(
-            @Valid @RequestBody VerifyResetOtpRequest request) {
+        @PostMapping("/forgot-password")
+        public ResponseEntity<ApiResponse<Void>> forgotPassword(
+                        @Valid @RequestBody ForgotPasswordRequest request) {
 
-        String resetToken = passwordResetService
-                .verifyResetOtp(
-                        request.getEmail(),
-                        request.getOtp());
+                passwordResetService
+                                .requestPasswordReset(
+                                                request.getEmail());
 
-        return ResponseEntity.ok(
-                ApiResponse.success(
-                        "OTP verified successfully",
-                        resetToken));
-    }
+                /*
+                 * Intentionally generic.
+                 *
+                 * This prevents revealing whether
+                 * an email belongs to an account.
+                 */
+                return ResponseEntity.ok(
+                                ApiResponse.success(
+                                                "If an account exists for this email, a password reset OTP has been sent.",
+                                                null));
+        }
 
-    // =========================================
-    // RESET PASSWORD
-    // =========================================
+        // =========================================
+        // VERIFY RESET OTP
+        // =========================================
 
-    @PostMapping("/reset-password")
-    public ResponseEntity<ApiResponse<Void>> resetPassword(
-            @Valid @RequestBody ResetPasswordRequest request) {
+        @PostMapping("/verify-reset-otp")
+        public ResponseEntity<ApiResponse<String>> verifyResetOtp(
+                        @Valid @RequestBody VerifyResetOtpRequest request) {
 
-        passwordResetService
-                .resetPassword(
-                        request.getResetToken(),
-                        request.getNewPassword());
+                String resetToken = passwordResetService
+                                .verifyResetOtp(
+                                                request.getEmail(),
+                                                request.getOtp());
 
-        return ResponseEntity.ok(
-                ApiResponse.success(
-                        "Password reset successfully",
-                        null));
-    }
+                return ResponseEntity.ok(
+                                ApiResponse.success(
+                                                "OTP verified successfully",
+                                                resetToken));
+        }
+
+        // =========================================
+        // RESET PASSWORD
+        // =========================================
+
+        @PostMapping("/reset-password")
+        public ResponseEntity<ApiResponse<Void>> resetPassword(
+                        @Valid @RequestBody ResetPasswordRequest request) {
+
+                passwordResetService
+                                .resetPassword(
+                                                request.getResetToken(),
+                                                request.getNewPassword());
+
+                return ResponseEntity.ok(
+                                ApiResponse.success(
+                                                "Password reset successfully",
+                                                null));
+        }
 }

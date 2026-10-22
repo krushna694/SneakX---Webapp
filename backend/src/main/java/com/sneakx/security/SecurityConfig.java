@@ -1,3 +1,4 @@
+
 package com.sneakx.security;
 
 import org.springframework.context.annotation.Bean;
@@ -42,7 +43,6 @@ public class SecurityConfig {
 
                                 // Security response headers.
                                 .headers(headers -> headers
-
                                                 // Prevent MIME-type sniffing.
                                                 .contentTypeOptions(contentTypeOptions -> {
                                                 })
@@ -67,17 +67,17 @@ public class SecurityConfig {
                                 .httpBasic(basic -> basic.disable())
 
                                 // Stateless API.
-                                .sessionManagement(session -> session.sessionCreationPolicy(
-                                                SessionCreationPolicy.STATELESS))
+                                .sessionManagement(session -> session
+                                                .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 
                                 // Authentication and authorization rules.
                                 .authorizeHttpRequests(auth -> auth
 
-                                                // Public authentication endpoints
-                                                // and Razorpay webhook.
+                                                // Public authentication endpoints and payment webhook.
                                                 .requestMatchers(
                                                                 "/api/auth/register",
                                                                 "/api/auth/login",
+                                                                "/api/auth/admin/login",
                                                                 "/api/auth/forgot-password",
                                                                 "/api/auth/verify-reset-otp",
                                                                 "/api/auth/reset-password",
@@ -85,17 +85,12 @@ public class SecurityConfig {
                                                 .permitAll()
 
                                                 // Every other API requires authentication.
-                                                .anyRequest()
-                                                .authenticated())
+                                                .anyRequest().authenticated())
 
                                 // Authentication / authorization errors.
                                 .exceptionHandling(exception -> exception
-
-                                                .authenticationEntryPoint(
-                                                                authenticationEntryPoint)
-
-                                                .accessDeniedHandler(
-                                                                accessDeniedHandler))
+                                                .authenticationEntryPoint(authenticationEntryPoint)
+                                                .accessDeniedHandler(accessDeniedHandler))
 
                                 // JWT filter.
                                 .addFilterBefore(

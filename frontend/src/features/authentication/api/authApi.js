@@ -52,3 +52,12 @@ export const resetPasswordApi = async (resetToken, newPassword) => {
 
   return response.data;
 };
+
+export const adminLoginApi = async (email, password) => {
+  const response = await apiClient.post("/api/auth/admin/login", {
+    email: email.trim().toLowerCase(),
+    password,
+  });
+
+  return response.data;
+};

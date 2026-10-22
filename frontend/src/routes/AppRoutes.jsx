@@ -16,6 +16,9 @@ import Orders from "../pages/Order/Orders";
 import OrderDetails from "../pages/Order/OrderDetails";
 import ForgotPassword from "../features/authentication/pages/ForgotPassword";
 import ResetPassword from "../features/authentication/pages/ResetPassword";
+import AdminRoute from "../features/authentication/routes/AdminRoute";
+import AdminDashboard from "../pages/Admin/AdminDashboard";
+import AdminLogin from "../features/authentication/pages/AdminLogin";
 
 function AppRoutes() {
     return (
@@ -44,6 +47,14 @@ function AppRoutes() {
                 path="/orders/:orderId"
                 element={<OrderDetails />}
             />
+
+            <Route element={<AdminRoute />}>
+                <Route
+                    path="/admin/dashboard"
+                    element={<AdminDashboard />}
+                />
+            </Route>
+            <Route path="/admin/login" element={<AdminLogin />} />
         </Routes>
     );
 }
