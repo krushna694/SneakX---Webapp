@@ -54,7 +54,7 @@ function AppRoutes() {
                     element={<AdminDashboard />}
                 />
             </Route>
-            <Route path="/admin/login" element={<AdminLogin />} />
+            <Route path="/control-center/login" element={<AdminLogin />} />
         </Routes>
     );
 }
