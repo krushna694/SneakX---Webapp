@@ -12,23 +12,23 @@ import jakarta.persistence.LockModeType;
 
 public interface InventoryRepository extends JpaRepository<Inventory, Long> {
 
-    Optional<Inventory> findByVariantId(Long variantId);
+        Optional<Inventory> findByVariantId(Long variantId);
 
-    boolean existsByVariantId(Long variantId);
+        boolean existsByVariantId(Long variantId);
 
-    @Query("""
-            SELECT COUNT(i)
-            FROM Inventory i
-            WHERE i.availableQuantity <= :threshold
-            """)
-    long countLowStock(@Param("threshold") int threshold);
+        @Query("""
+                        SELECT COUNT(i)
+                        FROM Inventory i
+                        WHERE i.availableQuantity <= :threshold
+                        """)
+        long countLowStock(@Param("threshold") int threshold);
 
-    @Lock(LockModeType.PESSIMISTIC_WRITE)
-    @Query("""
-            SELECT i
-            FROM Inventory i
-            WHERE i.variant.id = :variantId
-            """)
-    Optional<Inventory> findByVariantIdForUpdate(
-            @Param("variantId") Long variantId);
+        @Lock(LockModeType.PESSIMISTIC_WRITE)
+        @Query("""
+                        SELECT i
+                        FROM Inventory i
+                        WHERE i.variant.id = :variantId
+                        """)
+        Optional<Inventory> findByVariantIdForUpdate(
+                        @Param("variantId") Long variantId);
 }
