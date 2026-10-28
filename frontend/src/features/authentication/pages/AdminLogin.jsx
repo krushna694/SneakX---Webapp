@@ -2,7 +2,12 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Eye, EyeOff, LockKeyhole, ShieldCheck } from "lucide-react";
+import {
+    Eye,
+    EyeOff,
+    LockKeyhole,
+    ShieldCheck,
+} from "lucide-react";
 import { adminLoginApi } from "../api/authApi";
 
 function AdminLogin() {
@@ -31,23 +36,31 @@ function AdminLogin() {
         setIsLoading(true);
 
         try {
-            const response = await adminLoginApi(
+            // adminLoginApi returns response.data directly.
+            const payload = await adminLoginApi(
                 normalizedEmail,
                 password
             );
 
-            const authData = response?.data;
+            // The backend envelope contains the authentication data.
+            const authData = payload?.data;
             const roles = Array.isArray(authData?.roles)
                 ? authData.roles
                 : [];
 
-            // Never store a token for an unexpected role.
-            if (
-                !response?.success ||
-                !authData?.token ||
-                !roles.includes("ADMIN")
-            ) {
-                setError("Unable to sign in with these credentials.");
+            if (payload?.success !== true || !authData?.token) {
+                setError(
+                    payload?.message ||
+                    "Unable to verify administrator access."
+                );
+                return;
+            }
+
+            // Do not permit non-admin accounts into the control center.
+            if (!roles.includes("ADMIN")) {
+                setError(
+                    "Unauthorized access. Administrator privileges required."
+                );
                 return;
             }
 
@@ -79,13 +92,22 @@ function AdminLogin() {
 
             navigate("/admin/dashboard", { replace: true });
         } catch (requestError) {
-            setError(
-                requestError.response?.status === 401 ||
-                    requestError.response?.status === 403
-                    ? "Unable to sign in with these credentials."
-                    : requestError.response?.data?.message ||
+            const status = requestError.response?.status;
+            const backendMessage =
+                requestError.response?.data?.message;
+
+            if (status === 403) {
+                setError(
+                    "Unauthorized access. Administrator privileges required."
+                );
+            } else if (status === 401) {
+                setError("Invalid email or password.");
+            } else {
+                setError(
+                    backendMessage ||
                     "Sign-in failed. Please try again."
-            );
+                );
+            }
         } finally {
             setIsLoading(false);
         }
@@ -109,7 +131,12 @@ function AdminLogin() {
                     boxShadow: "0 12px 40px rgba(0,0,0,0.07)",
                 }}
             >
-                <div style={{ height: "4px", background: "#ff5a1f" }} />
+                <div
+                    style={{
+                        height: "4px",
+                        background: "#ff5a1f",
+                    }}
+                />
 
                 <div className="card-body p-4 p-md-5">
                     <div
@@ -139,14 +166,20 @@ function AdminLogin() {
 
                     <h1
                         className="text-center fw-bold mb-2"
-                        style={{ fontSize: "25px", color: "#111111" }}
+                        style={{
+                            fontSize: "25px",
+                            color: "#111111",
+                        }}
                     >
                         Administrator Sign In
                     </h1>
 
                     <p
                         className="text-center mb-4"
-                        style={{ fontSize: "12px", color: "#777777" }}
+                        style={{
+                            fontSize: "12px",
+                            color: "#777777",
+                        }}
                     >
                         Authorized administrators only.
                     </p>
@@ -154,6 +187,7 @@ function AdminLogin() {
                     {error && (
                         <div
                             role="alert"
+                            aria-live="polite"
                             className="mb-3"
                             style={{
                                 padding: "12px",
@@ -219,7 +253,9 @@ function AdminLogin() {
 
                                 <input
                                     id="adminPassword"
-                                    type={showPassword ? "text" : "password"}
+                                    type={
+                                        showPassword ? "text" : "password"
+                                    }
                                     className="form-control"
                                     autoComplete="current-password"
                                     placeholder="Enter your password"
@@ -242,7 +278,9 @@ function AdminLogin() {
                                     type="button"
                                     className="btn btn-outline-secondary"
                                     onClick={() =>
-                                        setShowPassword((current) => !current)
+                                        setShowPassword(
+                                            (current) => !current
+                                        )
                                     }
                                     aria-label={
                                         showPassword
@@ -251,9 +289,11 @@ function AdminLogin() {
                                     }
                                     disabled={isLoading}
                                 >
-                                    {showPassword
-                                        ? <EyeOff size={16} />
-                                        : <Eye size={16} />}
+                                    {showPassword ? (
+                                        <EyeOff size={16} />
+                                    ) : (
+                                        <Eye size={16} />
+                                    )}
                                 </button>
                             </div>
                         </div>

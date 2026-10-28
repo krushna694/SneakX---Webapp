@@ -4,6 +4,7 @@ package com.sneakx.auth;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -69,7 +70,12 @@ public class AuthService {
                 return createAuthResponse(savedUser);
         }
 
+        /**
+         * Normal login for customers and administrators.
+         * Existing roles are retained in the authentication response.
+         */
         public AuthResponse login(LoginRequest request) {
+
                 User user = authenticateCredentials(request);
 
                 return createAuthResponse(user);
@@ -80,19 +86,24 @@ public class AuthService {
          * Only active users with the ADMIN role can receive a token.
          */
         public AuthResponse adminLogin(LoginRequest request) {
+
                 User user = authenticateCredentials(request);
 
                 boolean isAdmin = user.getRoles().stream()
                                 .anyMatch(role -> "ADMIN".equals(role.getName()));
 
                 if (!isAdmin) {
-                        // Do not issue a token or disclose the account's roles.
-                        throw new BadCredentialsException("Invalid email or password");
+                        // Valid credentials, but this user is not an administrator.
+                        throw new AccessDeniedException(
+                                        "Unauthorized access. Administrator privileges required.");
                 }
 
                 return createAuthResponse(user);
         }
 
+        /**
+         * Validates credentials and rejects inactive accounts.
+         */
         private User authenticateCredentials(LoginRequest request) {
 
                 String email = request.getEmail().trim().toLowerCase();
@@ -113,6 +124,9 @@ public class AuthService {
                 return user;
         }
 
+        /**
+         * Creates the authentication response with a JWT and existing roles.
+         */
         private AuthResponse createAuthResponse(User user) {
 
                 String token = jwtService.generateToken(user.getEmail());
