@@ -1,3 +1,4 @@
+
 import { useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -14,14 +15,12 @@ import { useCart } from "../../hooks/useCart";
 import { useWishlist } from "../../hooks/useWishlist";
 
 function ProductInfo({ product }) {
-    const [selectedSize, setSelectedSize] =
-        useState(null);
+    const [selectedSize, setSelectedSize] = useState(null);
 
-    const [quantity, setQuantity] =
-        useState(1);
+    const [quantity, setQuantity] = useState(1);
 
-    const [cartMessage, setCartMessage] =
-        useState("");
+    const [cartMessage, setCartMessage] = useState("");
+    const [cartMessageType, setCartMessageType] = useState("");
 
     const { addToCart } = useCart();
 
@@ -67,35 +66,36 @@ function ProductInfo({ product }) {
     // ADD TO CART
     // ==========================================
 
-    const handleAddToCart = () => {
+    const handleAddToCart = async () => {
         if (!selectedSize) {
-            setCartMessage(
-                "Please select a size first."
-            );
+            setCartMessageType("error");
+            setCartMessage("Please select a size first.");
             return;
         }
 
         if (!selectedVariant) {
-            setCartMessage(
-                "Selected size is unavailable."
-            );
+            setCartMessageType("error");
+            setCartMessage("Selected size is unavailable.");
             return;
         }
 
-        addToCart(
+        const result = await addToCart(
             product,
             quantity,
             selectedSize,
             selectedVariant.id
         );
 
-        setCartMessage(
-            "Added to your cart."
-        );
-
-        setTimeout(() => {
-            setCartMessage("");
-        }, 2500);
+        if (result?.success) {
+            setCartMessageType("success");
+            setCartMessage("Added to your cart.");
+        } else {
+            setCartMessageType("error");
+            setCartMessage(
+                result?.message ||
+                "Unable to add product to cart."
+            );
+        }
     };
 
     // ==========================================
@@ -117,6 +117,7 @@ function ProductInfo({ product }) {
     const handleSizeChange = (size) => {
         setSelectedSize(size);
         setCartMessage("");
+        setCartMessageType("");
     };
 
     return (
@@ -173,8 +174,7 @@ function ProductInfo({ product }) {
                         style={{
                             minHeight: "54px",
                             borderRadius: "13px",
-                            background:
-                                "var(--sx-accent)",
+                            background: "var(--sx-accent)",
                             fontSize: "0.82rem",
                             fontWeight: 800,
                             letterSpacing: "-0.01em",
@@ -204,16 +204,13 @@ function ProductInfo({ product }) {
                             minWidth: "54px",
                             height: "54px",
                             borderRadius: "13px",
-                            background:
-                                inWishlist
-                                    ? "#111111"
-                                    : "#ffffff",
-                            color:
-                                inWishlist
-                                    ? "#ffffff"
-                                    : "#111111",
-                            borderColor:
-                                "#dededb",
+                            background: inWishlist
+                                ? "#111111"
+                                : "#ffffff",
+                            color: inWishlist
+                                ? "#ffffff"
+                                : "#111111",
+                            borderColor: "#dededb",
                         }}
                         aria-label={
                             inWishlist
@@ -253,12 +250,7 @@ function ProductInfo({ product }) {
                             className="d-flex align-items-center gap-2 mt-3"
                             style={{
                                 color:
-                                    cartMessage.includes(
-                                        "Please"
-                                    ) ||
-                                        cartMessage.includes(
-                                            "unavailable"
-                                        )
+                                    cartMessageType === "error"
                                         ? "#d64545"
                                         : "#248a52",
                                 fontSize: "0.74rem",
@@ -277,8 +269,7 @@ function ProductInfo({ product }) {
                 <div
                     className="mt-4"
                     style={{
-                        borderTop:
-                            "1px solid #e5e5e2",
+                        borderTop: "1px solid #e5e5e2",
                     }}
                 >
 
@@ -287,8 +278,7 @@ function ProductInfo({ product }) {
                     <div
                         className="d-flex align-items-center gap-3 py-3"
                         style={{
-                            borderBottom:
-                                "1px solid #e5e5e2",
+                            borderBottom: "1px solid #e5e5e2",
                         }}
                     >
                         <div
@@ -297,8 +287,7 @@ function ProductInfo({ product }) {
                                 width: "38px",
                                 height: "38px",
                                 borderRadius: "11px",
-                                background:
-                                    "#f2f2ef",
+                                background: "#f2f2ef",
                             }}
                         >
                             <Truck size={17} />
@@ -307,11 +296,9 @@ function ProductInfo({ product }) {
                         <div>
                             <div
                                 style={{
-                                    fontSize:
-                                        "0.75rem",
+                                    fontSize: "0.75rem",
                                     fontWeight: 800,
-                                    color:
-                                        "#222222",
+                                    color: "#222222",
                                 }}
                             >
                                 Fast & Reliable Delivery
@@ -319,10 +306,8 @@ function ProductInfo({ product }) {
 
                             <div
                                 style={{
-                                    fontSize:
-                                        "0.68rem",
-                                    color:
-                                        "#999999",
+                                    fontSize: "0.68rem",
+                                    color: "#999999",
                                     marginTop: "2px",
                                 }}
                             >
@@ -342,8 +327,7 @@ function ProductInfo({ product }) {
                                 width: "38px",
                                 height: "38px",
                                 borderRadius: "11px",
-                                background:
-                                    "#f2f2ef",
+                                background: "#f2f2ef",
                             }}
                         >
                             <ShieldCheck size={17} />
@@ -352,11 +336,9 @@ function ProductInfo({ product }) {
                         <div>
                             <div
                                 style={{
-                                    fontSize:
-                                        "0.75rem",
+                                    fontSize: "0.75rem",
                                     fontWeight: 800,
-                                    color:
-                                        "#222222",
+                                    color: "#222222",
                                 }}
                             >
                                 Secure Checkout
@@ -364,10 +346,8 @@ function ProductInfo({ product }) {
 
                             <div
                                 style={{
-                                    fontSize:
-                                        "0.68rem",
-                                    color:
-                                        "#999999",
+                                    fontSize: "0.68rem",
+                                    color: "#999999",
                                     marginTop: "2px",
                                 }}
                             >
@@ -399,10 +379,8 @@ function ProductInfo({ product }) {
                             className="mt-3 px-3 py-2 d-flex align-items-center gap-2"
                             style={{
                                 borderRadius: "10px",
-                                background:
-                                    "#fff4ef",
-                                color:
-                                    "var(--sx-accent)",
+                                background: "#fff4ef",
+                                color: "var(--sx-accent)",
                                 fontSize: "0.7rem",
                                 fontWeight: 700,
                             }}
